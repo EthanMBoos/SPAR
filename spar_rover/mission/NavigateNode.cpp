@@ -1,13 +1,6 @@
 #include "NavigateNode.h"
 #include <algorithm>
-#include <chrono>
 #include <cmath>
-
-static uint64_t now_us() {
-    using namespace std::chrono;
-    return static_cast<uint64_t>(
-        duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
-}
 
 static constexpr double DEG2RAD = M_PI / 180.0;
 static constexpr double EARTH_R  = 6371000.0; // metres
@@ -42,11 +35,10 @@ NodeStatus NavigateNode::tick(const GoalContext& goal,
         out_cmd.cmd = {};
         return NodeStatus::Failure;
     }
-    uint64_t age_us = now_us() - pose.timestamp_us;
-    if (age_us > cfg_.max_pose_age_us) {
-        out_cmd.cmd = {};
-        return NodeStatus::Failure;
-    }
+    // Staleness is already gated by ObservationAssembler::kPoseStalenessLimitUs;
+    // any_degraded routes to the fallback before we get here. Re-checking with
+    // now_us() adds one tick of drift (different reference time than the assembler)
+    // and would cause false failures in degraded-transport scenarios.
 
     if (start_us_ == 0) start_us_ = goal.timestamp_us;
     if (goal.timestamp_us - start_us_ > cfg_.timeout_us) {

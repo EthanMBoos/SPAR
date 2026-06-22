@@ -31,6 +31,18 @@ bool ArdupilotAdapter::connect() {
     socket_fd_ = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (socket_fd_ < 0) return false;
 
+    // Bind to any local port before connect() so recv() has a delivery address.
+    // Without this, incoming datagrams are silently dropped.
+    sockaddr_in local{};
+    local.sin_family      = AF_INET;
+    local.sin_addr.s_addr = INADDR_ANY;
+    local.sin_port        = 0;  // OS assigns an ephemeral port
+    if (::bind(socket_fd_, reinterpret_cast<sockaddr*>(&local), sizeof(local)) < 0) {
+        ::close(socket_fd_);
+        socket_fd_ = -1;
+        return false;
+    }
+
     sockaddr_in addr{};
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(cfg_.port);
@@ -74,9 +86,9 @@ bool ArdupilotAdapter::send_set_position_target(const RoverCommand& cmd) {
     mavlink_message_t msg;
     mavlink_set_position_target_local_ned_t tgt{};
 
-    // Type mask: ignore position and acceleration; command vx (throttle mapped
-    // to forward velocity) and yaw rate (steering mapped to turn rate).
-    tgt.type_mask        = 0b110111000111;  // vx + yaw_rate only
+    // Bits 0-2: ignore position (PX,PY,PZ). Bit 3: USE vx. Bits 4-9: ignore remaining vel/acc/yaw.
+    // Bit 10: USE yaw_rate. Result: 0x3F7 = 0b11111110111.
+    tgt.type_mask        = 0x3F7;
     tgt.coordinate_frame = MAV_FRAME_BODY_NED;
     tgt.time_boot_ms     = static_cast<uint32_t>(cmd.timestamp_us / 1000);
     tgt.vx               = cmd.throttle * 2.0f;  // m/s, max ~2 m/s for rover demo
@@ -116,8 +128,16 @@ void ArdupilotAdapter::telemetry_loop() {
     uint8_t           buf[MAVLINK_MAX_PACKET_LEN];
     mavlink_message_t msg;
     mavlink_status_t  status{};
+    uint64_t          last_heartbeat_us = 0;
 
     while (telem_running_.load()) {
+        // Send 1 Hz heartbeat so ArduPilot does not drop the GCS link after ~3 s.
+        uint64_t t = now_us();
+        if (t - last_heartbeat_us >= 1'000'000) {
+            send_heartbeat();
+            last_heartbeat_us = t;
+        }
+
         ssize_t n = ::recv(socket_fd_, buf, sizeof(buf), 0);
         if (n <= 0) continue;  // timeout or error — check flag and loop
 
@@ -130,6 +150,15 @@ void ArdupilotAdapter::telemetry_loop() {
             mavlink_global_position_int_t gp{};
             mavlink_msg_global_position_int_decode(&msg, &gp);
 
+            // On first message: measure the offset from ArduPilot boot clock to our
+            // monotonic clock. Error is ~1 ms (loopback recv latency), well within
+            // the 200 ms staleness bound. This converts gp.time_boot_ms to local time
+            // for all subsequent samples — the assembler's core guarantee requires it.
+            if (!boot_offset_set_) {
+                boot_ms_offset_  = now_us() - static_cast<uint64_t>(gp.time_boot_ms) * 1000;
+                boot_offset_set_ = true;
+            }
+
             Pose p;
             p.lat_deg     = gp.lat / 1e7;
             p.lon_deg     = gp.lon / 1e7;
@@ -137,11 +166,8 @@ void ArdupilotAdapter::telemetry_loop() {
             p.heading_deg = gp.hdg / 100.0f;  // cdeg → deg
             p.speed_ms    = std::sqrt(static_cast<float>(gp.vx * gp.vx +
                                                           gp.vy * gp.vy)) / 100.0f;
-            p.valid       = true;
-
-            // TODO: use gp.time_boot_ms (capture time) converted to our monotonic
-            // clock via a TIMESYNC-derived offset, instead of now_us() (receipt time).
-            p.timestamp_us = now_us();
+            p.valid        = true;
+            p.timestamp_us = static_cast<uint64_t>(gp.time_boot_ms) * 1000 + boot_ms_offset_;
 
             assembler_.push_pose(p.timestamp_us, p);
         }

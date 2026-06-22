@@ -186,37 +186,36 @@ Sanity check: add a temporary ROS2 subscriber in the perception_ws and log `rclc
 
 ## What Needs to Be Built
 
-**Immediate — blocking SITL integration (P0 bugs):**
+**Phase 0 — SITL bug fixes (done):**
 
-- [ ] Fix MAVLink `type_mask` in [spar_rover/adapter/ArdupilotAdapter.cpp:79](spar_rover/adapter/ArdupilotAdapter.cpp#L79) — current value causes ArduPilot to ignore yaw_rate and hold 0° heading; correct value is `0x3F7`
-- [ ] Periodic heartbeat in `ArdupilotAdapter` telemetry loop at 1 Hz — currently sent once on connect; ArduPilot stops accepting commands after a few seconds of silence
-- [ ] Bind UDP socket before `connect()` — without this `recv()` silently drops all ArduPilot telemetry
+- [x] Fix MAVLink `type_mask` — was ignoring yaw_rate; correct value `0x3F7` applied
+- [x] Periodic 1 Hz heartbeat in telemetry loop — was sent once on connect
+- [x] Bind UDP socket before `connect()` — was silently dropping all incoming telemetry
+- [x] Capture timestamp: first-pose boot-clock offset measured at connect; `gp.time_boot_ms` converted to local monotonic instead of `now_us()` — assembler's core guarantee restored
 
-**Phase 1 completion:**
+**Phase 1 completion — still needed before SITL is fully exercised:**
 
-- [ ] Wire `third_party/mavlink` submodule behind `SPAR_ENABLE_MAVLINK`
+- [ ] Wire `third_party/mavlink` submodule behind `SPAR_ENABLE_MAVLINK` (CMake guard exists; submodule must be cloned)
 - [ ] Configure ArduPilot stream rates on connect (`SR2_POSITION=10`, `SR2_EXTRA1=50`)
-- [ ] TIMESYNC offset measurement at connect — currently receipt time is used as capture timestamp, breaking the assembler's core guarantee
-- [ ] Characterize ArduPilot stale/lost-command behavior on the exact SITL config in use (GUIDED Rover, target ArduPilot version): what happens when setpoints go stale or stop arriving — hold last command, ramp to neutral, RTL, or failsafe? The answer is version- and parameter-dependent and must be measured, not assumed. This determines whether "stop writing" is a legitimate fallback or whether the mission-side fallback must guarantee safety without that backstop.
-- [ ] Gazebo world for rover mission execution
-- [ ] MCAP logging replacing the current TSV session file
-- [ ] Temporal-window invariant implementation (oscillation, geofence displacement, jerk)
+- [ ] Characterize ArduPilot stale/lost-command behavior on the exact SITL config in use (GUIDED Rover): what happens when setpoints go stale or stop arriving — hold last command, ramp to neutral, RTL, or failsafe? Version- and parameter-dependent; must be measured, not assumed. Determines whether "stop writing" is a safe fallback or whether the mission layer must issue an explicit stop command.
+- [ ] MCAP logging replacing the current TSV session file (Phase 3 prerequisite — required for temporal-window invariants and offline RL)
+- [ ] Temporal-window invariant implementation (oscillation, geofence displacement, jerk) — Phase 3
 
 **Pose outbound to ROS2 — required before perception pipeline can place obstacles in world frame:**
 
-- [ ] Outbound TF publisher: reads ArduPilot pose from the same MAVLink telemetry thread that feeds `assembler.push_pose()`, publishes to ROS2 `/tf` as `map → base_link` transform — this is the pose perception_ws uses for all sensor frame transforms; it must be the same source as `WorldState.pose` or obstacle positions will be in a different coordinate frame than the rover thinks it is
-- [ ] Validate consistency: after wiring both paths, check that an obstacle at a known world position appears at the correct relative position in WorldState given the rover's reported pose
+- [ ] Outbound TF publisher: reads ArduPilot pose from the same MAVLink telemetry thread that feeds `assembler.push_pose()`, publishes to ROS2 `/tf` as `map → base_link` — must be the same source as `WorldState.pose` or obstacle positions will be in a different coordinate frame than the rover believes it is
+- [ ] Validate consistency: after wiring both paths, check that an obstacle at a known world position appears at the correct relative position in `WorldState` given the rover's reported pose
 
-**Perception workspace — can be scaffolded now, sources are not on the critical path until Phase 2 extended:**
+**Perception workspace — can be scaffolded now; not on the critical path until obstacles enter WorldState:**
 
-- [ ] Create `perception_ws/src/` alongside the spar repo; add a placeholder `obstacle_detector` package with `package.xml` and stub `CMakeLists.txt` so the colcon build skeleton exists before sensor drivers are wired in
+- [ ] Create `perception_ws/src/` alongside the spar repo; add placeholder `obstacle_detector` package with `package.xml` and stub `CMakeLists.txt`
 - [ ] Verify `header.stamp` capture-time correctness for each sensor driver before wiring into the assembler — see verification table above
 - [ ] Docker devcontainer config for macOS: perception_ws colcon build + SPAR cmake with `SPAR_ENABLE_ZENOH=ON`
 
-**Zenoh / rmw_zenoh and SPAR source adapters — not on the critical path until Phase 2 extended (obstacles/camera in WorldState):**
+**Zenoh / rmw_zenoh and SPAR source adapters — not on the critical path until obstacles/camera enter WorldState:**
 
 - [ ] Install `ros-jazzy-rmw-zenoh-cpp` on the Jetson Orin; confirm perception_ws nodes publish over Zenoh by printing `sample.get_keyexpr()` in a test subscriber — record the exact keyexprs for `/scan` and `/obstacles` before writing `ZenohSources.cpp`
 - [ ] Enable shared memory in the Zenoh session config for both perception_ws and spar_rover
-- [ ] `spar_rover/sources/ZenohSources.cpp` — Zenoh subscriber thread, subscribes using wildcard keyexprs confirmed above, deserializes CDR, calls `assembler.push_obstacles()` with `header.stamp` as capture timestamp
-- [ ] `SPAR_ENABLE_ZENOH` CMake flag wired up as above
-- [ ] Transport-degradation layer extended to cover Zenoh sources (delay, jitter, dropout drawn from measured hardware) before running Phase 2 extended catch fraction experiments
+- [ ] `spar_rover/sources/ZenohSources.cpp` — Zenoh subscriber thread, wildcard keyexprs, CDR deserialization, calls `assembler.push_obstacles()` with `header.stamp` as capture timestamp
+- [ ] `SPAR_ENABLE_ZENOH` CMake flag wired up (pattern mirrors `SPAR_ENABLE_MAVLINK`)
+- [ ] `TransportDegradation<T>` extended to cover Zenoh sources before running catch fraction experiments with obstacles

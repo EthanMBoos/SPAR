@@ -7,17 +7,15 @@ SPAR is a C++ mission and integration runtime built around the authority boundar
 ```
 ┌──────────────┐   MAVLink    ┌──────────────┐   Protobuf    ┌──────────────┐
 │  Controller  │ ◀──────────▶ │     SPAR     │ ◀───────────▶ │ tower-server │
-│ (ArduPilot)  │              │  (C++/BT)    │   extension   │     (Go)     │
+│ (ArduPilot)  │              │  (C++)       │   extension   │     (Go)     │
 └──────────────┘              └──────────────┘               └──────────────┘
 ```
 
-Initial backend: ArduPilot Rover over MAVLink. The boundary and monitor machinery are intended to outlast any particular backend; `spar_ardupilot_adapter` is the first of a planned pluggable adapter family.
+Two backend modes are supported. `ArdupilotAdapter` drives a live MAVLink connection; `KinematicBackend` is an in-process bicycle model that injects observations directly into the assembler. The assembler, monitor, and mission layer are unchanged between them — only the source implementation changes. Build with `-DSPAR_BACKEND=kinematic` for training and catch-fraction experiments without ArduPilot.
 
 ## The Observation Assembler
 
-The assembler is what makes both substitution axes hold. The same `latest_at_or_before(t)` lookup and the same staleness math run in simulation and on the rover; only the source implementation changes. Without it, a policy that trained on clean synchronous observations sees something different at runtime, and the gap is misattributed to "sim-to-real" when it's really temporal smear from concatenating "newest available" across sources that were never co-current.
-
-The payoff is not that simulation equals reality. It is that the residual sim-to-real gap is cornered rather than closed: confined to one component (the sample streams), which are injected through a single transport-degradation layer calibrated to delay/jitter/dropout distributions measured on the real hardware. The gap is localized and measurable instead of smeared across the stack. With the source isolated as the only free variable, "is this policy safe to deploy" becomes a quantity you can actually report rather than a judgment call backed by simulation-plus-hope.
+The assembler is what makes both substitution axes hold. The same `latest_at_or_before(t)` lookup and the same staleness math run in simulation and on the rover; only the source implementation changes.
 
 **Sources are dumb writers.** Each sensor thread stamps each sample with its capture time and pushes it into a per-source ring buffer. No processing, no triggering downstream work. Writers keep buffers current and nothing else.
 
@@ -56,7 +54,7 @@ The seam that matters runs between high-level autonomy (anything from a hand-cod
                              │ approved commands only
                              ▼
         ┌─────────────────────────────────────────────┐
-        │  spar_ardupilot_adapter (TRUSTED)            │
+        │  spar_ardupilot_adapter (TRUSTED)           │
         │  • single writer to controller              │
         └────────────────────┬────────────────────────┘
                              │ MAVLink
@@ -83,7 +81,7 @@ SPAR runs as a **single process** (`spar_rover`) with a tick thread at fixed rat
                     (EKF output, already fused)
                              │
           ┌──────────────────┼───────────────────────┐
-          │  spar_rover       ▼                       │
+          │  spar_rover       ▼                      │
           │                                          │
           │  telemetry thread ──▶ WorldState.pose    │
           │                                          │
@@ -152,28 +150,34 @@ Sensors ArduPilot doesn't see (lidar, camera, any external perception system) wr
 
 ### Simulation must inject transport degradation
 
-Every source, whether it originates in SITL or on hardware, feeds the assembler through the same abstract sample-source interface. In SITL, samples arrive perfectly fresh and synchronous, which does not survive contact with a real vehicle. A configurable degradation layer sits in front of each simulated source and injects per-stream delay, jitter, and dropout drawn from distributions measured on the real rover. Without it, the observation the assembler builds in SITL is not the observation it builds on hardware, and any catch fraction measured in simulation describes a world that doesn't exist.
-
-The assembler and the degradation layer are a pair. A clean assembler fed by undegraded SITL streams looks correct immediately; that is exactly the danger. This is why the transport-degradation layer is a Phase 2 gate, not an optional add-on.
+`DegradedSource<T>` wraps each simulated source and injects per-stream delay, jitter, and dropout. Always run both a clean variant and a degraded variant — the difference in catch fractions between them isolates timing as a variable. Catch fractions from a clean-only run are not meaningful for deployment comparison.
 
 ### Staleness is the assembler's responsibility first
 
 The assembler carries per-source staleness in the snapshot and emits a degraded verdict when a required source exceeds its bound, routing deterministically to the fallback before the behavior node runs. Node-level staleness checks (returning `Failure` on old pose data) remain as redundant backstops, not the primary line. The monitor's staleness check on commands is the last line of defence.
 
-### ObservationBuffer: learned nodes only
+### ObservationBuffer: learned nodes only (Phase 4a)
 
-Hand-coded nodes only need `WorldState`. A learned policy requiring temporal context (LSTM, transformer, sequence-to-action) also receives an `ObservationBuffer`, a sliding window of raw sensor readings, passed alongside `WorldState` in the tick call. This keeps high-bandwidth history out of `WorldState` and off the hand-coded node path entirely.
+Hand-coded nodes only need `WorldState`. Learned policies that require a multi-frame context window (Cosmos actor, recurrent policies) also need access to a raw frame history. This is handled via an `ObservationBuffer` added in Phase 4a.
 
-Full tick signature when learned nodes are wired in:
+Current tick signature (Phase 1 through Phase 3):
+
+```cpp
+virtual NodeStatus tick(const GoalContext& goal,
+                        const WorldState&  world,
+                        CommandStream&     out_cmd) = 0;
+```
+
+Phase 4a evolution — when `CosmosNavigateNode` is introduced, a fourth parameter is added before `out_cmd`:
 
 ```cpp
 virtual NodeStatus tick(const GoalContext&       goal,
-                        const WorldState&         world,  // processed state — all nodes
-                        const ObservationBuffer*  obs,    // raw window — learned only, else nullptr
+                        const WorldState&         world,
+                        const ObservationBuffer*  obs,    // nullptr for all non-video nodes
                         CommandStream&            out_cmd) = 0;
 ```
 
-`obs` is `nullptr` for every hand-coded node. The contract remains symmetric regardless.
+Hand-coded nodes receive `nullptr` for `obs` and ignore it. The contract stays symmetric regardless of what sits above.
 
 ## Two Levels of Contracts
 
@@ -209,7 +213,7 @@ The monitor is the enforcement point. It sees every command before the adapter a
 
 **Temporal-window invariants**: Sequences of individually in-bounds commands that are collectively dangerous: oscillatory heading patterns, sustained max-rate commands past geofences, jerk patterns exceeding mechanical tolerance. Catches distribution-shifted policies emitting well-formed but contextually wrong commands.
 
-Every monitor decision records the full active invariant set alongside the outcome and triggered invariant. This makes the key postmortem question decidable from logs: did no applicable invariant exist for this case, or did one exist and the monitor fail to enforce it?
+Every monitor decision records the triggered invariant (string) and an `invariant_flags` bitmask encoding which class fired, alongside the outcome. This makes the key postmortem question decidable from logs: did no applicable invariant exist for this case, or did one exist and the monitor fail to enforce it?
 
 ### What the monitor cannot catch
 
@@ -222,7 +226,7 @@ A policy producing physically valid, sequentially reasonable commands that execu
                ▼                                   ▼
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
 │  Architectural monitor       │   │  Behavioral monitor          │
-│  (SPAR, this repo)            │   │  (future layer)              │
+│  (SPAR, this repo)           │   │  (future layer)              │
 │                              │   │                              │
 │  • per-sample bounds         │   │  • temporal action           │
 │  • rate-of-change limits     │   │    consistency               │
@@ -240,6 +244,26 @@ A policy producing physically valid, sequentially reasonable commands that execu
 The partition between layers is a function of the policy's command distribution, not a fixed property of the monitors. For any given policy, four catch fractions (architectural-only, behavioral-only, both, neither) partition the failure space, and the shape of that partition moves as the command distribution changes. Measuring those fractions empirically across policy types is the core research question.
 
 The **uncatchable residual** (failures neither layer can see) is the explicit boundary of runtime monitoring as a category. Closing it requires formal verification of plan structure, interpretability of policy internals, or constrained training above this layer.
+
+## Architectural Constraints
+
+These are load-bearing assumptions, not bugs. They are named explicitly so they don't become invisible.
+
+### The reactive-policy assumption
+
+The tick loop calls `node->tick()` every 50 ms and expects a `CommandStream` back. This assumes a **Markovian, reactive** policy: one observation in, one command out, synchronous with the tick rate.
+
+Diffusion policies (π0) and action-chunking systems (ACT) do not work this way. They output trajectory segments — 10 to 100 future commands sampled from a joint distribution. They also run at 1–5 Hz on realistic hardware, not 20 Hz. The `BTNode` contract will need a second evolution before these policy types are first-class:
+
+- **Action chunk buffer** in the tick loop: the policy writes an N-step sequence; the tick loop drains it one command per tick
+- **Async inference path**: the policy runs in a background thread; the chunk buffer is the handoff point
+- The monitor approves chunks as units, then individual commands as they execute
+
+**The deferral deadline is Phase 4a start, not "later."** If Phase 4a uses an autoregressive Cosmos actor (one token per step, compatible with the current `BTNode` contract), deferral is safe. If Phase 4a uses a diffusion-policy or action-chunking actor — the dominant pattern for current VLAs (π0, GR-00T) — the action chunk buffer and async inference path are blocking prerequisites. Resolve which actor architecture Phase 4a will use before starting it, not during it. See `docs/rl-pipeline.md` for the decision table and `ChunkedBTNode` design.
+
+### The behavioral monitor inference budget
+
+Running Cosmos as a behavioral monitor means running it every tick alongside the policy, not just at training time. Latency and hardware requirements for this path are distinct from running Cosmos as the actor. Establish that the combined inference fits the tick budget before committing to this architecture (Phase 4b).
 
 ## Stack Position
 

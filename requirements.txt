@@ -1,0 +1,6 @@
+gymnasium
+stable-baselines3
+numpy
+pybind11
+tensorboard
+onnx

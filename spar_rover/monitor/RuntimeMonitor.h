@@ -2,7 +2,6 @@
 #include "../../shared/contracts/CommandStream.h"
 #include "../../shared/contracts/MonitorDecision.h"
 #include <cstdint>
-#include <vector>
 #include <string>
 
 struct MonitorConfig {
@@ -19,8 +18,6 @@ class RuntimeMonitor {
 public:
     explicit RuntimeMonitor(MonitorConfig cfg = {});
 
-    // Evaluate cmd against all active invariants.
-    // Records the full active invariant set in the returned decision regardless of outcome.
     MonitorDecision evaluate(const CommandStream& cmd, uint64_t now_us);
 
     const MonitorConfig& config() const { return cfg_; }
@@ -34,6 +31,5 @@ private:
     bool check_staleness(const RoverCommand& cmd, uint64_t now_us, std::string& violated) const;
     bool check_rate_of_change(const RoverCommand& cmd, std::string& violated) const;
 
-    CommandStream          zero_cmd(const CommandStream& src) const;
-    std::vector<std::string> active_invariant_names() const;
+    CommandStream zero_cmd(const CommandStream& src) const;
 };

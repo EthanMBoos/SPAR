@@ -1,2 +1,4 @@
 build/
+.venv/
+tb_logs/
 .DS_Store

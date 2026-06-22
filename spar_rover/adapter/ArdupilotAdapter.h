@@ -1,5 +1,5 @@
 #pragma once
-#include "ControllerAdapter.h"
+#include "../../shared/contracts/CommandStream.h"
 #include "../../shared/assembler/ObservationAssembler.h"
 #include <string>
 #include <cstdint>
@@ -19,23 +19,29 @@ struct ArdupilotConfig {
 // messages and pushes them into ObservationAssembler (not WorldState directly).
 //
 // Requires: mavlink/c_library_v2 under third_party/mavlink (SPAR_ENABLE_MAVLINK).
-class ArdupilotAdapter final : public ControllerAdapter {
+class ArdupilotAdapter {
 public:
     explicit ArdupilotAdapter(ObservationAssembler& assembler, ArdupilotConfig cfg = {});
-    ~ArdupilotAdapter() override;
+    ~ArdupilotAdapter();
 
-    bool connect()              override;
-    void disconnect()           override;
-    bool is_connected() const   override { return connected_; }
-    bool write(const CommandStream& cmd) override;
+    bool connect();
+    void disconnect();
+    bool is_connected() const { return connected_; }
+    bool write(const CommandStream& cmd);
 
 private:
     ArdupilotConfig       cfg_;
     ObservationAssembler& assembler_;
-    int                   socket_fd_ = -1;
-    bool                  connected_ = false;
+    int                   socket_fd_        = -1;
+    bool                  connected_        = false;
     std::thread           telem_thread_;
     std::atomic<bool>     telem_running_{false};
+
+    // Offset from ArduPilot boot clock to local monotonic clock (microseconds).
+    // Measured on first received GLOBAL_POSITION_INT; used to convert gp.time_boot_ms
+    // to local capture timestamps so the assembler's latest_at_or_before(t) is correct.
+    uint64_t boot_ms_offset_    = 0;
+    bool     boot_offset_set_   = false;
 
     void telemetry_loop();
     bool send_set_position_target(const RoverCommand& cmd);
