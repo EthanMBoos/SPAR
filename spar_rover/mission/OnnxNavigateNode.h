@@ -10,7 +10,7 @@
 // Satisfies the same BTNode contract as NavigateNode — the monitor sees identical
 // CommandStream regardless of which node produced it.
 //
-// Actor input:  WorldState::to_observation_vector() (5 floats: lat, lon, alt, heading, speed)
+// Actor input:  make_nav_obs(world, goal) (3 floats: gx_body, gy_body, speed_ms)
 // Actor output: [throttle, steering] in [-1, 1]
 //
 // Returns Running each tick (stateless reactive policy); Success/Failure come from
@@ -39,8 +39,6 @@ private:
     uint64_t          start_us_ = 0;
 
     inline static uint64_t next_id_ = 1000;
-
-    static float haversine_m(double lat1, double lon1, double lat2, double lon2);
 };
 
 #endif // SPAR_HAVE_ONNXRUNTIME

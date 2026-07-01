@@ -20,13 +20,13 @@ Tower-Server (Go)
         └─ Heartbeat monitor          : detects ServerHeartbeat loss, triggers failsafe
         │
    GoalState (mutex-protected)              WorldState (per-domain mutexes)
-        ├─ mode, target, command_id               ├─ pose      (own vehicle, from ArduPilot)
+        ├─ mode, target, command_id               ├─ pose      (own vehicle, from estimator)
         └─ failsafe_mode                          ├─ fleet     (other vehicles, from Tower)
                                                   └─ mailbox   (inbound events, from Tower)
         │
    MissionExecutor / main.cpp tick loop
         │
-   BehaviorTree → RuntimeMonitor → ArdupilotAdapter
+   BehaviorTree → RuntimeMonitor → Ros2Adapter
 ```
 
 SPAR is **pull-based**. BT nodes never receive external messages. `TowerRadioLink` translates Tower intent into `GoalState` and `WorldState` domains that the tick loop and BT nodes read. The authority boundary is unchanged; no Tower message can bypass the `RuntimeMonitor`.
@@ -67,13 +67,13 @@ Populated from `WorldState.pose` after each telemetry thread write. Send rate is
 VehicleTelemetry {
     vehicle_id        = <configured vehicle ID, e.g. "ugv-spar-01">
     timestamp_ms      = WorldState.pose.data.timestamp_us / 1000   // vehicle clock, untrusted by Tower
-    location {
-        latitude       = WorldState.pose.data.lat_deg
-        longitude      = WorldState.pose.data.lon_deg
-        altitude_msl_m = WorldState.pose.data.alt_m
+    location {                                   // via local_to_lla(datum, pose) — georeferenced only
+        latitude       = geo.lat_deg
+        longitude      = geo.lon_deg
+        altitude_msl_m = geo.alt_m
     }
     speed_ms          = WorldState.pose.data.speed_ms
-    heading_deg       = WorldState.pose.data.heading_deg
+    heading_deg       = to_degrees(WorldState.pose.data.yaw_rad)
     sequence_num      = incrementing counter, never reset except on process restart
     environment       = ENV_GROUND
     // No extension namespace initially. supported_extensions and extensions
@@ -179,7 +179,7 @@ Tower sends commands as `ServerMessage` containing a `Command`. The command list
 | Pidgin `OperationalMode` | `BehaviorMode`  |
 |--------------------------|-----------------|
 | `MODE_AUTONOMOUS`        | `Navigate`      |
-| `MODE_GUIDED`            | `Hold`          |
+| `MODE_SUPERVISED`        | `Hold`          |
 | `MODE_MANUAL`            | `Stop` (SPAR has no manual path; ack ACCEPTED, execute Stop) |
 
 **Extension commands → WorldState.mailbox:**
@@ -437,7 +437,7 @@ When Tower reconnects:
 
 | Subsystem              | Behavior during Tower link loss         |
 |------------------------|-----------------------------------------|
-| ArduPilot telemetry    | Continues normally; WorldState updated  |
+| Odometry ingest        | Continues normally; WorldState updated  |
 | RuntimeMonitor         | Continues normally; all invariants active |
 | Session log            | Continues writing to /tmp               |
 | BT tick loop           | Continues at 20 Hz; holds position      |
@@ -520,7 +520,7 @@ private:
 Thread                   Owns                                Rate
 ──────────────────────── ─────────────────────────────────── ────────────────────
 main / tick loop         BT tick, monitor, adapter write     20 Hz
-ArduPilot telemetry      WorldState.pose write               ArduPilot rate (~4 Hz)
+Odometry ingest          WorldState.pose write               estimator rate (~10 Hz)
 Tower telemetry sender   Reads WorldState, sends UDP         4 Hz
 Tower heartbeat sender   Sends Heartbeat UDP                 1 Hz
 Tower command listener   Reads UDP, writes GoalState/mailbox event-driven (recvfrom)
@@ -619,7 +619,7 @@ if(SPAR_ENABLE_TOWER)
 endif()
 ```
 
-Same pattern as `SPAR_ENABLE_MAVLINK`; Tower is optional; SPAR runs standalone in SITL or hardware-only mode with no change to the BT or monitor.
+Same pattern as `SPAR_ENABLE_ZENOH`; Tower is optional; SPAR runs standalone in simulation or hardware-only mode with no change to the BT or monitor.
 
 ---
 

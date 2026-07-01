@@ -62,7 +62,7 @@ Three things are conflated right now and need to be separated:
                              │  CommandStream
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│  RuntimeMonitor  →  Adapter  →  ArduPilot / KinematicBackend     │
+│  RuntimeMonitor  →  Adapter  →  controller / KinematicBackend    │
 │  (authority boundary, unchanged)                                 │
 └──────────────────────────────────────────────────────────────────┘
 ```

@@ -4,7 +4,7 @@
 #include <mutex>
 #include <cstdint>
 
-// ── Standalone components (no SPAR/MAVLink/ArduPilot types) ─────────────────
+// ── Standalone components (no SPAR- or transport-specific types) ────────────
 
 // A single timestamped sample from one source.
 // timestamp_us must be the sensor's capture time, not the callback receipt time.
@@ -70,15 +70,14 @@ struct AssembledSnapshot {
 class ObservationAssembler {
 public:
     // How old a pose sample may be before the source is marked degraded.
-    // Derived from SR2_POSITION=10 Hz: worst-case inter-arrival ~100 ms plus jitter budget.
+    // Sized for a ~10 Hz state estimate: worst-case inter-arrival ~100 ms plus jitter budget.
     // TODO: make runtime-configurable per deployment.
     static constexpr uint64_t kPoseStalenessLimitUs = 200'000;  // 200 ms
 
-    // Called from the telemetry thread.
-    // timestamp_us should be the sensor's capture time.
-    // TODO: for MAVLink sources, convert gp.time_boot_ms to our monotonic clock
-    //       (requires a one-time TIMESYNC-based offset measurement at connect).
-    //       Currently set to receipt time (now_us()) as a stub.
+    // Called from the estimator-ingest thread (the controller adapter, or the
+    // KinematicBackend in simulation). timestamp_us must be the estimate's capture
+    // time on the local clock: the adapter aligns the odometry header.stamp to the
+    // steady clock via a one-time offset measurement before calling this.
     void push_pose(uint64_t timestamp_us, Pose pose) {
         pose_buf_.push(timestamp_us, std::move(pose));
     }

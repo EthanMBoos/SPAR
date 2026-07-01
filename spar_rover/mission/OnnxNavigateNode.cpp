@@ -12,18 +12,6 @@ static uint64_t now_us_onnx() {
         duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
-static constexpr double kR    = 6371000.0;
-static constexpr double kPiOx = 3.14159265358979323846;
-
-float OnnxNavigateNode::haversine_m(double lat1, double lon1, double lat2, double lon2) {
-    auto rad = [](double d) { return d * kPiOx / 180.0; };
-    double dlat = rad(lat2 - lat1), dlon = rad(lon2 - lon1);
-    double a = std::sin(dlat/2)*std::sin(dlat/2)
-             + std::cos(rad(lat1))*std::cos(rad(lat2))
-             * std::sin(dlon/2)*std::sin(dlon/2);
-    return static_cast<float>(2.0 * kR * std::asin(std::sqrt(a)));
-}
-
 OnnxNavigateNode::OnnxNavigateNode(const std::string& model_path)
     : env_(ORT_LOGGING_LEVEL_WARNING, "spar_onnx")
     , session_(env_, model_path.c_str(), Ort::SessionOptions{})
@@ -65,8 +53,8 @@ NodeStatus OnnxNavigateNode::tick(const GoalContext& goal,
     if (start_us_ == 0) start_us_ = goal.timestamp_us;
     if (goal.timestamp_us - start_us_ > kTimeoutUs) return NodeStatus::Failure;
 
-    float dist = haversine_m(world.pose.lat_deg, world.pose.lon_deg,
-                             goal.target.lat_deg, goal.target.lon_deg);
+    float dist = std::hypot(goal.target.x_m - world.pose.x_m,
+                            goal.target.y_m - world.pose.y_m);
     if (dist < kArrivalRadiusM) return NodeStatus::Success;
 
     return NodeStatus::Running;

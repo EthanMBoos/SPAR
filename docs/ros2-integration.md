@@ -1,4 +1,4 @@
-# ROS2 and ArduPilot Integration Notes
+# ROS 2 Integration Notes
 
 ---
 
@@ -10,7 +10,7 @@ You don't lose capability — you make it explicit. Everything the BT needs to o
 
 ```
 input side:   perception_ws topics → ZenohSources → assembler → WorldState fields
-output side:  CommandStream fields → typed adapters → MAVLink / ROS2 topics / services
+output side:  CommandStream fields → typed adapters → ROS 2 topics (cmd_vel)
 ```
 
 For sensor steering specifically: the BT puts an `AttentionHint` in `CommandStream`; perception_ws subscribes and steers its own sensors. The BT expresses intent, the perception layer executes it. The BT never reaches into the graph.
@@ -23,29 +23,30 @@ The cost: every new capability requires a named field and a wired adapter. The p
 
 The pose used to transform sensor data into world coordinates in the perception pipeline must be the same pose that lives in `WorldState.pose`. If they differ, the BTNode is comparing "where I am" against obstacle positions that were placed using a different "where I am" — the coordinate frames don't agree and the WorldState is internally inconsistent.
 
-**The rule: one pose source, published in two directions.**
+**The rule: one pose source, used in two directions.**
 
 ```
-ArduPilot EKF3
+external estimator (robot_localization)
+  │  publishes nav_msgs/Odometry in the local metric map frame
   │
-  ├── MAVLink direct → WorldState.pose          (inbound to SPAR, existing path)
-  └── MAVLink direct → outbound TF publisher    (outbound to ROS2 TF tree)
+  ├── Ros2Adapter (Zenoh) → WorldState.pose     (inbound to SPAR)
+  └── TF tree (map → base_link)                 (used by perception_ws)
                               │
                               └── perception_ws uses for frame transforms
                                   → obstacle positions are in the same world frame
 ```
 
-The perception pipeline places obstacles in world coordinates using the rover pose. SPAR reasons about those obstacles relative to `WorldState.pose`. Both must read from the same source or the geometry is wrong.
+The perception pipeline places obstacles in world coordinates using the vehicle pose. SPAR reasons about those obstacles relative to `WorldState.pose`. Both must resolve to the same estimate or the geometry is wrong.
 
-**Why not MAVROS for the inbound path.** MAVROS is fine for publishing pose outbound to the TF tree — that direction is one-way and latency there doesn't affect WorldState. The inbound path (pose → assembler) must stay on MAVLink direct because MAVROS routes through the ROS2 executor, which bakes receipt-time jitter into what should be a capture timestamp. That jitter is exactly what the assembler exists to remove.
+**Capture timestamps.** The inbound path (odometry → assembler) reads `header.stamp` as the capture time and aligns it to SPAR's steady clock via a one-time offset measured on the first sample. Do not stamp at callback-receipt time: that bakes in executor and transport jitter, which is exactly what the assembler exists to remove.
 
-**If you introduce better localization (SLAM, VIO, RTK fusion).** Don't run two parallel pose estimates. Feed the better estimate back into ArduPilot's EKF3 as an external vision input via `VISION_POSITION_ESTIMATE` MAVLink message. ArduPilot fuses it and publishes the result. Everything downstream — `WorldState.pose` and the TF tree — reads one estimate again. A parallel SLAM pose that isn't fed back into ArduPilot creates a control mismatch: you're commanding a controller that believes it's somewhere different from where SPAR thinks it is.
+**If you introduce better localization (SLAM, VIO, RTK fusion).** Don't run two parallel pose estimates. Feed the better estimate into the vehicle's `robot_localization` instance (as an additional odometry/pose input) so it publishes one fused result. Everything downstream — `WorldState.pose` and the TF tree — reads that one estimate. A parallel pose that isn't fused in creates a control mismatch: you're commanding a controller that believes it's somewhere different from where SPAR thinks it is.
 
 ---
 
-## ArduPilot: Stay on MAVLink Direct
+## Controller: cmd_vel over Zenoh
 
-For pose and telemetry the existing MAVLink UDP path is correct. ROS2 makes sense for lidar and camera sources where you're already in ROS2 land — perception pipelines, sensor drivers feeding `WorldState.obstacles`.
+SPAR writes approved commands as `geometry_msgs/Twist` on `cmd_vel` and reads `nav_msgs/Odometry` back — both over Zenoh (`rmw_zenoh`), so no rclcpp lives in the tick-loop process. ROS 2 also carries the lidar and camera sources feeding `WorldState.obstacles`; the whole vehicle interface is one Zenoh session.
 
 ---
 
@@ -73,7 +74,7 @@ Two separate processes. perception_ws uses `rmw_zenoh_cpp` as its RMW layer — 
 perception_ws (ROS2 / rmw_zenoh)  → publishes natively over Zenoh
 spar_rover                         → Zenoh subscriber thread, links zenoh-cpp only
   ├── tick thread (20 Hz)          → reads assembler.build(t)
-  ├── ArduPilot telemetry          → calls assembler.push_pose()       [MAVLink, existing]
+  ├── Ros2Adapter (odometry)       → calls assembler.push_pose()       [Zenoh]
   └── Zenoh subscriber thread     → calls assembler.push_obstacles()   [Zenoh, new]
 ```
 
@@ -141,7 +142,7 @@ Nail down the exact keyexprs during initial integration by printing `sample.get_
 
 ### ZenohSources.cpp inside SPAR
 
-Plain CMake, guarded behind `SPAR_ENABLE_ZENOH`, following the same pattern as `SPAR_ENABLE_MAVLINK`. No rclcpp, no DDS, no executor — just zenoh-cpp linked as a library:
+Plain CMake, guarded behind `SPAR_ENABLE_ZENOH`. No rclcpp, no DDS, no executor — just zenoh-cpp linked as a library:
 
 ```cmake
 option(SPAR_ENABLE_ZENOH "Enable Zenoh sensor sources" OFF)
@@ -186,29 +187,27 @@ Sanity check: add a temporary ROS2 subscriber in the perception_ws and log `rclc
 
 ## What Needs to Be Built
 
-**Phase 0 — SITL bug fixes (done):**
+**Phase 0 — capture-timestamp + transport bring-up (done):**
 
-- [x] Fix MAVLink `type_mask` — was ignoring yaw_rate; correct value `0x3F7` applied
-- [x] Periodic 1 Hz heartbeat in telemetry loop — was sent once on connect
-- [x] Bind UDP socket before `connect()` — was silently dropping all incoming telemetry
-- [x] Capture timestamp: first-pose boot-clock offset measured at connect; `gp.time_boot_ms` converted to local monotonic instead of `now_us()` — assembler's core guarantee restored
+- [x] `Ros2Adapter`: publish `geometry_msgs/Twist` on `cmd_vel`, subscribe `nav_msgs/Odometry`, CDR encoded/decoded by hand (no rclcpp)
+- [x] Capture timestamp: align odometry `header.stamp` to the local steady clock via a one-time offset measured on the first sample — assembler's core guarantee preserved
 
-**Phase 1 completion — still needed before SITL is fully exercised:**
+**Phase 1 completion — still needed before the ros2 backend is fully exercised:**
 
-- [ ] Wire `third_party/mavlink` submodule behind `SPAR_ENABLE_MAVLINK` (CMake guard exists; submodule must be cloned)
-- [ ] Configure ArduPilot stream rates on connect (`SR2_POSITION=10`, `SR2_EXTRA1=50`)
-- [ ] Characterize ArduPilot stale/lost-command behavior on the exact SITL config in use (GUIDED Rover): what happens when setpoints go stale or stop arriving — hold last command, ramp to neutral, RTL, or failsafe? Version- and parameter-dependent; must be measured, not assumed. Determines whether "stop writing" is a safe fallback or whether the mission layer must issue an explicit stop command.
+- [ ] Validate `cmd_vel` / odometry keyexprs and per-field CDR layout on the vehicle (print `sample.get_keyexpr()`; do not guess)
+- [ ] Confirm `/odometry/filtered` publish rate ≥ 10 Hz so pose staleness stays under 200 ms
+- [ ] Characterize the vehicle's stale/lost-command behavior: what happens when `cmd_vel` goes stale or stops arriving — hold last command, ramp to neutral, or e-stop? Base- and config-dependent; must be measured, not assumed. Determines whether "stop writing" is a safe fallback or whether the mission layer must issue an explicit zero command.
 - [ ] MCAP logging replacing the current TSV session file (Phase 3 prerequisite — required for temporal-window invariants and offline RL)
-- [ ] Temporal-window invariant implementation (oscillation, geofence displacement, jerk) — Phase 3
+- [ ] Temporal-window invariant implementation (oscillation, sustained-displacement, jerk) — Phase 3
 
-**Pose outbound to ROS2 — required before perception pipeline can place obstacles in world frame:**
+**Pose outbound to the TF tree — required before perception pipeline can place obstacles in world frame:**
 
-- [ ] Outbound TF publisher: reads ArduPilot pose from the same MAVLink telemetry thread that feeds `assembler.push_pose()`, publishes to ROS2 `/tf` as `map → base_link` — must be the same source as `WorldState.pose` or obstacle positions will be in a different coordinate frame than the rover believes it is
-- [ ] Validate consistency: after wiring both paths, check that an obstacle at a known world position appears at the correct relative position in `WorldState` given the rover's reported pose
+- [ ] Ensure the vehicle's `robot_localization` publishes `map → base_link` on the TF tree from the same estimate the `Ros2Adapter` feeds to `assembler.push_pose()` — obstacle positions must be in the same frame as `WorldState.pose`
+- [ ] Validate consistency: check that an obstacle at a known world position appears at the correct relative position in `WorldState` given the vehicle's reported pose
 
 **Perception workspace — can be scaffolded now; not on the critical path until obstacles enter WorldState:**
 
-- [ ] Create `perception_ws/src/` alongside the spar repo; add placeholder `obstacle_detector` package with `package.xml` and stub `CMakeLists.txt`
+- [ ] Create `perception_ws/src/` alongside the spar repo; add placeholder `obstacle_detector` package with `package.xml` and placeholder `CMakeLists.txt`
 - [ ] Verify `header.stamp` capture-time correctness for each sensor driver before wiring into the assembler — see verification table above
 - [ ] Docker devcontainer config for macOS: perception_ws colcon build + SPAR cmake with `SPAR_ENABLE_ZENOH=ON`
 
@@ -217,5 +216,5 @@ Sanity check: add a temporary ROS2 subscriber in the perception_ws and log `rclc
 - [ ] Install `ros-jazzy-rmw-zenoh-cpp` on the Jetson Orin; confirm perception_ws nodes publish over Zenoh by printing `sample.get_keyexpr()` in a test subscriber — record the exact keyexprs for `/scan` and `/obstacles` before writing `ZenohSources.cpp`
 - [ ] Enable shared memory in the Zenoh session config for both perception_ws and spar_rover
 - [ ] `spar_rover/sources/ZenohSources.cpp` — Zenoh subscriber thread, wildcard keyexprs, CDR deserialization, calls `assembler.push_obstacles()` with `header.stamp` as capture timestamp
-- [ ] `SPAR_ENABLE_ZENOH` CMake flag wired up (pattern mirrors `SPAR_ENABLE_MAVLINK`)
+- [ ] `SPAR_ENABLE_ZENOH` CMake flag wired up for the perception sources
 - [ ] `TransportDegradation<T>` extended to cover Zenoh sources before running catch fraction experiments with obstacles

@@ -2,11 +2,21 @@
 #include <cstdint>
 #include <vector>
 
+// Vehicle pose in SPAR's canonical local metric frame (ENU, REP-103):
+//   x_m  — east   (meters, map frame)
+//   y_m  — north  (meters, map frame)
+//   z_m  — up     (meters)
+//   yaw_rad — heading, CCW from +x (east)
+//   speed_ms — body-forward speed
+//
+// Filled from an external state estimator (e.g. robot_localization) via the
+// controller adapter, or from the KinematicBackend in simulation. Georeferencing
+// (lat/lon) is a boundary conversion handled by GeoDatum, not stored here.
 struct Pose {
-    double   lat_deg      = 0.0;
-    double   lon_deg      = 0.0;
-    float    alt_m        = 0.0f;
-    float    heading_deg  = 0.0f;
+    float    x_m          = 0.0f;
+    float    y_m          = 0.0f;
+    float    z_m          = 0.0f;
+    float    yaw_rad      = 0.0f;
     float    speed_ms     = 0.0f;
     uint64_t timestamp_us = 0;
     bool     valid        = false;
@@ -19,17 +29,4 @@ struct WorldState {
     Pose pose;
     // TODO: ObstacleMap  obstacles;
     // TODO: BatteryState battery;
-
-    // Flat float vector consumed by learned policies (OnnxNavigateNode, SparEnv).
-    // Field order is load-bearing: matches the observation space the SAC/Cosmos actor trains on.
-    // [lat_deg, lon_deg, alt_m, heading_deg, speed_ms]
-    std::vector<float> to_observation_vector() const {
-        return {
-            static_cast<float>(pose.lat_deg),
-            static_cast<float>(pose.lon_deg),
-            pose.alt_m,
-            pose.heading_deg,
-            pose.speed_ms,
-        };
-    }
 };

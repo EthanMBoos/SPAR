@@ -9,22 +9,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Strict warnings
 add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
-# Optional external dependencies — controlled by CMake options so the build
-# works out of the box without any of them (stub mode).
-option(SPAR_ENABLE_MAVLINK      "Build with MAVLink support (ArdupilotAdapter)" OFF)
+# Optional external dependencies — controlled by CMake options.
 option(SPAR_ENABLE_ONNXRUNTIME  "Build with ONNX Runtime support (OnnxNavigateNode)" OFF)
-option(SPAR_ENABLE_ZENOH        "Build with Zenoh-cpp transport"  OFF)
+option(SPAR_ENABLE_ZENOH        "Build with Zenoh-cpp sensor sources"  OFF)
 option(SPAR_ENABLE_PYTHON       "Build pybind11 Python bindings (SparEnv gym wrapper)" OFF)
 
-# Simulation backend: ardupilot | kinematic
-# ardupilot: live MAVLink telemetry via ArdupilotAdapter (requires SPAR_ENABLE_MAVLINK or stub)
-# kinematic:  in-process bicycle model, no external process needed
-set(SPAR_BACKEND "ardupilot" CACHE STRING "Active simulation backend (ardupilot|kinematic)")
-
-if(SPAR_ENABLE_MAVLINK)
-    add_definitions(-DSPAR_HAVE_MAVLINK)
-    include_directories(${CMAKE_SOURCE_DIR}/third_party/mavlink/include)
-endif()
+# Active backend: kinematic | ros2
+#   kinematic: in-process bicycle model, no external process needed (training, eval)
+#   ros2:      live vehicle via Ros2Adapter over Zenoh (rmw_zenoh); publishes cmd_vel,
+#              consumes odometry from the external state estimator (robot_localization)
+set(SPAR_BACKEND "kinematic" CACHE STRING "Active backend (kinematic|ros2)")
 
 if(SPAR_ENABLE_ONNXRUNTIME)
     add_definitions(-DSPAR_HAVE_ONNXRUNTIME)

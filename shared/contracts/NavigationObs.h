@@ -4,34 +4,27 @@
 #include <vector>
 #include <cmath>
 
-// Goal-relative observation for learned navigation policies.
-// Returns [dx_m, dy_m, heading_sin, heading_cos, speed_ms]
+// Egocentric, goal-relative observation for learned navigation policies.
+// Returns [gx_body, gy_body, speed_ms]
 //
-//   dx_m         — meters east  to goal (positive = goal is east)
-//   dy_m         — meters north to goal (positive = goal is north)
-//   heading_sin  — sin(heading_rad); avoids 0°/360° wrap discontinuity
-//   heading_cos  — cos(heading_rad)
-//   speed_ms     — current speed in m/s
+//   gx_body  — meters to goal, forward in the body frame (positive = ahead)
+//   gy_body  — meters to goal, left in the body frame    (positive = to the left)
+//   speed_ms — current body-forward speed (m/s)
 //
-// Field count matches WorldState::to_observation_vector() so model input
-// shapes are unchanged. Use this instead of to_observation_vector() for all
-// learned nodes — absolute lat/lon has no goal context and near-zero
-// episode variance, making it untrainable for goal-directed policies.
+// Body-frame goal displacement makes relative bearing implicit, so no separate
+// heading channel is needed and the observation is invariant to absolute position
+// and orientation — the standard point-goal navigation observation. Absolute
+// pose has no goal context and near-zero episode variance; it is untrainable for
+// goal-directed policies.
 inline std::vector<float> make_nav_obs(const WorldState& ws, const GoalContext& goal) {
-    static constexpr double kR      = 6371000.0;
-    static constexpr double kPi     = 3.14159265358979323846;
-    static constexpr double kDegRad = kPi / 180.0;
+    float gx_w = goal.target.x_m - ws.pose.x_m;   // east
+    float gy_w = goal.target.y_m - ws.pose.y_m;   // north
 
-    double dlat = (goal.target.lat_deg - ws.pose.lat_deg) * kDegRad;
-    double dlon = (goal.target.lon_deg - ws.pose.lon_deg) * kDegRad;
-    double cos_lat = std::cos(ws.pose.lat_deg * kDegRad);
+    float c = std::cos(ws.pose.yaw_rad);
+    float s = std::sin(ws.pose.yaw_rad);
 
-    float dy_m = static_cast<float>(dlat * kR);
-    float dx_m = static_cast<float>(dlon * kR * (cos_lat > 1e-9 ? cos_lat : 1e-9));
+    float gx_body =  c * gx_w + s * gy_w;         // forward
+    float gy_body = -s * gx_w + c * gy_w;         // left
 
-    float heading_rad = static_cast<float>(ws.pose.heading_deg * kDegRad);
-    float heading_sin = std::sin(heading_rad);
-    float heading_cos = std::cos(heading_rad);
-
-    return {dx_m, dy_m, heading_sin, heading_cos, ws.pose.speed_ms};
+    return {gx_body, gy_body, ws.pose.speed_ms};
 }

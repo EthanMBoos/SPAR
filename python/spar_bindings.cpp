@@ -22,18 +22,6 @@
 
 namespace py = pybind11;
 
-// ── Haversine distance (duplicated from NavigateNode; keep bindings self-contained) ──
-static constexpr double kR = 6371000.0;  // Earth radius, metres
-static constexpr double kPiB = 3.14159265358979323846;
-static float haversine_m(double lat1, double lon1, double lat2, double lon2) {
-    auto rad = [](double d) { return d * kPiB / 180.0; };
-    double dlat = rad(lat2 - lat1), dlon = rad(lon2 - lon1);
-    double a = std::sin(dlat / 2) * std::sin(dlat / 2)
-             + std::cos(rad(lat1)) * std::cos(rad(lat2))
-             * std::sin(dlon / 2) * std::sin(dlon / 2);
-    return static_cast<float>(2.0 * kR * std::asin(std::sqrt(a)));
-}
-
 // ── SparCore ─────────────────────────────────────────────────────────────────
 
 struct StepResult {
@@ -57,8 +45,8 @@ public:
     {
         if (goal_.mission_id == 0) {
             goal_.mission_id = 1;
-            goal_.target.lat_deg = kparams_.start_lat_deg;
-            goal_.target.lon_deg = kparams_.start_lon_deg + 0.001;  // ~100 m east
+            goal_.target.x_m = kparams_.start_x_m + 20.0f;  // 20 m east of start
+            goal_.target.y_m = kparams_.start_y_m;
         }
     }
 
@@ -91,8 +79,8 @@ public:
         AssembledSnapshot snap = assembler_.build(t_next);
         std::vector<float> obs = make_nav_obs(snap.state, goal_);
 
-        float dist = haversine_m(snap.state.pose.lat_deg, snap.state.pose.lon_deg,
-                                 goal_.target.lat_deg,    goal_.target.lon_deg);
+        float dist = std::hypot(goal_.target.x_m - snap.state.pose.x_m,
+                                goal_.target.y_m - snap.state.pose.y_m);
 
         StepResult r;
         r.obs       = obs;
@@ -120,19 +108,17 @@ PYBIND11_MODULE(spar_bindings, m) {
     py::class_<KinematicParams>(m, "KinematicParams")
         .def(py::init<>())
         .def_readwrite("wheelbase_m",       &KinematicParams::wheelbase_m)
-        .def_readwrite("max_speed_ms",      &KinematicParams::max_speed_ms)
         .def_readwrite("max_accel_ms2",     &KinematicParams::max_accel_ms2)
-        .def_readwrite("max_steer_rate_rs", &KinematicParams::max_steer_rate_rs)
         .def_readwrite("dt_s",              &KinematicParams::dt_s)
-        .def_readwrite("start_lat_deg",     &KinematicParams::start_lat_deg)
-        .def_readwrite("start_lon_deg",     &KinematicParams::start_lon_deg)
-        .def_readwrite("start_heading_deg", &KinematicParams::start_heading_deg);
+        .def_readwrite("start_x_m",         &KinematicParams::start_x_m)
+        .def_readwrite("start_y_m",         &KinematicParams::start_y_m)
+        .def_readwrite("start_yaw_rad",     &KinematicParams::start_yaw_rad);
 
-    py::class_<Waypoint>(m, "Waypoint")
+    py::class_<Point3>(m, "Point3")
         .def(py::init<>())
-        .def_readwrite("lat_deg", &Waypoint::lat_deg)
-        .def_readwrite("lon_deg", &Waypoint::lon_deg)
-        .def_readwrite("alt_m",   &Waypoint::alt_m);
+        .def_readwrite("x_m", &Point3::x_m)
+        .def_readwrite("y_m", &Point3::y_m)
+        .def_readwrite("z_m", &Point3::z_m);
 
     py::class_<GoalContext>(m, "GoalContext")
         .def(py::init<>())

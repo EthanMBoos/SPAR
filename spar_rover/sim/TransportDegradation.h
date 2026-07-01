@@ -5,7 +5,7 @@
 #include <random>
 
 // Per-stream degradation parameters.
-// Populate from hardware measurement (MAVLink round-trip distributions on real rover).
+// Populate from hardware measurement (ROS 2 message round-trip distributions on real rover).
 // Zero-initialize for clean training (no degradation injected — pass-through).
 struct DegradationParams {
     double mean_delay_us  = 0.0;  // added latency (mean)

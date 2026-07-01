@@ -33,7 +33,7 @@ def main():
 
     model  = SAC.load(args.model)
     actor  = _DeterministicActor(model.policy.actor).eval()
-    dummy  = torch.zeros(1, 5, dtype=torch.float32)  # [batch, obs_dim]
+    dummy  = torch.zeros(1, 3, dtype=torch.float32)  # [batch, obs_dim]
 
     torch.onnx.export(
         actor,
@@ -45,7 +45,7 @@ def main():
         opset_version=11,
     )
     print(f"Exported: {out}")
-    print("  input:  obs    [batch, 5]  — [dx_m, dy_m, heading_sin, heading_cos, speed_ms]")
+    print("  input:  obs    [batch, 3]  — [gx_body, gy_body, speed_ms]")
     print("  output: action [batch, 2]  — [throttle, steering] in [-1, 1]")
 
 

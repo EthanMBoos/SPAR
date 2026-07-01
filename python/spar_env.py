@@ -42,17 +42,17 @@ except ImportError as e:
 class SparEnv(gym.Env):
     """Single-rover navigation env backed by SPAR's KinematicBackend.
 
-    Observation space: [dx_m, dy_m, heading_sin, heading_cos, speed_ms]  (5 floats)
-    Action space:      [throttle, steering]                               (2 floats in [-1, 1])
-    Reward:            -haversine_distance_to_goal (metres, dense)
+    Observation space: [gx_body, gy_body, speed_ms]   (3 floats, goal-relative body frame)
+    Action space:      [throttle, steering]           (2 floats in [-1, 1])
+    Reward:            -euclidean_distance_to_goal (metres, dense)
     Done:              arrival within 1 m of goal waypoint
     Truncated:         step limit (1200 steps = 60 s at 20 Hz) reached
     """
 
     metadata = {"render_modes": []}
 
-    _OBS_LOW  = np.array([-500.0, -500.0, -1.0, -1.0, -5.0], dtype=np.float32)
-    _OBS_HIGH = np.array([ 500.0,  500.0,  1.0,  1.0,  5.0], dtype=np.float32)
+    _OBS_LOW  = np.array([-500.0, -500.0, -5.0], dtype=np.float32)
+    _OBS_HIGH = np.array([ 500.0,  500.0,  5.0], dtype=np.float32)
 
     def __init__(
         self,

@@ -6,7 +6,7 @@ The policy always trains inside the **same assembler → monitor loop it deploys
 
 ```
 DEPLOYMENT:
-  MAVLink telemetry ──▶ assembler ──▶ WorldState ──▶ policy ──▶ CommandStream ──▶ monitor ──▶ ArduPilotAdapter ──▶ rover
+  odometry (ROS 2/Zenoh) ──▶ assembler ──▶ WorldState ──▶ policy ──▶ CommandStream ──▶ monitor ──▶ Ros2Adapter ──▶ vehicle
 
 TRAINING:
   SimulatorBackend ──▶ assembler ──▶ WorldState ──▶ policy ──▶ CommandStream ──▶ monitor ──▶ SimulatorBackend.step()
@@ -110,7 +110,7 @@ cmake --build build
 cd python && python eval_harness.py --build-dir ../build
 
 # Deployment — hardware
-cmake -B build -DSPAR_BACKEND=ardupilot -DSPAR_ENABLE_MAVLINK=ON
+cmake -B build -DSPAR_BACKEND=ros2   # Ros2Adapter over Zenoh; requires zenoh-cpp
 ```
 
 ---
@@ -121,7 +121,7 @@ cmake -B build -DSPAR_BACKEND=ardupilot -DSPAR_ENABLE_MAVLINK=ON
 
 - [x] `KinematicBackend` + `DegradedSource<T>` wired end-to-end (`spar_rover/sim/`)
 - [x] `DegradationScenarios.h` — four named scenarios via `SPAR_SCENARIO` env var
-- [x] `NavigationObs.h` — goal-relative 5-float obs via `make_nav_obs()`
+- [x] `NavigationObs.h` — goal-relative body-frame 3-float obs via `make_nav_obs()`
 - [x] `OnnxNavigateNode` — `BTNode` contract; guarded by `SPAR_ENABLE_ONNXRUNTIME`
 - [x] `ExploitNode` — rate-of-change fixture; guarded by `SPAR_ENABLE_EXPLOIT_NODE`
 - [x] `SparEnv(gym.Env)` pybind11 wrapper + eval harness (`python/`)

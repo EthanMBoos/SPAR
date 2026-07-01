@@ -14,7 +14,7 @@
 #include "sim/KinematicBackend.h"
 #include "sim/DegradationScenarios.h"
 #else
-#include "adapter/ArdupilotAdapter.h"
+#include "adapter/Ros2Adapter.h"
 #endif
 
 #include <chrono>
@@ -106,9 +106,16 @@ int main() {
     std::fprintf(stdout, "[spar_rover] backend=kinematic scenario=%s policy=%s\n",
                  scenario, policy_id);
 #else
-    ArdupilotAdapter adapter(assembler);
-    if (!adapter.connect())
-        std::fprintf(stderr, "[spar_rover] ArduPilot not reachable — stub mode\n");
+    // TODO: load Ros2Config (cmd_vel/odom keyexprs, ControllerEnvelope) from a
+    //       deployment config or env vars — the placeholder keyexprs won't match a
+    //       real vehicle's rmw_zenoh topics. Confirm with sample.get_keyexpr().
+    Ros2Adapter adapter(assembler);
+    if (!adapter.connect()) {
+        std::fprintf(stderr, "[spar_rover] controller transport unreachable — aborting\n");
+        return 1;
+    }
+    std::fprintf(stdout, "[spar_rover] backend=ros2 scenario=%s policy=%s\n",
+                 scenario, policy_id);
 #endif
 
     const uint64_t session_id = now_us();
@@ -121,8 +128,9 @@ int main() {
 
     GoalContext goal;
     goal.mission_id = 1;
-    goal.target     = {33.7756, -84.3959, 0.0f};  // ~37 m east of start — reachable in ~33 s at throttle 0.6
+    goal.target     = {20.0f, 0.0f, 0.0f};  // 20 m east of start — reachable in ~33 s at 0.6 m/s (throttle 0.6 × 1.0 m/s envelope)
     // TODO: load goal from a mission file or receive it from Tower over pidgin
+    //       (GPS waypoints convert to this local frame via GeoDatum / lla_to_local)
 
     std::fprintf(stdout, "[spar_rover] session=%llu\n", (unsigned long long)session_id);
 
@@ -146,7 +154,7 @@ int main() {
         // The assembler's staleness gate IS the catch — log it as FALL so the
         // session log captures the correct catch fraction for degraded scenarios.
         if (snap.any_degraded) {
-            // TODO: invoke the per-task hand-coded fallback (decelerate-and-hold or RTL)
+            // TODO: invoke the per-task hand-coded fallback (decelerate-and-hold)
             // instead of a bare zero command. The fallback is a BTNode that satisfies
             // the same interface — wire it here once it exists.
             CommandStream safe{};

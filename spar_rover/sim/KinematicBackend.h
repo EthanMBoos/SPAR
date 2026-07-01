@@ -1,31 +1,34 @@
 #pragma once
 #include "../../shared/contracts/SimulatorBackend.h"
+#include "../../shared/contracts/ControllerEnvelope.h"
 #include "../../shared/assembler/ObservationAssembler.h"
 #include "TransportDegradation.h"
 
 struct KinematicParams {
-    // Calibrate against measured ArduPilot GUIDED mode step responses.
-    float wheelbase_m       = 0.30f;  // rover wheelbase
-    float max_speed_ms      = 2.0f;   // full throttle forward speed
-    float max_accel_ms2     = 1.5f;   // peak longitudinal acceleration
-    float max_steer_rate_rs = 1.2f;   // max steering rate (rad/s)
-    float dt_s              = 0.050f; // tick period (20 Hz)
+    // Vehicle dynamics only. The throttle/steering → physical-velocity mapping is
+    // NOT here: it comes from the shared ControllerEnvelope so the sim and the
+    // hardware adapter map identical normalized commands to identical motion.
+    // Calibrate against measured Husky step responses.
+    float wheelbase_m   = 0.30f;  // rover wheelbase
+    float max_accel_ms2 = 1.5f;   // peak longitudinal acceleration
+    float dt_s          = 0.050f; // tick period (20 Hz)
 
-    // Fixed start pose (GT campus)
-    double start_lat_deg    = 33.7756;
-    double start_lon_deg    = -84.3963;
-    float  start_heading_deg = 0.0f;
+    // Fixed start pose in the local metric frame (ENU, meters / radians).
+    float start_x_m    = 0.0f;
+    float start_y_m    = 0.0f;
+    float start_yaw_rad = 0.0f;
 };
 
 // Bicycle-model kinematic simulator.
-// Integrates throttle/steering by dt each tick and injects the resulting Pose
-// into the assembler using a monotonically advancing simulated clock.
-// No external process or network — runs entirely in-process.
+// Integrates throttle/steering by dt each tick in the local metric frame and
+// injects the resulting Pose into the assembler using a monotonically advancing
+// simulated clock. No external process or network — runs entirely in-process.
 class KinematicBackend final : public SimulatorBackend {
 public:
     explicit KinematicBackend(ObservationAssembler& assembler,
                               KinematicParams       params      = {},
-                              DegradationParams     degradation = {});
+                              DegradationParams     degradation = {},
+                              ControllerEnvelope    envelope    = {});
 
     void reset() override;
     void step(const CommandStream& approved_cmd) override;
@@ -35,13 +38,14 @@ public:
 
 private:
     KinematicParams        params_;
+    ControllerEnvelope     envelope_;
     DegradedSource<Pose>   degraded_pose_;
 
-    // Simulated state
-    double   lat_deg_     = 0.0;
-    double   lon_deg_     = 0.0;
-    float    heading_deg_ = 0.0f;
-    float    speed_ms_    = 0.0f;
+    // Simulated state (local metric frame, ENU).
+    float    x_m_        = 0.0f;
+    float    y_m_        = 0.0f;
+    float    yaw_rad_    = 0.0f;
+    float    speed_ms_   = 0.0f;
     uint64_t sim_time_us_ = 0;
 
     void integrate(float throttle, float steering);

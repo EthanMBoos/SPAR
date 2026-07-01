@@ -7,11 +7,11 @@ struct NavigateNodeConfig {
     float    max_steering     = 0.8f;
     float    arrival_radius_m = 1.0f;
     uint64_t timeout_us       = 60'000'000; // 60 s
-    uint64_t max_pose_age_us  = 200'000;    // 200 ms — reject stale EKF output
+    uint64_t max_pose_age_us  = 200'000;    // 200 ms — reject stale state estimate
 };
 
 // Hand-coded navigate-to-waypoint BT node.
-// Produces throttle/steering commands pointing the rover toward goal.target.
+// Steers toward goal.target using goal-relative body-frame geometry (meters).
 // Returns Success when within arrival_radius_m; Failure on timeout.
 class NavigateNode final : public BTNode {
 public:
@@ -32,9 +32,4 @@ private:
     uint64_t id_;
 
     inline static uint64_t next_id_ = 1;
-
-    static float bearing_error_deg(double from_lat, double from_lon,
-                                   double to_lat,   double to_lon);
-    static float distance_m(double lat1, double lon1,
-                             double lat2, double lon2);
 };

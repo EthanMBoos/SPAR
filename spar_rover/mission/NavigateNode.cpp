@@ -2,27 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-static constexpr double DEG2RAD = M_PI / 180.0;
-static constexpr double EARTH_R  = 6371000.0; // metres
-
-float NavigateNode::distance_m(double lat1, double lon1,
-                                double lat2, double lon2) {
-    double dlat = (lat2 - lat1) * DEG2RAD;
-    double dlon = (lon2 - lon1) * DEG2RAD;
-    double a = std::sin(dlat / 2) * std::sin(dlat / 2)
-             + std::cos(lat1 * DEG2RAD) * std::cos(lat2 * DEG2RAD)
-             * std::sin(dlon / 2) * std::sin(dlon / 2);
-    return static_cast<float>(2.0 * EARTH_R * std::asin(std::sqrt(a)));
-}
-
-float NavigateNode::bearing_error_deg(double from_lat, double from_lon,
-                                       double to_lat,   double to_lon) {
-    double dlon = (to_lon - from_lon) * DEG2RAD;
-    double x    = std::sin(dlon) * std::cos(to_lat * DEG2RAD);
-    double y    = std::cos(from_lat * DEG2RAD) * std::sin(to_lat * DEG2RAD)
-                - std::sin(from_lat * DEG2RAD) * std::cos(to_lat * DEG2RAD) * std::cos(dlon);
-    return static_cast<float>(std::atan2(x, y) / DEG2RAD);
-}
+static constexpr float kHalfPi = 1.57079632679489661923f;
 
 NodeStatus NavigateNode::tick(const GoalContext& goal,
                                const WorldState&  world,
@@ -46,25 +26,28 @@ NodeStatus NavigateNode::tick(const GoalContext& goal,
         return NodeStatus::Failure;
     }
 
-    float dist = distance_m(pose.lat_deg, pose.lon_deg,
-                             goal.target.lat_deg, goal.target.lon_deg);
+    // Goal displacement in the world frame (meters), then rotated into the body frame.
+    float gx_w = goal.target.x_m - pose.x_m;
+    float gy_w = goal.target.y_m - pose.y_m;
+    float dist = std::hypot(gx_w, gy_w);
     if (dist < cfg_.arrival_radius_m) {
         out_cmd.cmd = {};
         return NodeStatus::Success;
     }
 
-    // Bearing from current position to target, relative to current heading.
-    float abs_bearing = bearing_error_deg(pose.lat_deg, pose.lon_deg,
-                                          goal.target.lat_deg, goal.target.lon_deg);
-    float heading_err = abs_bearing - pose.heading_deg;
-    // Normalise to [-180, 180]
-    while (heading_err >  180.0f) heading_err -= 360.0f;
-    while (heading_err < -180.0f) heading_err += 360.0f;
+    float c = std::cos(pose.yaw_rad);
+    float s = std::sin(pose.yaw_rad);
+    float gx_body =  c * gx_w + s * gy_w;   // forward
+    float gy_body = -s * gx_w + c * gy_w;   // left
+
+    // Bearing error to goal, relative to current heading: +left, in radians.
+    float heading_err = std::atan2(gy_body, gx_body);
 
     out_cmd.source_id        = id_;
     out_cmd.cmd.timestamp_us = goal.timestamp_us;
     out_cmd.cmd.throttle     = cfg_.max_throttle;
-    out_cmd.cmd.steering     = std::clamp(heading_err / 90.0f,
+    // Proportional steer: a 90° error saturates to full steering command.
+    out_cmd.cmd.steering     = std::clamp(heading_err / kHalfPi,
                                           -cfg_.max_steering,
                                            cfg_.max_steering);
     return NodeStatus::Running;

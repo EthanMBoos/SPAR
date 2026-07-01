@@ -4,6 +4,10 @@
 #include <cstdint>
 #include <string>
 
+// TODO: these normalized bounds/rates should be derived from the active
+//   ControllerEnvelope — the docs describe the monitor's invariants as coming
+//   from the controller's accepted envelope, but currently the envelope only
+//   feeds the adapter's command mapping. Wire it here so limits track the vehicle.
 struct MonitorConfig {
     float    throttle_min        = -1.0f;
     float    throttle_max        =  1.0f;

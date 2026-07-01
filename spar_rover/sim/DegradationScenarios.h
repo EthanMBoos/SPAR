@@ -4,7 +4,7 @@
 
 // Maps the SPAR_SCENARIO env-var value to the DegradationParams for that scenario.
 // All values are nominal; replace with hardware-measured distributions once
-// real MAVLink timing data is collected from the rover (Phase 1 gate item).
+// real ROS 2 transport timing data is collected from the rover (Phase 1 gate item).
 //
 // Scenario definitions match docs/eval-protocol.md:
 //   baseline       — clean transport; establishes floor catch fraction (~0)

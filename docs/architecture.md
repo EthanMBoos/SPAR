@@ -5,13 +5,13 @@ SPAR is a C++ mission and integration runtime built around the authority boundar
 ## System Overview
 
 ```
-┌──────────────┐   MAVLink    ┌──────────────┐   Protobuf    ┌──────────────┐
-│  Controller  │ ◀──────────▶ │     SPAR     │ ◀───────────▶ │ tower-server │
-│ (ArduPilot)  │              │  (C++)       │   extension   │     (Go)     │
+┌──────────────┐  ROS2/Zenoh  ┌──────────────┐   Protobuf    ┌──────────────┐
+│  Vehicle     │ ◀──────────▶ │     SPAR     │ ◀───────────▶ │ tower-server │
+│  controller  │              │  (C++)       │   extension   │     (Go)     │
 └──────────────┘              └──────────────┘               └──────────────┘
 ```
 
-Two backend modes are supported. `ArdupilotAdapter` drives a live MAVLink connection; `KinematicBackend` is an in-process bicycle model that injects observations directly into the assembler. The assembler, monitor, and mission layer are unchanged between them — only the source implementation changes. Build with `-DSPAR_BACKEND=kinematic` for training and catch-fraction experiments without ArduPilot.
+Two backend modes are supported. `Ros2Adapter` drives a live vehicle over Zenoh — publishing `cmd_vel`, consuming odometry from the vehicle's external state estimator; `KinematicBackend` is an in-process bicycle model that injects observations directly into the assembler. The assembler, monitor, and mission layer are unchanged between them — only the source implementation changes. Build with `-DSPAR_BACKEND=kinematic` for training and catch-fraction experiments without a vehicle.
 
 ## The Observation Assembler
 
@@ -25,7 +25,7 @@ The assembler is what makes both substitution axes hold. The same `latest_at_or_
 
 **Capture time, not receipt time.** Samples are stamped with the sensor's own capture timestamp, never the wall-clock time the callback ran. Receipt time has executor and transport jitter baked in; stamping there relaunders the noise the assembler exists to remove.
 
-**The assembler is a standalone library.** It depends only on a timestamped `Sample<T>`, the ring buffers, and the snapshot builder. No SPAR, MAVLink, or ArduPilot types. SPAR wires it in; it does not own SPAR.
+**The assembler is a standalone library.** It depends only on a timestamped `Sample<T>`, the ring buffers, and the snapshot builder. No SPAR- or transport-specific types. SPAR wires it in; it does not own SPAR.
 
 ---
 
@@ -54,13 +54,13 @@ The seam that matters runs between high-level autonomy (anything from a hand-cod
                              │ approved commands only
                              ▼
         ┌─────────────────────────────────────────────┐
-        │  spar_ardupilot_adapter (TRUSTED)           │
+        │  ControllerAdapter      (TRUSTED)           │
         │  • single writer to controller              │
         └────────────────────┬────────────────────────┘
-                             │ MAVLink
+                             │ cmd_vel (ROS 2 / Zenoh)
                              ▼
         ┌─────────────────────────────────────────────┐
-        │  ArduPilot            (TRUSTED CONTROL)     │
+        │  Vehicle controller   (TRUSTED CONTROL)     │
         │  • low-level control, estimation, failsafes │
         └─────────────────────────────────────────────┘
 ```
@@ -72,13 +72,13 @@ The contract doesn't depend on what sits above it. Whether the policy is hand-co
 SPAR runs as a **single process** (`spar_rover`) with a tick thread at fixed rate and sensor threads running asynchronously.
 
 ```
-                    GPS + IMU + baro + compass
+                    wheel odom + IMU + (GPS)
                              │
                              ▼
-                      ArduPilot EKF3           ← runs on the controller, not in SPAR
+             external estimator (robot_localization)  ← runs on the vehicle, not in SPAR
                              │
-                    MAVLink telemetry           GLOBAL_POSITION_INT, ATTITUDE, VFR_HUD
-                    (EKF output, already fused)
+                    odometry (ROS 2 / Zenoh)    nav_msgs/Odometry, TF
+                    (estimate, already fused)
                              │
           ┌──────────────────┼───────────────────────┐
           │  spar_rover       ▼                      │
@@ -98,12 +98,12 @@ SPAR runs as a **single process** (`spar_rover`) with a tick thread at fixed rat
           │  │          (+ session.log)            │ │
           │  │                  │ approved only    │ │
           │  │                  ▼                  │ │
-          │  │              Adapter ───────────────┼─┼──▶ ArduPilot
+          │  │              Adapter ───────────────┼─┼──▶ vehicle
           │  └─────────────────────────────────────┘ │
           └──────────────────────────────────────────┘
 ```
 
-Only `spar_ardupilot_adapter` links against the controller transport; no other code path writes to the controller.
+Only the `ControllerAdapter` (e.g. `Ros2Adapter`) links against the controller transport; no other code path writes to the controller.
 
 ### Tick ordering
 
@@ -113,11 +113,11 @@ Each 20 Hz tick executes in fixed order:
 1. Observation assembler builds WorldState via latest_at_or_before(t) over all source ring buffers
 2. BTNode::tick(GoalContext, WorldState) → CommandStream
 3. RuntimeMonitor::evaluate(CommandStream) → MonitorDecision
-4. If not Halt: Adapter::write(approved CommandStream) → ArduPilot
+4. If not Halt: Adapter::write(approved CommandStream) → vehicle controller
 5. Append MonitorDecision + per-source WorldState staleness to session log
 ```
 
-Sensor data arrives whenever ArduPilot sends it, not synchronized to the tick cadence. The assembler's `latest_at_or_before(t)` lookup absorbs that jitter; behavior nodes see a clean fixed-rate sequence of coherent observations.
+Sensor data arrives whenever the estimator or sensors publish, not synchronized to the tick cadence. The assembler's `latest_at_or_before(t)` lookup absorbs that jitter; behavior nodes see a clean fixed-rate sequence of coherent observations.
 
 ## WorldState and Sensor Sources
 
@@ -125,28 +125,26 @@ Sensor data arrives whenever ArduPilot sends it, not synchronized to the tick ca
 
 ```cpp
 struct WorldState {
-    Pose         pose;       // from ArduPilot EKF via MAVLink; stamped with capture time
+    Pose         pose;       // from the external estimator via odometry; stamped with capture time
     ObstacleMap  obstacles;  // from lidar / camera pipeline
-    BatteryState battery;    // from MAVLink SYS_STATUS
+    BatteryState battery;    // from vehicle diagnostics
     // per-source staleness carried alongside each domain
 };
 ```
 
-### Navigation state: ArduPilot owns this
+### Navigation state: the external estimator owns this
 
-`GLOBAL_POSITION_INT` is not raw GPS. It is ArduPilot's EKF3 output, already fusing GPS, IMU, barometer, and compass on the controller. SPAR's telemetry thread unpacks it and writes it to `WorldState.pose`. There is no separate navigation EKF running in SPAR.
+The odometry SPAR consumes is not raw GPS. It is the vehicle's state-estimator output (e.g. `robot_localization`), already fusing wheel odometry, IMU, and — when present — GPS on the vehicle, published in a local metric frame. SPAR's ingest thread decodes it and writes it to `WorldState.pose`. There is no separate navigation EKF running in SPAR.
 
-Stream rates are configured on the ArduPilot side and matter for staleness. At default rates (often 1–4 Hz) a 20 Hz tick sees pose data up to 250–1000 ms old. Recommended minimums for the rover demo:
+Publish rates are configured on the vehicle side and matter for staleness. At low rates a 20 Hz tick sees pose data hundreds of ms old. Recommended minimum for the rover demo:
 
 ```
-SR2_POSITION = 10    # GLOBAL_POSITION_INT at 10 Hz
-SR2_EXTRA1   = 50    # ATTITUDE at 50 Hz
-SR2_EXTRA3   = 10    # VFR_HUD at 10 Hz
+/odometry/filtered  ≥ 10 Hz    # state estimate → WorldState.pose
 ```
 
 ### Perception state: SPAR owns this
 
-Sensors ArduPilot doesn't see (lidar, camera, any external perception system) write their processed output into `WorldState` directly via their own threads. SPAR is responsible for this processing. It is the only domain where SPAR runs any fusion or detection logic of its own.
+Sensors the state estimator doesn't fuse (lidar, camera, any external perception system) write their processed output into `WorldState` directly via their own threads. SPAR is responsible for this processing. It is the only domain where SPAR runs any fusion or detection logic of its own.
 
 ### Simulation must inject transport degradation
 

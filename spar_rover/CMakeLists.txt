@@ -30,12 +30,17 @@ if(SPAR_ENABLE_ONNXRUNTIME)
     target_link_libraries(spar_core PUBLIC ${ONNXRUNTIME_LIB})
 endif()
 
-# Executable: adds main.cpp + ArdupilotAdapter on top of spar_core.
-add_executable(spar_rover
-    main.cpp
-    adapter/ArdupilotAdapter.cpp
-)
+# Executable: main.cpp, plus the controller adapter when building the ros2 backend.
+add_executable(spar_rover main.cpp)
 target_link_libraries(spar_rover PRIVATE spar_core)
+
+if(SPAR_BACKEND STREQUAL "ros2")
+    target_compile_definitions(spar_rover PRIVATE SPAR_BACKEND_ROS2)
+    target_sources(spar_rover PRIVATE adapter/Ros2Adapter.cpp)
+    find_package(zenohcpp REQUIRED)
+    target_link_libraries(spar_rover PRIVATE zenohcpp::lib)
+endif()
+
 if(OpenSSL_FOUND)
     target_link_libraries(spar_rover PRIVATE OpenSSL::Crypto)
 endif()

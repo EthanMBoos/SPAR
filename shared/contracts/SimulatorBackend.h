@@ -2,7 +2,7 @@
 #include "CommandStream.h"
 
 // Interface for in-process simulation backends.
-// Swapped in place of ArdupilotAdapter when SPAR_BACKEND=kinematic (or future variants).
+// Swapped in place of the controller adapter (Ros2Adapter) when SPAR_BACKEND=kinematic.
 // The assembler, monitor, and node contract are unchanged — they do not know which backend is active.
 //
 // Contract:

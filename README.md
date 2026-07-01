@@ -55,26 +55,26 @@ The behavioral row is a slot. It takes any detector that calibrates on successfu
                      │ approved command, or defined safe fallback on reject
                      ▼
 ┌─────────────────────────────────────────────┐
-│  Adapter → ArduPilot        (TRUSTED)       │
-│  single writer to controller                │
+│  ControllerAdapter          (TRUSTED)       │
+│  single writer · transport plugin           │
 └─────────────────────────────────────────────┘
 ```
 
 **Observation assembler.** The same assembler, the same `latest_at_or_before(t)` lookup, and the same staleness math run in simulation and on the rover; only the source implementation changes. For hand-coded behaviors and the SAC RL baseline, the assembled snapshot is the policy's primary input. For vision-based policies (Cosmos, Phase 4a), raw video frames flow through a separate path, but the assembler still runs, because the monitor needs assembled state (pose age, speed) to gate every command regardless of what produced it.
 
-**Runtime monitor.** Sees every command before the adapter. Enforces per-sample bounds, rate-of-change limits, and temporal-window invariants derived from ArduPilot's accepted command envelope. Every decision is logged with the triggered invariant and an `invariant_flags` bitmask so the post-mortem question is always answerable: did no applicable invariant exist, or did one exist and the monitor miss it?
+**Runtime monitor.** Sees every command before the adapter. Enforces per-sample bounds, rate-of-change limits, and temporal-window invariants derived from the active controller's accepted command envelope (its `ControllerEnvelope`). Every decision is logged with the triggered invariant and an `invariant_flags` bitmask so the post-mortem question is always answerable: did no applicable invariant exist, or did one exist and the monitor miss it?
 
-**Rejection contract.** A rejected command is never silently dropped. The monitor puts a defined safe fallback in its place and logs the rejection with the triggered `invariant_flags`. The fallback is what keeps the vehicle safe; a flagged command does nothing on its own. It's configurable per deployment: hold-last-approved, commanded-stop/zero, or hand-off to an ArduPilot failsafe mode.
+**Rejection contract.** A rejected command is never silently dropped. The monitor puts a defined safe fallback in its place and logs the rejection with the triggered `invariant_flags`. The fallback is what keeps the vehicle safe; a flagged command does nothing on its own. It's configurable per deployment: commanded-stop/zero (the default), hold-last-approved, or — where the controller provides one — hand-off to a controller-native failsafe mode.
 
-**Single-writer adapter.** The only module that links against the controller transport. Bypass is architecturally impossible, not merely prohibited.
+**Single-writer adapter.** The `ControllerAdapter` is the only module that links against the controller transport; bypass is architecturally impossible, not merely prohibited. Adapters are named by transport, not vehicle: the reference is `Ros2Adapter` (ROS 2 `cmd_vel`/odometry over Zenoh, demoed on the Clearpath Husky).
 
 ## Current State and Roadmap
 
-Single process, no ROS. Each phase has a gate condition; do not start the next phase until the gate is met.
+Single process, no rclcpp. Each phase has a gate condition; do not start the next phase until the gate is met.
 
 | Phase | What | Gate |
 |---|---|---|
-| **0** ✓ | SITL bug fixes (type_mask, heartbeat, UDP bind, capture timestamps); dead code cuts | Stable SITL telemetry: pose staleness < 200 ms on consecutive ticks |
+| **0** ✓ | Runtime skeleton, capture-timestamp handling, dead-code cuts | Stable estimator telemetry: pose staleness < 200 ms on consecutive ticks |
 | **1** ✓ | `KinematicBackend` + `TransportDegradation` + `OnnxNavigateNode` + SAC training + eval harness | Architectural catch fractions computable from a session log produced by an ONNX policy run |
 | **2** | `MissionExecutor` + JSON mission loader + per-task policy assignment | Catch fractions computable per (task, policy) pair from session log |
 | **3** | Temporal-window invariants (oscillation, sustained max-rate, jerk) + MCAP logging | At least one temporal invariant catches a failure class per-sample invariants miss |
@@ -82,6 +82,8 @@ Single process, no ROS. Each phase has a gate condition; do not start the next p
 | **4b** | Cosmos prediction-divergence behavioral monitor | All four catch fractions computed for a Cosmos-trained policy |
 
 **Phases 0 and 1 are complete.** Phase 1 gate closed 2026-06-22: SAC policy trained via `SparEnv`, exported to ONNX, and run end-to-end through `OnnxNavigateNode`. Verified catch fractions by scenario: hand-coded baseline 0.003, pose_dropout 0.435, pose_jitter 0.053, policy_exploit 0.999, SAC ONNX baseline 0.014 (mission success, neither = 0). The trained policy produces slightly rougher commands than the hand-coded node; the monitor catches them without blocking mission completion.
+
+> **TODO: Re-measure pending:** the controller-agnostic + local-metric migration changes the observation vector (`make_nav_obs` is now goal-relative body-frame, 3 floats) and supersedes the checkpoint above. These fractions are being re-measured on the metric obs before Phase 2.
 
 **Phase 4a prerequisite:** Before starting Phase 4a, benchmark the candidate Cosmos actor's inference latency on target hardware and determine its output format (autoregressive vs. diffusion/chunking). If inference > 30 ms or the model outputs action chunks, `docs/action-chunking.md` describes the required architectural changes and must be implemented first. This decision cannot be deferred past Phase 4a start.
 
@@ -100,14 +102,15 @@ These are correct designs for a deployed product. They are not research prerequi
 ```
 SPAR/
 ├── shared/
-│   ├── contracts/           # BTNode, GoalContext, CommandStream,
-│   │                        # MonitorDecision, WorldState, SimulatorBackend
+│   ├── contracts/           # BTNode, GoalContext, CommandStream, MonitorDecision,
+│   │                        # WorldState, SimulatorBackend, ControllerAdapter,
+│   │                        # ControllerEnvelope, GeoDatum
 │   └── assembler/           # ObservationAssembler (ring buffers + snapshot)
 ├── spar_rover/
 │   ├── main.cpp             # tick thread (20 Hz)
 │   ├── monitor/             # RuntimeMonitor (authority boundary enforcement)
 │   ├── mission/             # NavigateNode, OnnxNavigateNode
-│   ├── adapter/             # ArdupilotAdapter (MAVLink; disabled in kinematic mode)
+│   ├── adapter/             # Ros2Adapter (Zenoh; built for the ros2 backend)
 │   └── sim/                 # KinematicBackend, TransportDegradation
 ├── python/                  # pybind11 bindings + SparEnv gym wrapper
 └── docs/
@@ -132,8 +135,8 @@ Requires CMake 3.22+, a C++20 compiler.
 
 | Flag | Default | Effect |
 |---|---|---|
-| `SPAR_BACKEND` | `ardupilot` | `ardupilot` = live MAVLink; `kinematic` = in-process bicycle model |
-| `SPAR_ENABLE_MAVLINK` | OFF | Enable real MAVLink transport (requires `third_party/mavlink` submodule) |
+| `SPAR_BACKEND` | `kinematic` | `kinematic` = in-process bicycle model; `ros2` = live vehicle via `Ros2Adapter` over Zenoh (requires zenoh-cpp) |
+| `SPAR_ENABLE_ZENOH` | OFF | Build Zenoh-cpp sensor sources (perception input) |
 | `SPAR_ENABLE_ONNXRUNTIME` | OFF | Enable ONNX learned node (`OnnxNavigateNode`) |
 | `SPAR_ENABLE_PYTHON` | OFF | Build pybind11 gym wrapper (requires `SPAR_BACKEND=kinematic` + pybind11) |
 | `SPAR_ENABLE_EXPLOIT_NODE` | OFF | Build `ExploitNode` for `policy_exploit` scenario (eval only; never on in deployment builds) |
@@ -144,7 +147,7 @@ Requires CMake 3.22+, a C++20 compiler.
 |---|---|---|
 | `SPAR_SCENARIO` | `baseline` | Label written to the session log header (`# scenario: <value>`). Set to the active failure scenario name so logs are unambiguous. See `docs/eval-protocol.md` for defined scenario names. |
 
-**Kinematic mode** (no SITL, no hardware required):
+**Kinematic mode** (no vehicle, no hardware required):
 ```bash
 cmake -B build -DSPAR_BACKEND=kinematic -DSPAR_ENABLE_EXPLOIT_NODE=ON
 cmake --build build
@@ -163,30 +166,30 @@ python python/train_sac.py
 cd python && python eval_harness.py --build-dir ../build
 ```
 
-**ArduPilot stub mode** (adapter runs but writes are no-ops; fixed pose injected):
+## Running on a ROS 2 Vehicle (Husky)
+
+The `ros2` backend drives a live vehicle over Zenoh — no rclcpp in-process. The vehicle
+(e.g. a Clearpath Husky) runs `rmw_zenoh` so `spar_rover` can publish `geometry_msgs/Twist`
+on `cmd_vel` and subscribe to `nav_msgs/Odometry` from its state estimator
+(`robot_localization`). SPAR consumes the estimate; it does not estimate.
+
 ```bash
-cmake -B build
+cmake -B build -DSPAR_BACKEND=ros2   # requires zenoh-cpp
 cmake --build build
-./build/spar_rover/spar_rover
-```
 
-## Running Against ArduPilot SITL
-
-*(MAVLink submodule required: clone `third_party/mavlink`, then build with `SPAR_ENABLE_MAVLINK=ON`)*
-
-```bash
-# Start ArduPilot Rover SITL
-sim_vehicle.py -v Rover --console
-
-# Run SPAR
+# On the vehicle: bring up the base + robot_localization under rmw_zenoh, then:
 ./build/spar_rover/spar_rover
 # Session log written to /tmp/spar_<session_id>.log
 ```
+
+Set the `cmd_vel` / `odom` keyexprs to match the vehicle's ROS 2 topics — confirm on-robot by
+printing `sample.get_keyexpr()`; see [`docs/ros2-integration.md`](docs/ros2-integration.md).
 
 ## Documentation
 
 - [Architecture](docs/architecture.md): observation assembler, authority boundary, data flow, monitor design, architectural constraints
 - [RL Pipeline](docs/rl-pipeline.md): SAC baseline, Cosmos behavior-cloning path, Phase 4a prerequisites (VideoRecorder, ObservationBuffer, action chunking decision gate), build status
+- [ROS 2 Integration](docs/ros2-integration.md): controller adapter over Zenoh, external state estimator, perception sources, keyexpr/CDR notes
 - [Eval Protocol](docs/eval-protocol.md): named failure scenarios, eval harness, session log parser, catch-fraction table
 - [Mission Design](docs/mission-design.md): Task struct, MissionExecutor design, session log schema
 - [Future](docs/future/): Tower radio ICD, high-level behaviors (implement after Phase 3)
