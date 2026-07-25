@@ -31,7 +31,7 @@ services:
 
   # THE SIM: python + mujoco + rclpy, headless. Nothing robot-shaped
   # launches automatically — the sim process itself is started explicitly
-  # by `make sim` (and stopped by `make sim-stop`).
+  # by `make start_sim` (and stopped by `make stop_sim`).
   sim:
     image: spar:jazzy
     container_name: spar-sim

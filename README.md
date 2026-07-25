@@ -44,29 +44,28 @@ and consumes `cmd_vel`.
 ## Quickstart
 
 Requirements: [Docker](https://docs.docker.com/get-docker/) with 8 GB+
-memory (Docker Desktop, Settings, Resources). For the optional host
-viewer window, Python 3 with a venv at `.venv`:
-`python3 -m venv .venv && .venv/bin/pip install mujoco==3.10.0`.
+memory (Docker Desktop, Settings, Resources) and, for the optional host
+viewer window, Python 3 (`make view` creates its own venv at `.venv`).
+
+Start the simulated world first, then the robot's software next to it:
 
 ```bash
 git clone https://github.com/EthanMBoos/spar.git
 cd spar
-make ros2_container                # builds the image, starts the containers, drops you into a shell
-
-colcon build --symlink-install
-source install/setup.bash          # only needed this once; later shells (make shell) source it for you
-```
-
-From a second terminal on your host, start the sim, then launch the
-stack in the container shell:
-
-```bash
-make sim             # headless sim in its container (make sim-stop ends it)
+make start_sim       # builds the image, starts the sim headless in its container
 make view            # optional: native viewer window on your host
 ```
 
+From a second terminal, start the autonomy stack's container and build
+the code:
+
 ```bash
-ros2 launch spar_bringup autonomy.launch.py world:=blank   # in the container shell
+make ros2_container                # starts the container, drops you into a shell
+
+colcon build --symlink-install
+source install/setup.bash          # only needed this once; later shells (make shell) source it for you
+
+ros2 launch spar_bringup autonomy.launch.py world:=blank
 ```
 
 Ctrl-C and rerun any time. After editing code, rebuild first (see "Working
@@ -101,17 +100,17 @@ targets point at it; the first build compiles PX4 from source and takes
 a while.
 
 ```bash
-make sim
+make start_sim                     # if not already running
 make ros2_container_air
 colcon build --symlink-install     # in that shell: builds spar_air
 
-# start PX4, in that shell
+# start PX4, in that shell; give it a few seconds to boot before px4-zenoh
 cd /opt/px4/build/px4_sitl_zenoh
 PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris \
   PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1 &
 ./bin/px4-zenoh start              # joins PX4 to the ROS graph
 
-ros2 launch spar_air air.launch.py world:=blank
+ros2 launch spar_air air.launch.py world:=blank   # stays in the foreground, like the ground launch
 ```
 
 Give EKF2 ~10 s to converge after PX4 starts, then the same mission
@@ -207,7 +206,7 @@ Two things travel with a world:
 | Stop and remove the containers | `make shut_down` |
 | Clean rebuild | `make clean` (shuts down, removes `build/` + `install/`), then `make ros2_container` |
 | Logs of past runs | `logs/runNNN/`, one per launch |
-| The sim | `sim/spar_sim/` (physics, sensors, PX4 link), started by `make sim` |
+| The sim | `sim/spar_sim/` (physics, sensors, PX4 link), started by `make start_sim` |
 | Worlds and robots | `sim/worlds/*.xml`, `sim/robots/*.xml` (MJCF) |
 | Watch the sim | `make view` (native viewer on the host, read-only) |
 | Perception | cameras render in the sim (EGL, headless); the containerized detector turns pixels into labeled points on `perception/detections` |

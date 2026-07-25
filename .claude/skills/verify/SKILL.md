@@ -148,7 +148,7 @@ false PASS against code that isn't the code you're verifying.
 make shut_down    # clean slate, whatever was running before
 mkdir -p ground/build ground/install logs
 WORLD=blank docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
-make sim
+make start_sim
 sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
 grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
@@ -157,7 +157,7 @@ docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/ins
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
 make smoke         # ~4 min; run in background and poll if doing other work
-make sim-stop      # leave the machine as found; the containers are fine to leave running
+make stop_sim      # leave the machine as found; the containers are fine to leave running
 ```
 
 Success is the final line `[smoke] PASS: idle -> start -> rounds -> low
@@ -225,7 +225,7 @@ the sim clock must not rewind under it).
 make shut_down
 mkdir -p ground/build ground/install logs air/src air/build air/install logs/air
 WORLD=blank docker compose -f docker/compose.yaml --profile air up --build -d
-make sim
+make start_sim
 # wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1'
@@ -233,7 +233,7 @@ docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUT
 docker exec spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && ./bin/px4-zenoh start'
 docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=blank'
 make smoke_air         # ~4-6 min; phase 1 alone waits out PX4 boot + EKF2
-make sim-stop
+make stop_sim
 ```
 
 Success is the final `[smoke] PASS: idle -> start -> takeoff -> ...`

@@ -48,7 +48,7 @@ ifeq ($(TRACK),air)
 endif
 COMPOSE_ALL := docker compose -f docker/compose.yaml --profile air
 
-.PHONY: help ros2_container ros2_container_air clean shut_down sim sim-stop view shell shell_air tail tail_air smoke smoke_air map rviz
+.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view shell shell_air tail tail_air smoke smoke_air map rviz
 
 help:           ## list commands
 	@grep -E '^[a-z0-9_-]+: .*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -67,16 +67,18 @@ shut_down:      ## stop and remove the containers
 clean: shut_down ## shut down, then remove both tracks' build trees (forces a full rebuild on the next `make ros2_container`)
 	rm -rf ground/build ground/install air/build air/install
 
-sim:            ## start the sim headless in the sim container (make sim-stop ends it)
+start_sim:      ## start the headless sim (its container comes up if needed; make stop_sim ends it)
+	@mkdir -p logs
+	@WORLD=$(WORLD) $(COMPOSE) up --build -d sim
 	@docker exec spar-sim pkill -f spar_sim.sim 2>/dev/null; true
 	docker exec -d spar-sim bash -lc '$(ROS_ENV) && cd /ws/sim && \
 	  MUJOCO_GL=egl WORLD=$(WORLD) python3 -m spar_sim.sim > /ws/logs/sim.log 2>&1'
 	@echo "sim starting (logs/sim.log)"
 
-sim-stop:       ## stop the sim
+stop_sim:       ## stop the sim
 	@docker exec spar-sim pkill -f spar_sim.sim && echo "stopped" || echo "not running"
 
-view:           ## native viewer window attached to the running sim
+view: $(VENV)   ## native viewer window attached to the running sim
 	@# macOS's launch_passive needs mjpython; elsewhere plain python works.
 	@if [ -x $(VENV)/bin/mjpython ]; then \
 	  $(VENV)/bin/mjpython sim/viewer.py --world $(WORLD); \
@@ -115,4 +117,4 @@ map: $(VENV)    ## regenerate the AMCL map from the world file (lint gate -> ras
 	  ground/src/spar_bringup/maps
 
 $(VENV):
-	python3 -m venv $(VENV) && $(VENV)/bin/pip install mujoco pyyaml
+	python3 -m venv $(VENV) && $(VENV)/bin/pip install mujoco==3.10.0 pyyaml

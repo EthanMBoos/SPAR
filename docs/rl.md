@@ -218,7 +218,7 @@ abstraction earns its place on the third caller, not the first.
    PureJaxRL when you want thousands of parallel envs on a GPU. Instrument
    with Rerun as you go (see above), not after the fact.
 4. **Deploy + eval:** load the policy as a behavior node, run the full stack
-   (`make sim` + `ros2 launch spar_bringup autonomy.launch.py` +
+   (`make start_sim` + `ros2 launch spar_bringup autonomy.launch.py` +
    `scripts/mission.sh start`), and compare against the hand-written BT
    (overlay the Rerun trajectory from training against this run to confirm
    the physics matches).

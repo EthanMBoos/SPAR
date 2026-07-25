@@ -18,7 +18,7 @@ Nav2, AMCL, the behavior tree. Same graph, localhost apart.
         │   lint → rasterize reads the same file (make map)              │
         └────────────────────────────────────────────────────────────────┘
           run it three ways, same env, same sensors, same physics:
-            • HEADLESS  make sim: the stack's sim, tests and smoke
+            • HEADLESS  make start_sim: the stack's sim, tests and smoke
             • WATCHED   make view: a native viewer window on the host,
                         synced to the running sim, read-only
             • RL        a training loop drives the env instead of Nav2

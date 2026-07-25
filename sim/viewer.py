@@ -50,7 +50,7 @@ def main():
     try:
         sock = socket.create_connection((args.host, args.port), timeout=2.0)
     except OSError:
-        sys.exit(f"no sim on {args.host}:{args.port} — start it with `make sim`")
+        sys.exit(f"no sim on {args.host}:{args.port} — start it with `make start_sim`")
     header = read_exact(sock, 8)
     if header is None or header[:4] != MAGIC:
         sys.exit("that isn't the sim's stream (bad magic)")
