@@ -1,8 +1,8 @@
 // PX4's estimate as TF: VehicleLocalPosition + VehicleAttitude become
 // map -> base_link, so the detector projects pixels through the estimated
-// pose (no ground-truth TF from Unity). Also publishes the fixed
-// base_link -> camera_0_link mount, which must match the Unity-side mount
-// in SparPx4Link.cs (45 deg pitched down, body forward).
+// pose (no ground-truth TF from the sim). Also publishes the fixed
+// base_link -> camera_0_link mount, which must match the x2_camera mount
+// in sim/robots/x2.xml (45 deg pitched down, body forward).
 //
 // This file owns the attitude half of the frame bug farm: PX4's quaternion
 // is body-FRD relative to world-NED; the map frame is ENU and the robot
@@ -43,7 +43,7 @@ public:
         std::make_unique<tf2_ros::StaticTransformBroadcaster>(*this);
 
     // The camera mount, base FLU: pitched down about +y (left), so body +x
-    // rotates toward -z. Matches the Unity mount rotation in SparPx4Link.cs.
+    // rotates toward -z. Matches the x2_camera mount in sim/robots/x2.xml.
     const double half = 0.5 * get_parameter("camera_pitch_down_deg").as_double()
                         * M_PI / 180.0;
     geometry_msgs::msg::TransformStamped cam;

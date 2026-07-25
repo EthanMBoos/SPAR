@@ -1,6 +1,6 @@
 """The whole robot stack: localization (AMCL), Nav2, and the behavior
-layer (bt_executive + battery_sim + anomaly_detector). The endpoint Unity
-connects to lives in the core container (scripts/core.sh), not here.
+layer (bt_executive + battery_sim + anomaly_detector). The MuJoCo sim node
+publishing sensors lives in the sim container (sim/spar_sim), not here.
 
 One `ros2 launch` process, launched by hand from a `make ros2_container`/
 `make shell` session, see the Makefile and README. Ctrl-C and rerun it to

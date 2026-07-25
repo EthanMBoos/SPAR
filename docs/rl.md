@@ -3,39 +3,38 @@
 The architecture buys exactly one great RL trick, and it's the recommended way
 to do RL here:
 
-> **Dump the world from Unity as MJCF (`make map` already produces it), build a
-> pure-MuJoCo Gymnasium env on that file — no ROS, no Unity — train fast, then
-> deploy the policy as a behavior node and evaluate it in the full stack.**
+> **Take the world file (`sim/worlds/<world>.xml`, robots included), build a
+> pure-MuJoCo Gymnasium env on that file — no ROS — train fast, then deploy
+> the policy as a behavior node and evaluate it in the full stack.**
 
-Because MuJoCo is the physics in Unity *and* in the training loop, and because
-the dump is the exact compiled model the Unity sim runs (same geometry, same
+Because MuJoCo is the physics in the deployed sim *and* in the training loop,
+and because both load the same file with the same library (same geometry, same
 `timestep`, same solver options), the policy never crosses a physics boundary
 between training and deployment. That identity is the payoff of
-"MuJoCo is the backend" (docs/sim-architecture.md).
+"MuJoCo is the sim" (docs/sim-architecture.md).
 
-> **Status:** the dump exists today (`make map` leaves `logs/<world>.xml`); the
-> Gym wrapper and deploy path are on the roadmap. This doc is the design and
-> the student starting point, not a finished `make rl`.
+> **Status:** the world file is authored and shared today; the Gym wrapper
+> and deploy path are on the roadmap. This doc is the design and the student
+> starting point, not a finished `make rl`.
 
 ## The shape: train fast, eval in the stack
 
 ```
-Unity scene (authored world)
-   └── make map  →  logs/<world>.xml          (the exact compiled model)
-         └── Gymnasium env: MuJoCo + ~100 lines of Python
-               obs: lidar (mj_multiRay), poses, oracle, battery
-               act: (v, ω) → skid-steer mix → ctrl        no ROS, no Unity
-               10⁵–10⁷ steps/s territory; trivial resets; mjx-able
-                     └── train (SB3 / PPO, or mjx+Brax for massive parallel)
-                           └── deploy policy as a behavior node
-                                 └── eval in the full Unity + ROS stack
+sim/worlds/<world>.xml (the authored world, robots included)
+   └── Gymnasium env: MuJoCo + ~100 lines of Python
+         obs: lidar (mj_multiRay), poses, oracle, battery
+         act: (v, ω) → skid-steer mix → ctrl        no ROS
+         10⁵–10⁷ steps/s territory; trivial resets; mjx-able
+               └── train (SB3 / PPO, or mjx+Brax for massive parallel)
+                     └── deploy policy as a behavior node
+                           └── eval in the full sim + ROS stack
 ```
 
 Two loops, only one of which must be fast:
 
-- **Training** — the loop above. ROS is *never* in it: a ROS-TCP round-trip per
+- **Training** — the loop above. ROS is *never* in it: a ROS round-trip per
   step is orders of magnitude too slow and its timing is nondeterministic.
-- **Eval** — the full stack (Unity render, Nav2, AMCL, the behavior tree),
+- **Eval** — the full stack (the sim, Nav2, AMCL, the behavior tree),
   run at fidelity to check the learned behavior holds up. `make smoke` is the
   template.
 
@@ -57,10 +56,9 @@ calls — don't embed it in the training loop; you don't want it there anyway.
 **What the Python env reimplements** (the accepted, bounded cost): the tiny
 observation/action layer — skid-steer mixing (`WHEEL_RADIUS`/`TRACK_WIDTH`
 constants), lidar via `mj_multiRay`, the visibility oracle (FOV + range +
-`mj_ray` line-of-sight), reward terms. The conventions are already specified —
-the mixer and lidar live in `SparRosBridge.cs`; reference implementations
-of the oracle (C#) and the full Python sensor set (`sim_node.py`) are in git
-history. Port, don't invent.
+`mj_ray` line-of-sight), reward terms. The conventions are already
+implemented — the mixer lives in `sim/spar_sim/sim.py` and the lidar in
+`sim/spar_sim/sensors.py`. Port, don't invent.
 
 ## What to train (non-vision)
 
@@ -101,14 +99,14 @@ pose, rewards are dense, cheap, and exact — half the battle in RL.
 
 Learning *from pixels* is out of scope here, deliberately. It sits in the worst
 corner of both costs at once: the renderer throttles sampling (~10³ steps/s at
-best with Unity in the loop, vs 10⁵–10⁷ without), *and* pixel policies need
+best with rendering in the loop, vs 10⁵–10⁷ without), *and* pixel policies need
 enormous sample counts — GPU-weeks, not a laptop afternoon. Meanwhile the
 state-based RL above trains in **hours on a laptop** precisely because the
 observations are low-dimensional.
 
 Vision enters this stack a different way: **pretrained models at inference
-time.** Small VLMs/VLAs (Moondream-class) run on a laptop and consume Unity's
-rendered camera frames directly. The swap point is already built:
+time.** Small VLMs/VLAs (Moondream-class) run on a laptop and consume the
+sim's rendered camera frames directly. The swap point is already built:
 `anomaly_detector` is deliberately just "pixels -> labeled map-frame point on
 `perception/detections`" - replace the HSV node with a model node that
 publishes the same Detection message with its own label, and the behavior
@@ -119,8 +117,8 @@ So the division of labor is:
 
 - **RL learns control and decision-making** in low-dimensional state, fast,
   in the pure-MuJoCo loop.
-- **Pretrained models supply recognition** from Unity's real rendered pixels,
-  with zero training.
+- **Pretrained models supply recognition** from the sim's real rendered
+  pixels, with zero training.
 - They meet at eval: learned behaviors, triggered by model-recognized things,
   in the full stack.
 
@@ -141,7 +139,7 @@ node runs in your own environment and just subscribes to the camera topics.)
 Nothing in the loop above has a visibility story yet: no viewer, no replay,
 no run comparison. [Rerun](https://rerun.io) fills that gap specifically,
 not the deployed stack's (that's rviz, `make rviz`): a Python SDK
-(`pip install rerun-sdk`, no ROS, no Unity, no container changes) built for
+(`pip install rerun-sdk`, no ROS, no container changes) built for
 exactly this kind of multi-rate robotics/RL data. Keep it out of the base
 image, same reasoning as the vision models above: it's a training-time tool
 for your own environment, not part of what students run to get the stack up.
@@ -187,13 +185,14 @@ side-by-side of a training rollout and an eval rollout (below) reads as the
 same robot, not two different ones.
 
 **Where this earns its keep beyond training curves**: at eval time (deploy
-the policy as a behavior node, run it in the full Unity+ROS stack), log the
+the policy as a behavior node, run it in the full sim+ROS stack), log the
 same `world/robot` and `world/lidar` entities from the deployed run into a
-second Rerun recording. Because MuJoCo is the physics in both the training
-env and the Unity plugin, the two trajectories should overlay almost
-exactly for the same policy on the same world; if they don't, the "same
-physics on both sides" claim ([sim-architecture.md](sim-architecture.md))
-doesn't hold in practice, and this is what would show it, not just assert it.
+second Rerun recording. Because MuJoCo loads the same file in both the
+training env and the deployed sim, the two trajectories should overlay
+almost exactly for the same policy on the same world; if they don't, the
+"same physics on both sides" claim
+([sim-architecture.md](sim-architecture.md)) doesn't hold in practice, and
+this is what would show it, not just assert it.
 
 **Deliberately not doing yet**: instrumenting `bt_executive.cpp` or the live
 ROS stack with the C++ SDK. The visibility gap that actually exists today is
@@ -204,8 +203,8 @@ abstraction earns its place on the third caller, not the first.
 
 ## Student starting point
 
-1. **Get the world:** `make map` (leaves `logs/blank.xml` — the compiled
-   model, robot included).
+1. **Get the world:** it's already there — `sim/worlds/blank.xml` (the
+   authored world, robots included by `<include>`).
 2. **Wrap it:** a Gymnasium env holding `mujoco.MjModel/MjData`:
 
    ```
@@ -219,11 +218,11 @@ abstraction earns its place on the third caller, not the first.
    PureJaxRL when you want thousands of parallel envs on a GPU. Instrument
    with Rerun as you go (see above), not after the fact.
 4. **Deploy + eval:** load the policy as a behavior node, run the full stack
-   (`make unity-gui` + `ros2 launch spar_bringup autonomy.launch.py` +
+   (`make sim` + `ros2 launch spar_bringup autonomy.launch.py` +
    `scripts/mission.sh start`), and compare against the hand-written BT
    (overlay the Rerun trajectory from training against this run to confirm
    the physics matches).
 
 Caveat for the `mjx` jump: it supports a subset of MuJoCo (fine for
 primitive-collider worlds and this robot), so the fast-parallel path may want a
-lightly trimmed model rather than the byte-identical dump.
+lightly trimmed model rather than the full authored one.

@@ -1,0 +1,88 @@
+<!-- The Husky, as a differential drive.
+
+     The Husky LOOKS like a 4-wheel skid-steer, but no simulator drives it as
+     one. Clearpath's own stack treats it as a differential drive everywhere:
+     their controller pairs the four wheel joints into left/right and computes
+     odometry from a two-wheel model whose track width is inflated by
+     wheel_separation_multiplier: 1.875 to absorb the skidding the model
+     doesn't capture:
+       https://github.com/husky/husky/blob/noetic-devel/husky_control/config/control.yaml
+     Their Gazebo sim keeps nominally honest wheel friction (mu1=mu2=1.0):
+       https://github.com/husky/husky/blob/noetic-devel/husky_description/urdf/wheel.urdf.xacro
+     and turning still works only because ODE's iterative solver under-enforces
+     the friction cone, quietly leaking the lateral slip a real tire gets by
+     scrubbing. MuJoCo's solver actually enforces the cone (and has no fdir1
+     equivalent), so the leak isn't available: an honest 4-wheel model barely
+     pivots. This model makes the same simplification Clearpath does, just
+     openly: two drive spheres on the wheelbase midline plus near-frictionless
+     casters, which IS the two-wheel robot their controller pretends the Husky
+     is, with the true track width and no 1.875 fudge factor.
+
+     The tuning, all parity constants:
+      - Drive spheres: r 0.165 (the real wheel radius, so v = omega*r holds),
+        sliding friction 0.9, hinge damping 0.2 as rolling resistance.
+      - Casters: near-frictionless (0.005) with priority="1". The priority is
+        load-bearing: MuJoCo resolves a contact pair with the HIGHER-priority
+        geom's friction, so without it the floor's friction (1.0) would win
+        the pairing and the "frictionless" casters would drag:
+        https://mujoco.readthedocs.io/en/stable/computation/index.html#contact-parameters
+      - Actuators: proportional velocity servos (gain 35, bias -35: force =
+        35*(ctrl - qvel)), ctrl +-15 rad/s ~ 2.5 m/s at the wheel, force
+        clamped +-80 Nm to keep stall torque physical.
+
+     Contracts: the site name lidar2d_0_laser is how rasterize_map.py finds
+     the lidar plane (any site named lidar* works, no site is a hard exit);
+     the freejoint is what keeps the robot out of the AMCL map (world
+     membership is body_weldid == 0). Collision geoms in group 3 or 0: the
+     lidar only intersects those two groups. -->
+<mujoco>
+  <worldbody>
+    <!-- Spawn at the dock (dock_x/dock_y in autonomy_blank.yaml). -->
+    <body name="base_link" pos="0 0 0.197">
+      <joint name="base_free" type="free"/>
+      <geom name="chassis" type="box" size="0.4 0.28 0.12" pos="0 0 0.12"
+            mass="42" rgba="0.15 0.15 0.15 1"/>
+      <geom name="top_plate" type="box" size="0.32 0.26 0.02" pos="0 0 0.26"
+            mass="4" rgba="0.1 0.1 0.1 1"/>
+      <geom name="bumper_f" type="box" size="0.06 0.28 0.05" pos="0.45 0 0.03"
+            mass="1" rgba="0.9 0.7 0.1 1"/>
+      <geom name="bumper_r" type="box" size="0.06 0.28 0.05" pos="-0.45 0 0.03"
+            mass="1" rgba="0.9 0.7 0.1 1"/>
+      <geom name="lidar_puck" type="cylinder" size="0.05 0.035" pos="0.3 0 0.33"
+            mass="0.5" rgba="0.2 0.2 0.25 1"/>
+      <geom name="camera_body" type="box" size="0.015 0.045 0.015" pos="0.42 0 0.28"
+            mass="0.1" rgba="0.2 0.2 0.25 1"/>
+      <geom name="caster_front" type="sphere" size="0.164" pos="0.3 0 -0.036"
+            group="3" priority="1" friction="0.005 0.001" mass="1"
+            rgba="0.25 0.25 0.25 1"/>
+      <geom name="caster_rear" type="sphere" size="0.164" pos="-0.3 0 -0.036"
+            group="3" priority="1" friction="0.005 0.001" mass="1"
+            rgba="0.25 0.25 0.25 1"/>
+      <site name="lidar2d_0_laser" pos="0.3 0 0.37" size="0.01"/>
+      <site name="camera_0_link" pos="0.44 0 0.28" size="0.01"/>
+      <!-- MJCF cameras look down their -z with +y up in the image, so
+           xyaxes points this one along the robot's +x with +z up. fovy 58
+           matches the K the sim publishes in camera_info. -->
+      <camera name="camera_0" pos="0.44 0 0.28" xyaxes="0 -1 0 0 0 1" fovy="58"/>
+      <body name="wheel_left" pos="0 0.2854 -0.035">
+        <joint name="wheel_left_j" axis="0 1 0" damping="0.2"/>
+        <geom name="drive_wheel_left" type="sphere" size="0.165" group="3"
+              friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
+      </body>
+      <body name="wheel_right" pos="0 -0.2854 -0.035">
+        <joint name="wheel_right_j" axis="0 1 0" damping="0.2"/>
+        <geom name="drive_wheel_right" type="sphere" size="0.165" group="3"
+              friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <general name="act_left" joint="wheel_left_j" ctrllimited="true"
+             ctrlrange="-15 15" forcelimited="true" forcerange="-80 80"
+             biastype="affine" gainprm="35" biasprm="0 0 -35"/>
+    <general name="act_right" joint="wheel_right_j" ctrllimited="true"
+             ctrlrange="-15 15" forcelimited="true" forcerange="-80 80"
+             biastype="affine" gainprm="35" biasprm="0 0 -35"/>
+  </actuator>
+</mujoco>

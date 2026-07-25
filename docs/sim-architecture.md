@@ -1,115 +1,117 @@
 # The simulation architecture
 
-One decision drives everything here: MuJoCo is the physics, and Unity sits on
-top of it. The MuJoCo plugin runs the physics inside the Unity process, so
-rendering, drag-and-drop world authoring, and the robot all share one world.
-A C# sensor layer (`SparRosBridge.cs`) computes the ROS topics directly
-from MuJoCo's state and ships them over TCP to a Docker container that runs
-everything ROS: Nav2, AMCL, the behavior tree. There is no simulator in the
-container.
+One decision drives everything here: MuJoCo is the sim, full stop. One
+Python process (`sim/spar_sim/`) steps the physics, renders the cameras
+headless through EGL, computes the ROS topics directly from MuJoCo's
+state, and publishes them with rclpy. It runs in its own container,
+sharing a network namespace with the container that runs everything ROS:
+Nav2, AMCL, the behavior tree. Same graph, localhost apart.
 
 ```
-        ┌───────── container (ROS): Nav2 / AMCL / behavior tree ─────────┐
-        │        pure ROS + the :10000 endpoint Unity connects to        │
+        ┌───────── autonomy container: Nav2 / AMCL / behavior tree ──────┐
+        │                       pure ROS, no sim                         │
         └───────────────────────────▲────────────────────────────────────┘
-                                    │ ROS-TCP
+                                    │ ROS topics (zenoh, shared netns)
         ┌───────────────────────────┴────────────────────────────────────┐
-        │   ONE substrate: Unity + MuJoCo plugin (physics in-process)    │
-        │   one C# sensor layer · the scene IS the world                 │
-        │   MJCF flows OUT only: dump → lint → rasterize (make map)      │
+        │   THE SIM: python + mujoco (sim/spar_sim), headless in its     │
+        │   container · the MJCF file IS the world (sim/worlds/)         │
+        │   lint → rasterize reads the same file (make map)              │
         └────────────────────────────────────────────────────────────────┘
           run it three ways, same env, same sensors, same physics:
-            • WINDOWED    make unity-gui: the editor opens and plays itself
-            • WINDOWLESS  make unity-headless: tests and smoke
-            • RL          a training loop drives the env instead of Nav2
+            • HEADLESS  make sim: the stack's sim, tests and smoke
+            • WATCHED   make view: a native viewer window on the host,
+                        synced to the running sim, read-only
+            • RL        a training loop drives the env instead of Nav2
 ```
 
-Why MuJoCo underneath instead of Unity's own physics:
+Why MuJoCo:
 
-- MuJoCo's contacts are trustworthy for a mobile base; PhysX defaults aren't.
-- The stack is never married to Unity, because the physics is never PhysX.
+- MuJoCo's contacts are trustworthy for a mobile base.
+- The whole sim is one readable Python package and three MJCF files; a
+  student can see every line between the physics and the topics.
 - An RL policy trains and deploys on the same physics ([rl.md](rl.md)).
 
 ## Worlds
 
-The Unity scene is the world. You edit it directly, and nothing is ever
-generated into it; MJCF only flows *out*. `make map` dumps the exact model
-the plugin compiled, runs it through a lint gate (geometry the robot can hit
-but its lidar can't see, blocked docks and waypoints), and rasterizes the map
-AMCL localizes against, so the map can't drift from the world.
+The MJCF file is the world (`sim/worlds/<world>.xml`). You edit it
+directly; the robots come in by `<include>` from `sim/robots/`. `make
+map` runs the same file through a lint gate (geometry the robot can hit
+but its lidar can't see, blocked docks and waypoints, floating or
+interpenetrating props, a settle test) and rasterizes the map AMCL
+localizes against, so the map can't drift from the world.
 
-Keep collision geometry to primitives (box/sphere/capsule) and make the
-pretty meshes plain Unity visuals. That split is what lets rendering get as
-fancy as it wants without ever touching physics, lidar, or the map.
+Keep collision geometry to primitives (box/sphere/capsule/cylinder) and
+mark decorative meshes `contype="0" conaffinity="0"`. That split is what
+lets visuals get as fancy as they want without ever touching physics,
+lidar, or the map.
 
-The robot looks like a Husky (Clearpath's meshes, wheels spinning) but is a
-differential drive under the hood: two invisible drive spheres plus
-frictionless casters, because a four-wheel skid-steer with honest friction
-barely pivots. The tuning and the reasoning live in
-`SparWheelVisuals.cs`, next to the code they explain.
+The robot looks like a Husky but is a differential drive under the hood:
+two drive spheres plus frictionless casters, because a four-wheel
+skid-steer with honest friction barely pivots. The tuning and the
+reasoning live in comments in `sim/robots/husky.xml`, next to the values
+they explain.
 
 ## Perception
 
-The camera is real in every run: Unity renders color + depth, and the
-container's detector turns pixels into a labeled point on
-`perception/detections` (message `Detection`: header, label, map-frame
-point). The label is generic on purpose: a small pretrained VLM or
-segmentation model can replace the HSV node and report whatever classes it
-sees, one Detection per hit, without the topic name changing; the behavior
-tree filters at the subscription for the labels it cares about
-(`anomaly_label`), not just "anomaly". That, not vision RL, is how vision
-models enter this stack ([rl.md](rl.md)).
+The camera is real in every run: the sim renders color + depth
+(offscreen EGL, no display), and the container's detector turns pixels
+into a labeled point on `perception/detections` (message `Detection`:
+header, label, map-frame point). The label is generic on purpose: a
+small pretrained VLM or segmentation model can replace the HSV node and
+report whatever classes it sees, one Detection per hit, without the
+topic name changing; the behavior tree filters at the subscription for
+the labels it cares about (`anomaly_label`), not just "anomaly". That,
+not vision RL, is how vision models enter this stack ([rl.md](rl.md)).
 
 ## Topics
 
-Everything lives under `/husky`, published by the sensor layer in every run
-mode:
+Everything lives under `/husky`, published by the sim in every run mode:
 
 | Topic / TF | Type | Notes |
 | --- | --- | --- |
 | `/clock` | rosgraph_msgs/Clock | the sim owns time |
 | `platform/odom`, TF `odom→base_link` | nav_msgs/Odometry | drift-free, twist in the child frame |
-| TF `base_link→{lidar2d_0_laser, camera_0_link}` | static TF | republished at 1 Hz |
+| TF `base_link→{lidar2d_0_laser, camera_0_link}` | static TF | published once, latched |
 | `sensors/lidar2d_0/scan` | LaserScan | 720 rays at 15 Hz |
 | `sensors/camera_0/color/image` (+ `camera_info`, `…/depth/image`) | Image | rendered frames, 10 Hz |
 | `perception/detections` | spar/Detection (map) | the pixel detector's labeled hits; `bt_executive`'s `anomaly_label` param picks the one label it acts on |
 | `cmd_vel` (subscribed) | TwistStamped | Nav2 → skid-steer mixer |
 
-Transport inside the container is Zenoh over TCP; Unity connects to the
-ROS-TCP endpoint on :10000.
+Transport is Zenoh over TCP; all containers share one network namespace,
+so every node and PX4 reach each other on localhost.
 
 ## Settled: tried it, or weighed it, and closed it
 
-- Pure Unity/PhysX, and Unity as a render-only viewer over container physics:
-  both rejected. The first loses honest physics; the second needs fragile
-  pose-feedback with contacts split across two authorities.
-- A second Python sensor layer for a Unity-free mode: built once, then
-  deleted. Every sensor existed twice and had to be parity-tested forever.
+- Unity as the render/authoring front end (the MuJoCo plugin in-process,
+  a C# sensor layer, ROS-TCP into the container): built, shipped, then
+  removed 2026. The reasons are
+  [docs/future/dropping-unity.md](future/dropping-unity.md).
+- Pure Unity/PhysX, and Unity as a render-only viewer over container
+  physics: both rejected earlier for the same root cause, physics
+  authority must not be split or dishonest.
 - Time acceleration (RTF): deleted. Planners and vision don't speed up with
   sim time, so the stack runs at RTF ≈ 1.
-- Generating scenes from MJCF: no. Scenes are built in the editor, period.
-- The Unity packages are vendored in `third_party/`; both the plugin and the
-  ROS-TCP connector needed small Unity-6.5 patches.
 - Out of scope: manipulation, learning from pixels, high-fidelity hydro/aero.
 
 ## Roadmap
 
-- The RL harness: `make map` → pure-MuJoCo Gym env → deploy the policy as a
-  behavior node ([rl.md](rl.md) has the full design).
-- Themed worlds and moving agents (asset-pack worlds, ML-Agents/NavMesh
-  movers, per-world scene selection in the map pipeline).
+- The RL harness: `sim/worlds/<world>.xml` → pure-MuJoCo Gym env → deploy
+  the policy as a behavior node ([rl.md](rl.md) has the full design).
+- Themed worlds and moving agents, generated in a separate scenario repo
+  and imported as MJCF files into `sim/worlds/`.
 - Marine. A domain is three swaps, not a fork: dynamics (a force module
-  in the sim loop), sensors (the one C# layer), and planning (above the
-  topic boundary). The 2D lidar + map + AMCL are the ground domain's
-  module, not universal truth. The air track proved the shape: its
-  dynamics is `SparPx4Link.cs` applying rotor forces in the sim loop, its
-  sensors are HIL messages computed from the same MjData, and its planner
-  is PX4 + a second BT in its own container (`air/src/spar_air`), joined
-  to the ground stack only through the shared zenoh graph. What the
-  build taught lives as comments next to the code that earned each
-  lesson, mostly the link and the air Dockerfile.
+  in the sim loop), sensors (`sim/spar_sim/sensors.py`), and planning
+  (above the topic boundary). The 2D lidar + map + AMCL are the ground
+  domain's module, not universal truth. The air track proved the shape:
+  its dynamics is `sim/spar_sim/px4_link.py` applying rotor forces in
+  the sim loop, its sensors are HIL messages computed from the same
+  MjData, and its planner is PX4 + a second BT in its own container
+  (`air/src/spar_air`), joined to the ground stack only through the
+  shared zenoh graph. What the build taught lives as comments next to
+  the code that earned each lesson, mostly the link and the air
+  Dockerfile.
 
-The bring-up traps (name resolution after the plugin recompiles the scene,
-`tf_static` over ROS-TCP, the ignored MJCF timestep, and friends) are
-documented as comments next to the code that handles each one, mostly the
-bridge, the bootstrap, and the Makefile.
+The bring-up traps (clock-rewind restart order, lockstep engagement, the
+hidden geom group in rendering, and friends) are documented as comments
+next to the code that handles each one, mostly the sim package and the
+Makefile.

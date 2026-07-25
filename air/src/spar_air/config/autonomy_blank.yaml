@@ -2,7 +2,7 @@
 # ground package's autonomy_blank.yaml. All positions are map frame (ENU).
 # The pad is the drone's spawn, which is also where EKF2's local origin
 # lands, so map = PX4 local ENU + pad; pad_x/pad_y here must match the X2
-# placement in the Unity scene, and both deconflict with the Husky: pad off
+# spawn in sim/robots/x2.xml, and both deconflict with the Husky: pad off
 # the patrol legs, cruise above the mast.
 # DevNote: the Husky's lidar still catches the drone crossing its scan
 # plane near the pad. That is a transient costmap obstacle Nav2 routes
@@ -38,7 +38,7 @@
     map_frame: map
     base_frame: base_link
     camera_frame: camera_0_link
-    # Must match the Unity mount in SparPx4Link.cs.
+    # Must match the x2_camera mount in sim/robots/x2.xml.
     camera_pitch_down_deg: 45.0
 
 /**/anomaly_detector:

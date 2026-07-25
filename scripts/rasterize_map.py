@@ -7,8 +7,8 @@ decide whether collision geometry occupies the cell at lidar height. Works
 for boxes, cylinders, convex-decomposed meshes — anything MuJoCo can collide.
 Overhangs (shelf stock, tree canopies) above lidar height are correctly free.
 
-Run via `make map`, which dumps the Unity scene as MJCF, gates it through
-lint_world.py, and feeds the dump here. Needs `mujoco` (pip) — no ROS.
+Run via `make map`, which gates the world file through lint_world.py and
+feeds it here. Needs `mujoco` (pip) — no ROS.
 """
 
 import argparse
@@ -68,7 +68,7 @@ def lidar_z(model, data):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("model", help="MJCF world file (dumped from Unity)")
+    ap.add_argument("model", help="MJCF world file (sim/worlds/<world>.xml)")
     ap.add_argument("out_dir", nargs="?", default=DEFAULT_OUT, help="output directory")
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
@@ -86,7 +86,7 @@ def main():
     # (rotate the geom-frame AABB into world axes). Finite floor planes also
     # count toward bounds — a sparse world is still as big as its floor —
     # but never toward occupancy.
-    xs, ys, tops = [], [], []
+    xs, ys = [], []
     for g in range(model.ngeom):
         if (model.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE
                 and model.geom_size[g][0] > 0):
@@ -102,9 +102,7 @@ def main():
         half_w = np.abs(rot) @ half_l
         xs += [center_w[0] - half_w[0] - MARGIN, center_w[0] + half_w[0] + MARGIN]
         ys += [center_w[1] - half_w[1] - MARGIN, center_w[1] + half_w[1] + MARGIN]
-        tops.append(center_w[2] + half_w[2])
     min_x, max_x, min_y, max_y = min(xs), max(xs), min(ys), max(ys)
-    z_top = max(tops) + 0.5
     w = int((max_x - min_x) / RESOLUTION)
     h = int((max_y - min_y) / RESOLUTION)
     grid = np.full((h, w), 254, dtype=np.uint8)  # free

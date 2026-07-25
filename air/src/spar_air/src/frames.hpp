@@ -2,8 +2,8 @@
 
 // The one place the PX4 frame conversions live (the classic PX4/ROS bug
 // farm). PX4 thinks in NED world / FRD body; this repo's map frame is ENU
-// (MuJoCo world axes: +x east, +y north, +z up, matching SparPx4Link.cs,
-// which owns the Unity-side half of this lesson).
+// (MuJoCo world axes: +x east, +y north, +z up, matching
+// sim/spar_sim/px4_link.py, which owns the sim-side half of this lesson).
 //
 // ENU <-> NED is the axis swap (n, e, d) = (y, x, -z), applied in both
 // directions by the same function since it is its own inverse pair.

@@ -1,22 +1,22 @@
 ---
 name: verify
-description: Run and verify changes to this repo end to end without user help - container C++ build and tests, Unity C# compile, the map pipeline, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, scene, or script change, and for physics experiments in a scratch workspace.
+description: Run and verify changes to this repo end to end without user help - container C++ build and tests, the sim self-check, the map pipeline, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, world, or script change, and for physics experiments in a scratch workspace.
 ---
 
 # Verifying SPAR autonomously
 
-Every check here runs unattended. Never ask the user to click anything in
-Unity or Docker; every step has a headless path. Run the cheapest check that
-covers the change, and always finish a session of edits with the checks in
-"Which checks for which change" below.
+Every check here runs unattended. Never ask the user to click anything;
+every step has a headless path. Run the cheapest check that covers the
+change, and always finish a session of edits with the checks in "Which
+checks for which change" below.
 
 ## Ground rules
 
 - Use absolute paths in shell commands. The repo root is the directory
   containing this file's `.claude/`. A `cd` in one command does not reliably
   persist, and can even reset mid-session.
-- Put every temporary file (test worlds, rasterizer output, compile logs) in
-  the session scratchpad directory, never in the repo tree and never in
+- Put every temporary file (test worlds, rasterizer output, render output)
+  in the session scratchpad directory, never in the repo tree and never in
   `/tmp` directly.
 - Read the Makefile before inventing a command. Most workflows are one
   target; the raw commands below exist only where no target does.
@@ -24,19 +24,22 @@ covers the change, and always finish a session of edits with the checks in
 - IDE/clangd diagnostics on C++ files are noise on this machine (no ROS
   include paths on the host). The container build is the only authority.
 - Never run `make ros2_container` or `make ros2_container_air` from
-  here. It ends by
-  exec-ing into an interactive `docker exec -it` shell for a human to
-  drive the robot stack from by hand (that's the point of it); with no
-  TTY attached, it hangs.
-- Never probe :10000 with a bare TCP connect (no `/dev/tcp`, no `nc`):
-  the ROS-TCP endpoint hands its send queue to the newest connection and
-  ROS -> Unity traffic dies silently. Check the listener passively via
-  `/proc/net/tcp` instead.
-  Bring the container up with the raw `docker compose` command instead (see
-  check 1), and bring up the robot stack with `docker exec -d ... ros2
-  launch spar_bringup autonomy.launch.py` (see check 5). This is the
-  one place a fully automated, hands-off bring-up belongs at all; the
-  normal dev loop is deliberately manual.
+  here. It ends by exec-ing into an interactive `docker exec -it` shell for
+  a human to drive the robot stack from by hand (that's the point of it);
+  with no TTY attached, it hangs. Bring the containers up with the raw
+  `docker compose` command instead (see check 1), and bring up the robot
+  stack with `docker exec -d ... ros2 launch spar_bringup
+  autonomy.launch.py` (see check 5). This is the one place a fully
+  automated, hands-off bring-up belongs at all; the normal dev loop is
+  deliberately manual.
+- The sim and the host viewer must load the same mujoco. Version skew
+  produces subtle model/render drift, and both sides pin 3.10.0 (the
+  Dockerfile pip pin and the repo venv). One-line check when in doubt:
+
+  ```bash
+  docker exec spar-sim python3 -c 'import mujoco; print(mujoco.__version__)'
+  .venv/bin/python -c 'import mujoco; print(mujoco.__version__)'
+  ```
 
 ## The checks, cheapest first
 
@@ -49,15 +52,15 @@ docker ps --filter name=spar --format '{{.Names}} {{.Status}}'
 ```
 
 If the daemon itself is down: `open -a Docker`, then poll `docker info`
-until it answers (up to ~60 s). If the container is down, start it directly
-(not `make ros2_container`, see the ground rule above):
+until it answers (up to ~60 s). If the containers are down, start them
+directly (not `make ros2_container`, see the ground rule above):
 
 ```bash
 mkdir -p ground/build ground/install logs
 WORLD=blank docker compose -f docker/compose.yaml up --build -d
 ```
 
-Nothing auto-launches, the container just idles (see docker/entrypoint.sh).
+Nothing auto-launches, the containers just idle (see docker/entrypoint.sh).
 Build the same way a user would, with colcon:
 
 ```bash
@@ -80,105 +83,94 @@ docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon 
 
 Success is `0 errors, 0 failures` in the summary line.
 
-### 3. Unity C# compile
+### 3. Sim self-check
 
-Required after any change under `unity/SparSim/Assets/`. The editor
-version comes from the Makefile (`UNITY_APP`); if it 127s, read
-`unity/SparSim/ProjectSettings/ProjectVersion.txt` and use
-`/Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity`.
-
-No Unity instance may be running on the project (files under `Assets/` give
-EPERM while one is, and a second instance aborts on the lockfile):
+Required after any change under `sim/`. Seconds, not minutes: imports every
+sim module, loads the world, resolves the named ids the sim and the PX4
+link depend on,
+and renders one frame per camera through EGL (the same path the sensor
+uses). No ports, no ROS spin-up:
 
 ```bash
-make unity-stop
+docker exec spar-sim bash -lc 'source /ws/scripts/env.sh && cd /ws/sim && MUJOCO_GL=egl python3 -m spar_sim.check'
 ```
 
-Then compile (2-4 min; always `-logFile -` redirected to a file, because
-`-logFile <path>` occasionally segfaults at startup):
-
-```bash
-LOG=<scratchpad>/unity_compile.log
-"/Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/MacOS/Unity" \
-  -batchmode -quit -projectPath <repo>/unity/SparSim -logFile - > "$LOG" 2>&1
-echo "exit=$?"; grep -c "error CS" "$LOG"
-```
-
-Success is exit 0 and zero `error CS` lines. If Unity aborts complaining
-another instance is running and none is, delete the stale
-`unity/SparSim/Temp/UnityLockfile` and retry.
+Success is `[spar] check ok: blank.xml` and exit 0. A rename anywhere in
+the MJCF/python contract (body, site, actuator, camera names) fails here
+loudly instead of five minutes into a smoke run.
 
 ### 4. Map pipeline
 
-Required after any change to collision geometry in the scene, to the Husky
-prefab, or to `scripts/lint_world.py` / `scripts/rasterize_map.py`.
+Required after any change to `sim/worlds/`, `sim/robots/`, or to
+`scripts/lint_world.py` / `scripts/rasterize_map.py`.
 
-`make map` does dump -> lint -> rasterize and OVERWRITES the committed map.
-For verification without touching the repo, dump once (or reuse an existing
-`logs/blank.xml`) and run the scripts by hand into the scratchpad:
+`make map` does lint -> rasterize and OVERWRITES the committed map. For
+verification without touching the repo, run the scripts by hand into the
+scratchpad:
 
 ```bash
-.venv/bin/python scripts/lint_world.py logs/blank.xml ground/src/spar_bringup/config/autonomy_blank.yaml
-.venv/bin/python scripts/rasterize_map.py logs/blank.xml <scratchpad>/maps
+.venv/bin/python scripts/lint_world.py sim/worlds/blank.xml ground/src/spar_bringup/config/autonomy_blank.yaml
+.venv/bin/python scripts/rasterize_map.py sim/worlds/blank.xml <scratchpad>/maps
 cmp ground/src/spar_bringup/maps/blank.pgm <scratchpad>/maps/blank.pgm && echo byte-identical
 ```
 
 For script-only changes, byte-identical output on the blank world is the
-regression bar. For geometry changes, the map is EXPECTED to differ; the
-bar is lint passing plus a fresh `make map` committed alongside the scene.
+regression bar. The same bar holds for visual-only world changes (lights,
+materials, `contype 0` pads): the rasterizer must not see them. For
+collision geometry changes the map is EXPECTED to differ; the bar is lint
+passing plus a fresh `make map` committed alongside the world.
 
 ### 5. Headless sim + smoke test (full end to end)
 
-Required after bridge/sensor changes, tree structure changes, or before any
+Required after sim/sensor changes, tree structure changes, or before any
 sign-off. This is the one place a fully automated, hands-off bring-up of the
 whole stack belongs. The normal dev loop is deliberately manual
 (`make ros2_container` drops a human into a shell to run
-`autonomy.launch.py` by hand; bridge, localization, Nav2, and behavior are
-all one launch, one thing to bring up), so this check can't lean on it and
-has to bring everything up itself.
+`autonomy.launch.py` by hand; localization, Nav2, and behavior are all one
+launch, one thing to bring up), so this check can't lean on it and has to
+bring everything up itself.
 
-Order is load-bearing: Unity FIRST, then the ROS side. Unity owns /clock,
-and starting it jumps sim time backward, which would deactivate Nav2
-lifecycle servers ("Action server is inactive") if they were already up
-when it happened; starting fresh after Unity is already running sidesteps
-that instead of racing it.
+Order is load-bearing: the sim FIRST, then the ROS side. The sim owns
+/clock, and starting it jumps sim time backward, which would deactivate
+Nav2 lifecycle servers ("Action server is inactive") if they were already
+up when it happened; starting fresh after the sim is already running
+sidesteps that instead of racing it.
 
 **Always recompile before smoke, even with zero C++ changes, and always
 relaunch `autonomy.launch.py` fresh: never reuse one left running from a
 previous check, and never restart it with a bare `pkill` (it isn't run
 under `setsid`; a plain `pkill` orphans its children instead of killing
 them). Always go through `make shut_down` for a clean teardown, full
-container included.** A stale binary or a stale process both produce a
+containers included.** A stale binary or a stale process both produce a
 false PASS against code that isn't the code you're verifying.
 
 ```bash
-make unity-stop
-make unity-headless
-sleep 25 && grep -m1 "bridge ids ok" logs/unity-headless.log   # retry until it appears
-grep -m1 "camera sensor mounted" logs/unity-headless.log
-
 make shut_down    # clean slate, whatever was running before
 mkdir -p ground/build ground/install logs
 WORLD=blank docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
+make sim
+sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
+grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_bringup autonomy.launch.py world:=blank'
 # bash -lc matters here, not bash -c: ROS_LOG_DIR is exported via
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
 make smoke         # ~4 min; run in background and poll if doing other work
-make unity-stop    # leave the machine as found; the container is fine to leave running
+make sim-stop      # leave the machine as found; the containers are fine to leave running
 ```
 
 Success is the final line `[smoke] PASS: idle -> start -> rounds -> low
 battery -> dock -> recharge -> rounds -> stop`. Any earlier `[smoke] FAIL`
-names the step; the per-run logs are in the newest `logs/runNNN/`.
+names the step; the per-run logs are in the newest `logs/runNNN/`, and the
+sim's own log is `logs/sim.log`.
 
 ### 6. rviz visual check (screenshot)
 
 Required after changes to `ground/src/spar_bringup/rviz/spar.rviz` or
 `scripts/rviz.sh`; worth running after any perception/TF/costmap change too,
 since checks 1-5 confirm the topics and logs are right but not that the
-picture is. Needs check 5's stack up first (`ros2 launch` and Unity both
+picture is. Needs check 5's stack up first (`ros2 launch` and the sim both
 alive) — rviz has nothing to draw otherwise.
 
 `imagemagick` (for `import`) is deliberately not in the Dockerfile — it's an
@@ -198,7 +190,7 @@ Read the PNG back with the Read tool (it renders images directly). Success:
 the Displays panel's `Global Status` reads `Ok`, not an error like `Frame
 [map] does not exist`; and whatever the change should affect is visibly
 right — a TF triad that moves between two screenshots a few seconds apart
-for a localization/bridge change, a costmap blob in the right place for a
+for a localization/sensor change, a costmap blob in the right place for a
 costmap tuning change, a new display actually rendering (not just listed)
 for an rviz config change.
 
@@ -221,27 +213,27 @@ the image; the workspace never builds it.
 
 ### A2. Air smoke (full end to end)
 
-Required after changes to `SparPx4Link.cs`, `air/src/**`,
+Required after changes to `sim/spar_sim/px4_link.py`, `air/src/**`,
 `docker/Dockerfile.air`, the air compose service, or the air yaml; and
-after scene/prefab changes that touch the drone or the pad. Order is
-load-bearing exactly like check 5: Unity FIRST, then containers, then PX4,
-then the launch. PX4 must start after Unity is listening (its
-simulator_mavlink dials out to Unity's :4560 and the sim clock must not
-rewind under it).
+after world/robot changes that touch the drone or the pad. Order is
+load-bearing exactly like check 5: the sim FIRST, then PX4, then the
+launch. PX4 must start after the sim is listening (its simulator_mavlink
+dials out to the sim's :4560 on localhost, shared network namespace, and
+the sim clock must not rewind under it).
 
 ```bash
-make unity-stop && make unity-headless
-# wait for "px4 link ids ok" (and "bridge ids ok") in logs/unity-headless.log
 make shut_down
 mkdir -p ground/build ground/install logs air/src air/build air/install logs/air
 WORLD=blank docker compose -f docker/compose.yaml --profile air up --build -d
+make sim
+# wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
-docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=host.docker.internal ./bin/px4 -d > /tmp/px4.log 2>&1'
-# wait for "px4 lockstep engaged" in logs/unity-headless.log, then:
+docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1'
+# wait for "px4 lockstep engaged" in logs/sim.log, then:
 docker exec spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && ./bin/px4-zenoh start'
 docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=blank'
 make smoke_air         # ~4-6 min; phase 1 alone waits out PX4 boot + EKF2
-make unity-stop
+make sim-stop
 ```
 
 Success is the final `[smoke] PASS: idle -> start -> takeoff -> ...`
@@ -278,15 +270,15 @@ scripts, and keep the world as the regression check after.
 | BT node types / leaves (C++) | 1, 2, and 5 if behavior changed |
 | behavior_trees/main_tree.xml (tree shape) | 1 (it's installed by CMake), then 5 |
 | anomaly_detector / battery_sim | 1, then 5 |
-| Bridge / camera / any C# | 3, then 5 |
-| Scene or prefab geometry | 3, 4 (fresh `make map`), 5 |
+| sim/spar_sim/** (sim node, sensors) | 3, then 5 |
+| sim/spar_sim/px4_link.py | 3, then A2 |
+| sim/worlds/* or sim/robots/* | 3, 4 (fresh `make map` for collision changes, byte-identical for visual-only), 5; A2 if the drone or the pad moved |
+| sim/viewer.py | 3, plus a manual `make view` glance; no smoke needed, it is read-only |
 | lint_world / rasterize_map | 4 (byte-identical on blank) + a scratchpad probe world |
 | autonomy.launch.py / nav2.yaml / localization.yaml / autonomy_\<world\>.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
 | scripts/rviz.sh / spar.rviz | 6 (needs 5's stack up first) |
-| SparPx4Link.cs | 3, then A2 |
 | air/src/** (spar_air) | A1, then A2 if behavior changed |
-| Dockerfile.air / air compose service / air yaml / core.sh / smoke_test_air.sh | A2 |
-| Scene or prefab changes touching the drone or the pad | 3, 4 (byte-identical bar: the freejoint drone and the visual-only pad must not move the map), 5, A2 |
+| Dockerfile / Dockerfile.air / air compose service / air yaml / core.sh / smoke_test_air.sh | A2 |
 | Docs / comments only | none, but grep that referenced files/names still exist |
 
 A full sign-off pass is 1 through 5 in order. Report results plainly: what

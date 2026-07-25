@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Validate a world MJCF (dumped from the Unity scene) before it ships.
+"""Validate a world MJCF before it ships.
 
-Runs on the same dump that feeds rasterize_map.py, so bad collision geometry
+Runs on the same file that feeds rasterize_map.py, so bad collision geometry
 is caught before the robot ever sees it.
 
 Checks:
@@ -15,6 +15,10 @@ Checks:
                       Nav2 oscillates trying to reach an unreachable goal.
   4. geom budget    — a soft warning when the world grows past what the
                       render/raycast budget was sized for.
+  5. support        — every static solid must rest on something: not buried
+                      in a neighbor, not hovering above its support.
+  6. settle         — step 2 s with no controller; a well-authored world is
+                      at rest, a floating or leaning free prop is not.
 
 Usage: lint_world.py <world.xml> [autonomy_<world>.yaml]
 Exits nonzero on any hard failure.
@@ -33,6 +37,11 @@ from rasterize_map import lidar_z, static_collision_geoms
 DOCK_CLEAR_M = 1.2    # radius around the dock that must be collision-free
 WAYPOINT_CLEAR_M = 0.6  # robot half-width + margin
 GEOM_BUDGET = 300
+REST_TOL_M = 1e-3     # resting contact tolerance for the support check
+SETTLE_SEC = 2.0
+SETTLE_MOVE_M = 0.15  # a settling robot drops millimeters; a falling or
+                      # toppling prop moves decimeters
+SETTLE_VEL = 0.1      # max dof speed once the settle window ends
 
 
 def geom_z_extent(model, data, gid):
@@ -126,6 +135,51 @@ def main():
     if model.ngeom > GEOM_BUDGET:
         warnings.append(f"{model.ngeom} geoms exceeds the {GEOM_BUDGET} budget "
                         f"the render/raycast loop was sized for")
+
+    # 5. support: every static solid rests on the floor or a neighbor.
+    # All worldbody geoms live in body 0, so the contact machinery never
+    # reports static-static pairs (same-body exclusion); mj_geomDistance
+    # asks the narrowphase directly and returns signed distance, negative
+    # when penetrating.
+    floor_planes = [
+        g for g in range(model.ngeom)
+        if model.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE
+        and (model.geom_contype[g] or model.geom_conaffinity[g])
+        and model.body_weldid[model.geom_bodyid[g]] == 0]
+    for gid in geoms:
+        dmin = math.inf
+        for other in list(geoms) + floor_planes:
+            if other != gid:
+                dmin = min(dmin, mujoco.mj_geomDistance(
+                    model, data, gid, other, 1.0, None))
+        if dmin < -REST_TOL_M:
+            failures.append(
+                f"interpenetration: '{gname(gid)}' overlaps a neighbor "
+                f"by {-dmin:.3f}m")
+        elif dmin > REST_TOL_M:
+            gap = f"{dmin:.3f}m above" if dmin < 1.0 else "over 1m from"
+            failures.append(
+                f"floating: '{gname(gid)}' hangs {gap} its nearest support")
+
+    # 6. settle: a world at rest stays at rest. Free props authored
+    # floating fall, leaning ones topple, and a robot spawned intersecting
+    # anything gets ejected; all of that is large motion with no controller.
+    # Runs last: it advances the physics the earlier checks read at t=0.
+    start = data.xpos.copy()
+    for _ in range(int(SETTLE_SEC / model.opt.timestep)):
+        mujoco.mj_step(model, data)
+    for b in range(1, model.nbody):
+        moved = math.dist(data.xpos[b], start[b])
+        if moved > SETTLE_MOVE_M:
+            bname = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, b) or f"body#{b}"
+            failures.append(
+                f"settle: body '{bname}' moved {moved:.2f}m in the first "
+                f"{SETTLE_SEC:.0f}s with no controller")
+    vmax = max((abs(float(v)) for v in data.qvel), default=0.0)
+    if vmax > SETTLE_VEL:
+        failures.append(
+            f"settle: still moving after {SETTLE_SEC:.0f}s "
+            f"(max dof speed {vmax:.2f})")
 
     for w in warnings:
         print(f"[lint] WARN: {w}")

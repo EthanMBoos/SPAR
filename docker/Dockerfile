@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       tigervnc-standalone-server \
       novnc \
       websockify \
+      python3-pip \
+      libegl1 \
+      libgl1-mesa-dri \
  && rm -rf /var/lib/apt/lists/*
 
 # rviz2 for a headless Linux container has nowhere to put its window on
@@ -25,8 +28,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 ENV ZENOH_ROUTER_CHECK_ATTEMPTS=10
 
-# No simulator in here: the sim (MuJoCo physics + rendering) runs in Unity on
-# the host and connects over the ROS-TCP endpoint. This container is pure ROS.
+# The simulator lives in here too: the sim service (compose.yaml) runs
+# sim/spar_sim on this image, headless. MUJOCO_GL=egl renders on the CPU
+# through Mesa's surfaceless EGL path (llvmpipe) -- no GPU in Docker on
+# macOS, and none needed for a 320x240 camera. The version is pinned to
+# match the host venv (the viewer loads the same MJCF; version skew is the
+# new editor-version drift).
+RUN pip install --no-cache-dir --break-system-packages mujoco==3.10.0
 
 WORKDIR /ws
 
@@ -38,18 +46,10 @@ WORKDIR /ws
 # edits need an incremental rebuild, never an image rebuild.
 COPY ground/src/spar_ground/package.xml src/spar_ground/
 COPY ground/src/spar_bringup/package.xml src/spar_bringup/
-COPY third_party/ros_tcp_endpoint/package.xml src/ros_tcp_endpoint/
 RUN . /opt/ros/jazzy/setup.sh \
  && apt-get update && rosdep update --rosdistro jazzy \
  && rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \
  && rm -rf /var/lib/apt/lists/*
-
-# The core service (see compose.yaml) runs the ROS-TCP endpoint before any
-# student build exists, so it is vendored in third_party (never part of the
-# student workspace) and baked into the image at /opt/spar_core.
-COPY third_party/ros_tcp_endpoint /opt/spar_core/src/ros_tcp_endpoint
-RUN . /opt/ros/jazzy/setup.sh \
- && cd /opt/spar_core && colcon build
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -43,7 +43,7 @@ target_link_libraries(bt_executive PRIVATE
   "${cpp_typesupport_target}")
 
 # PX4 estimate -> TF, so the detector projects pixels through the estimated
-# pose, same honesty as the ground demo (no ground-truth TF from Unity).
+# pose, same honesty as the ground demo (no ground-truth TF from the sim).
 add_executable(tf_from_px4 src/tf_from_px4.cpp)
 target_include_directories(tf_from_px4 PRIVATE src)
 target_link_libraries(tf_from_px4 PRIVATE

@@ -1,7 +1,7 @@
 services:
-  # Infra only: the zenoh router and the ROS-TCP endpoint (scripts/core.sh).
-  # It owns the network namespace and every published port; the robot
-  # containers join it below.
+  # Infra only: the zenoh router (scripts/core.sh). It owns the network
+  # namespace and every published port; the robot and sim containers join
+  # it below.
   core:
     build:
       context: ..
@@ -16,17 +16,38 @@ services:
     # Every published port lives here; Docker forbids `ports:` on a service
     # that joins another's network namespace.
     ports:
-      - "10000:10000"         # ROS-TCP-Endpoint — the Unity sim connects here
+      - "127.0.0.1:9000:9000" # the sim's qpos stream for the host viewer
+                              # (sim/viewer.py) — loopback only, view only
       - "127.0.0.1:6080:6080" # noVNC — loopback only, it's an unauthenticated
                               # remote desktop (Xvnc -SecurityTypes None)
       # No MAVLink HIL port: PX4's simulator_mavlink is the TCP client and
-      # dials the Unity-side listener at host.docker.internal:4560.
+      # dials the sim's listener on localhost:4560 inside this namespace.
       # DevNote: QGroundControl needs no port either: PX4 SENDS to the GCS
       # (UDP 14550), so an inbound mapping would do nothing. Docker's NAT
       # eats PX4's default broadcast; if QGC won't auto-connect, aim PX4's
       # GCS mavlink stream at host.docker.internal (not yet verified).
-    init: true # core.sh backgrounds the router; something has to reap it
+    init: true
     stop_grace_period: 10s
+
+  # THE SIM: python + mujoco + rclpy, headless. Nothing robot-shaped
+  # launches automatically — the sim process itself is started explicitly
+  # by `make sim` (and stopped by `make sim-stop`).
+  sim:
+    image: spar:jazzy
+    container_name: spar-sim
+    command: sleep infinity
+    network_mode: "service:core"
+    depends_on: [core]
+    environment:
+      - WORLD=${WORLD:-blank}
+    volumes:
+      - ../sim:/ws/sim
+      - ../third_party:/ws/third_party:ro # x2 mesh assets referenced from sim/robots/x2.xml
+      - ../scripts:/ws/scripts
+      - ../logs:/ws/logs
+    init: true
+    stop_grace_period: 10s
+    tty: true
 
   autonomy:
     image: spar:jazzy
@@ -36,7 +57,7 @@ services:
     # `make ros2_container`/`make shell` to exec into; sleep infinity is that process.
     command: sleep infinity
     # Joining core's network namespace makes the containers behave like
-    # processes on one machine: the router, the endpoint, and every node
+    # processes on one machine: the router, the sim, and every node
     # reach each other on localhost, and listeners started here (noVNC's
     # 6080 from `make rviz`) are published by core.
     network_mode: "service:core"

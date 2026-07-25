@@ -7,10 +7,11 @@ autonomy: a deterministic behavior tree owns the mission, and learned
 components slot in under it (a trained policy as a behavior node, a VLM
 as the perception source) without the rest of the stack changing.
 
-The sim is **Unity with the MuJoCo plugin**: MuJoCo is the physics, Unity
-is the render and authoring front end, and nothing is vendor-locked the
-way Isaac Sim is. One authored world runs three ways on the same physics
-and sensors: windowed for authoring, headless for tests, and as a
+The sim is **pure MuJoCo**: one Python process steps the physics,
+renders the cameras, and publishes the robot's ROS topics. Nothing is
+vendor-locked the way Isaac Sim is. One world file runs three ways on
+the same physics and sensors: headless in the container for the full
+stack, in a native host viewer window for watching, and as a
 pure-MuJoCo Gymnasium env for fast RL training, with the full stack as
 the eval harness. The robot is configured as it would be in the real
 world. A sim-to-real gap remains, but this is the lowest-friction way to
@@ -35,40 +36,41 @@ Starter repo for the
 and LLM tracks. Design rationale lives in
 [docs/sim-architecture.md](docs/sim-architecture.md).
 
-The sim runs in Unity on your machine (`unity/SparSim`, scene
-`BlankWorld.unity`). The autonomy stack runs in one Docker container and
-talks to Unity over a TCP bridge. Unity publishes clock/odom/TF/lidar/
-perception and consumes `cmd_vel`.
+The world is an MJCF file (`sim/worlds/blank.xml`). The sim
+(`sim/spar_sim/`) and the autonomy stack run in Docker containers sharing
+one network namespace. The sim publishes clock/odom/TF/lidar/perception
+and consumes `cmd_vel`.
 
 ## Quickstart
 
 Requirements: [Docker](https://docs.docker.com/get-docker/) with 8 GB+
-memory (Docker Desktop, Settings, Resources), and
-[Unity](https://unity.com/download) (6000.5+, free Personal license) with the
-project at `unity/SparSim` added in Unity Hub. macOS also needs
-[MuJoCo.app](https://github.com/google-deepmind/mujoco/releases) 3.10 in
-`/Applications`.
+memory (Docker Desktop, Settings, Resources). For the optional host
+viewer window, Python 3 with a venv at `.venv`:
+`python3 -m venv .venv && .venv/bin/pip install mujoco==3.10.0`.
 
 ```bash
 git clone https://github.com/EthanMBoos/spar.git
 cd spar
-make ros2_container                # builds the image, starts the container, drops you into a shell
+make ros2_container                # builds the image, starts the containers, drops you into a shell
 
 colcon build --symlink-install
 source install/setup.bash          # only needed this once; later shells (make shell) source it for you
+```
 
-ros2 launch spar_bringup autonomy.launch.py world:=blank
+From a second terminal on your host, start the sim, then launch the
+stack in the container shell:
+
+```bash
+make sim             # headless sim in its container (make sim-stop ends it)
+make view            # optional: native viewer window on your host
+```
+
+```bash
+ros2 launch spar_bringup autonomy.launch.py world:=blank   # in the container shell
 ```
 
 Ctrl-C and rerun any time. After editing code, rebuild first (see "Working
 on the autonomy code" below), then rerun the launch.
-
-From a second terminal on your host, run the sim:
-
-```bash
-make unity-gui       # open the Unity editor and press Play for you
-make unity-headless  # no editor window (make unity-stop ends it)
-```
 
 The robot boots idle at its dock. Open another shell (`make shell`) to talk
 to the mission layer:
@@ -99,14 +101,14 @@ targets point at it; the first build compiles PX4 from source and takes
 a while.
 
 ```bash
-make unity-gui
+make sim
 make ros2_container_air
 colcon build --symlink-install     # in that shell: builds spar_air
 
 # start PX4, in that shell
 cd /opt/px4/build/px4_sitl_zenoh
 PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris \
-  PX4_SIM_HOSTNAME=host.docker.internal ./bin/px4 -d > /tmp/px4.log 2>&1 &
+  PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1 &
 ./bin/px4-zenoh start              # joins PX4 to the ROS graph
 
 ros2 launch spar_air air.launch.py world:=blank
@@ -126,10 +128,10 @@ ros2 topic echo /skydio/bt/status
 patrol, battery return, land, disarm, relaunch). A mixed demo is both
 containers up and both missions started; nothing else to configure.
 
-One trap the two tracks share: if you restart Unity, restart the
-containers after it (`make shut_down`, bring both back up). Unity owns
-the clock, and both Nav2 and PX4 react badly to time rewinding under
-them.
+One trap the two tracks share: if you restart the sim, restart the ROS
+stacks after it (relaunch `autonomy.launch.py`, and for the air track
+PX4 too). The sim owns the clock, and both Nav2 and PX4 react badly to
+time rewinding under them.
 
 ## Working on the autonomy code
 
@@ -166,17 +168,18 @@ limits, costmaps): `config/nav2.yaml`. Both are symlinked into the install
 tree, so edits take effect on the next launch, no rebuild needed.
 
 Logs: `logs/run001, run002, ...` at the repo root, one directory per launch,
-one file per node plus `run-info` naming the world.
+one file per node plus `run-info` naming the world. The sim's own log is
+`logs/sim.log`.
 
 ## The environment
 
-Worlds are authored in Unity; the scene is the world. `BlankWorld` is a
-small inspection site: storage racks, checkpoint pads, the dock pad, and a
-red drum. Drag objects into the scene and MuJoCo picks them up live: give a
-prop a primitive `MjGeom` child (box/sphere/capsule) for lidar and physics,
-keep the pretty mesh a plain Unity visual. The robot is a prefab
-(`Assets/Prefabs/Husky.prefab`); a new world is a new scene with that prefab
-dragged in.
+The world is an MJCF file: `sim/worlds/blank.xml` is a small inspection
+site with storage racks, checkpoint pads, the dock pad, and a red drum.
+Edit it with any text editor; obstacles are a few lines of `<geom>`. The
+robots are included files (`sim/robots/husky.xml`, `sim/robots/x2.xml`);
+a new world is a new file in `sim/worlds/` that includes them. Inspect a
+world without the stack: `python -m mujoco.viewer --mjcf
+sim/worlds/blank.xml`.
 
 Two things travel with a world:
 
@@ -184,7 +187,7 @@ Two things travel with a world:
   changing collision geometry:
 
   ```bash
-  make map    # dump the scene as MJCF -> lint gate -> rasterize the map
+  make map    # lint gate -> rasterize the map
   ```
 
 - **Its behavior config**: `config/autonomy_<world>.yaml`.
@@ -200,13 +203,14 @@ Two things travel with a world:
 | Live node logs | `make tail` (`/rosout`, every node merged), from a host terminal (fails if nothing is launched) |
 | rviz2 | `make rviz`, from a host terminal — opens a browser tab (noVNC); Ctrl-C stops it |
 | Rebuild after code edits | `cd build/spar_ground && make` inside the shell (fast, after the first build above) |
-| End-to-end test | `make smoke` (needs Unity running and `autonomy.launch.py` up) |
-| Stop and remove the container | `make shut_down` |
+| End-to-end test | `make smoke` (needs the sim running and `autonomy.launch.py` up) |
+| Stop and remove the containers | `make shut_down` |
 | Clean rebuild | `make clean` (shuts down, removes `build/` + `install/`), then `make ros2_container` |
 | Logs of past runs | `logs/runNNN/`, one per launch |
-| The Unity sim | `unity/SparSim`, scene `BlankWorld.unity`, sensors in `Assets/Scripts/SparRos/` |
-| Perception | camera renders in Unity (windowed or headless); the containerized detector turns pixels into labeled points on `perception/detections` |
-| Unity/ROS bridge | ROS-TCP endpoint on port 10000 (`third_party/ros_tcp_endpoint`, vendored) |
+| The sim | `sim/spar_sim/` (physics, sensors, PX4 link), started by `make sim` |
+| Worlds and robots | `sim/worlds/*.xml`, `sim/robots/*.xml` (MJCF) |
+| Watch the sim | `make view` (native viewer on the host, read-only) |
+| Perception | cameras render in the sim (EGL, headless); the containerized detector turns pixels into labeled points on `perception/detections` |
 | Behavior config | `ground/src/spar_bringup/config/autonomy_<world>.yaml` |
 | Nav2 config | `ground/src/spar_bringup/config/nav2.yaml` (speed: see `vx_max` comments) |
 | The air stack | `air/src/spar_air` (BT + TF + detector), the `make *_air` targets |
