@@ -40,7 +40,7 @@ The same environment runs three ways:
 
 - **Headless:** `make start_sim`, used by the ROS stacks and smoke tests.
 - **Watched:** `make view`, a read-only native viewer of the running sim.
-- **Training:** a future Gym loop drives the same MJCF without ROS
+- **Training:** the next planned slice drives the same MJCF without ROS
   ([rl.md](rl.md)).
 
 ## Worlds and robot configuration
@@ -89,7 +89,7 @@ to ENU, and compares them with stamped `odom -> base_link`. It publishes a
 translation-only `map -> odom`; heading passes through odometry because a
 single-antenna receiver cannot measure yaw.
 
-Transforms are post-dated by 0.5 s, matching the old localization tolerance,
+Transforms are post-dated by 0.5 s, matching the localization tolerance,
 so costmaps and stamped camera projection have a current correction
 available. Missing stamped odometry drops one correction with a throttled
 warning rather than stopping the stack.
@@ -129,29 +129,18 @@ Everything below lives under `/husky` except the global clock:
 | TF `base_link -> {lidar2d_0_laser, camera_0_link}` | static TF | published once and latched |
 | `sensors/lidar2d_0/scan` | `sensor_msgs/LaserScan` | 720 rays at 15 Hz, 25 m maximum |
 | `sensors/camera_0/...` | `sensor_msgs/Image`, `CameraInfo` | color and depth at 10 Hz |
-| `perception/detections` | `spar_ground/Detection` | labeled map-frame observations |
+| `perception/detections` | `spar_perception/Detection` | labeled map-frame observations |
 | `cmd_vel` | `geometry_msgs/TwistStamped` | Nav2 to skid-steer mixer |
 
 Transport is Zenoh over TCP. The containers share one network namespace, so
 ROS nodes and PX4 communicate over localhost.
 
-## Settled decisions and roadmap
+## Scope
 
-- Unity as authoring/render front end was built and removed in 2026
-  (`923f5e0`). Per-candidate editor startup was too slow for generation,
-  ROS-TCP-Connector was stale, and Unity's ML terms added a fork-time burden.
-- Physics authority is never split between MuJoCo and a second engine.
-- Time acceleration is removed because ROS planning and vision do not
-  accelerate with simulation time; normal operation is RTF approximately 1.
-- Manipulation, learning from pixels, high-fidelity hydro/aero, and drone
-  obstacle avoidance remain out of scope.
-- The RL harness remains `world.xml -> pure MuJoCo Gym -> policy behavior
-  node` ([rl.md](rl.md)).
-- Generated themed worlds and moving agents belong in a separate scenario
-  repository and arrive here as MJCF.
-- A marine track remains the next portability test: swap dynamics, sensors,
-  and planning without forking the world or mission substrate.
+MuJoCo remains the only physics authority. Normal operation targets real time
+because ROS planning and vision do not accelerate with the physics clock.
+Manipulation, learning from pixels, high-fidelity aerodynamics, and drone
+obstacle avoidance are not implemented.
 
-Clock-rewind order, PX4 lockstep engagement, hidden render groups, and other
-bring-up traps are documented next to the code and commands that enforce
-them.
+The immediate path is generated MJCF worlds followed by one pure-MuJoCo
+training task and one deployed policy leaf. See [rl.md](rl.md).

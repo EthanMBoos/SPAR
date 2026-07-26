@@ -18,17 +18,20 @@
 
 namespace spar_air {
 
-inline bool getPosition(const BT::NodeConfig& config, Vec3& out) {
-  Stamped<Vec3> pos;
-  if (!config.blackboard->get<Stamped<Vec3>>(keys::kPosition, pos)) return false;
-  out = pos.value;
-  return true;
-}
-
 inline double nowSec(const BT::NodeConfig& config) {
   double now = 0.0;
   (void)config.blackboard->get<double>(keys::kNowSec, now);
   return now;
+}
+
+inline bool getPosition(const BT::NodeConfig& config, Vec3& out) {
+  Stamped<Vec3> pos;
+  if (!config.blackboard->get<Stamped<Vec3>>(keys::kPosition, pos) ||
+      !fresh(pos, nowSec(config), 1.0)) {
+    return false;
+  }
+  out = pos.value;
+  return true;
 }
 
 // Arm, switch to offboard, climb to cruise over the current spot. Doubles
@@ -66,11 +69,11 @@ public:
     bool armed = false;
     (void)config().blackboard->get<bool>(keys::kArmed, armed);
     const double now = nowSec(config());
-    if (!armed && now >= next_command_) {
+    if (now >= next_command_) {
       next_command_ = now + 1.0;
       link_.setTarget(pos.x, pos.y, params_.cruise_alt_m, 0.0);
       link_.offboardMode();
-      link_.arm();
+      if (!armed) link_.arm();
     }
     return BT::NodeStatus::RUNNING;
   }
@@ -197,7 +200,6 @@ private:
 class ReturnToPad : public BT::StatefulActionNode {
 public:
   struct Params {
-    double pad_x = 0, pad_y = 0;
     double cruise_alt_m = 4.0;
     double accept_radius_m = 0.6;
   };
@@ -211,17 +213,16 @@ public:
     Vec3 pos;
     double yaw = 0.0;
     if (getPosition(config(), pos)) {
-      yaw = std::atan2(params_.pad_y - pos.y, params_.pad_x - pos.x);
+      yaw = std::atan2(-pos.y, -pos.x);
     }
-    link_.setTarget(params_.pad_x, params_.pad_y, params_.cruise_alt_m, yaw);
+    link_.setTarget(0.0, 0.0, params_.cruise_alt_m, yaw);
     return BT::NodeStatus::RUNNING;
   }
 
   BT::NodeStatus onRunning() override {
     Vec3 pos;
     if (!getPosition(config(), pos)) return BT::NodeStatus::RUNNING;
-    return std::hypot(pos.x - params_.pad_x, pos.y - params_.pad_y) <
-                   params_.accept_radius_m
+    return std::hypot(pos.x, pos.y) < params_.accept_radius_m
                ? BT::NodeStatus::SUCCESS
                : BT::NodeStatus::RUNNING;
   }

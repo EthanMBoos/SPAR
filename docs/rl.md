@@ -1,228 +1,49 @@
-# Reinforcement learning on this sim
+# Reinforcement learning
 
-The architecture buys exactly one great RL trick, and it's the recommended way
-to do RL here:
+RL is the next vertical slice, not a finished feature. There is currently no
+Gym environment, trainer, exported policy, or learned ROS behavior node in
+this repository.
 
-> **Take the world file (`sim/worlds/<world>.xml`, robots included), build a
-> pure-MuJoCo Gymnasium env on that file — no ROS — train fast, then deploy
-> the policy as a behavior node and evaluate it in the full stack.**
+The intended path is:
 
-Because MuJoCo is the physics in the deployed sim *and* in the training loop,
-and because both load the same file with the same library (same geometry, same
-`timestep`, same solver options), the policy never crosses a physics boundary
-between training and deployment. That identity is the payoff of
-"MuJoCo is the sim" (docs/sim-architecture.md).
-
-> **Status:** the world file is authored and shared today; the Gym wrapper
-> and deploy path are on the roadmap. This doc is the design and the student
-> starting point, not a finished `make rl`.
-
-## The shape: train fast, eval in the stack
-
-```
-sim/worlds/<world>.xml (the authored world, robots included)
-   └── Gymnasium env: MuJoCo + ~100 lines of Python
-         obs: lidar (mj_multiRay), poses, oracle, battery
-         act: (v, ω) → skid-steer mix → ctrl        no ROS
-         10⁵–10⁷ steps/s territory; trivial resets; mjx-able
-               └── train (SB3 / PPO, or mjx+Brax for massive parallel)
-                     └── deploy policy as a behavior node
-                           └── eval in the full sim + ROS stack
+```text
+generated MJCF worlds
+  -> pure MuJoCo training loop, without ROS
+  -> one exported policy
+  -> one behavior-tree leaf
+  -> evaluation in the existing ROS smoke harness
 ```
 
-Two loops, only one of which must be fast:
+Training should load the same `sim/worlds/<name>.xml` files as the deployed
+sim. ROS, Nav2, cameras, and the behavior tree do not belong in the fast
+step loop unless they are the system being evaluated.
 
-- **Training** — the loop above. ROS is *never* in it: a ROS round-trip per
-  step is orders of magnitude too slow and its timing is nondeterministic.
-- **Eval** — the full stack (the sim, GPS localization, Nav2, the behavior tree),
-  run at fidelity to check the learned behavior holds up. `make smoke` is the
-  template.
+## First experiment
 
-**Where the behavior tree fits — it is not in the training loop, by design.**
-Training *replaces* the machinery around the thing being learned:
+Implement one learned local-planner leaf before adding reusable RL
+infrastructure:
 
-- Learning a low-level policy (a local planner)? Neither the BT nor Nav2
-  belongs in the loop — rewards come from ground-truth poses.
-- Learning the high-level executive? The BT's arbitration *is what the policy
-  replaces*; a cheap analytic go-to controller (pure-pursuit to a waypoint)
-  stands in for Nav2 during training.
-- At **eval**, the stack returns: the policy runs as a behavior node inside the
-  BT, and the honest test is whether it beats the hand-written tree on the same
-  world.
+- observation: downsampled planar lidar plus a relative local goal;
+- action: linear and angular velocity;
+- task: reach the goal without collision;
+- worlds: the fixed prompts and seeds recorded by worldgen;
+- baseline: the existing Nav2 behavior on the same start and goal pairs;
+- deployment: a BT leaf with the same halt and stale-input behavior as the
+  existing navigation leaves.
 
-The BT core is deliberately ROS-free C++, but its leaves own Nav2 action
-calls — don't embed it in the training loop; you don't want it there anyway.
+Measure success rate, collision rate, elapsed simulation time, and behavior
+under stale sensor input. Keep training dependencies outside the base ROS
+image until this first policy proves which library and artifact format are
+actually needed.
 
-**What the Python env reimplements** (the accepted, bounded cost): the tiny
-observation/action layer — skid-steer mixing (`WHEEL_RADIUS`/`TRACK_WIDTH`
-constants), lidar via `mj_multiRay`, the visibility oracle (FOV + range +
-`mj_ray` line-of-sight), reward terms. The conventions are already
-implemented — the mixer lives in `sim/spar_sim/sim.py` and the lidar in
-`sim/spar_sim/sensors.py`. Port, don't invent.
+The implementation is complete only when an exported policy runs through the
+ROS stack and a repeatable check compares it with the baseline. Do not build a
+generic policy manager or model registry first.
 
-## What to train (non-vision)
+## Perception boundary
 
-Observations are low-dimensional and semantic: downsampled lidar, relative
-poses, "target in view + bearing" from the oracle, battery, distances. That's
-a rich state for real RL, and everything below runs at fast-lane speeds.
-
-**Tier 1 — low-level control** (continuous `(v, ω)`):
-
-- **Learned local planner** — lidar + local goal → velocity; the canonical
-  first task, batches well.
-- **Dynamic obstacle dodging** — add movers; the policy learns to yield from
-  lidar alone. A case where learned can beat the classical planner.
-- **Recovery / unstuck** — learn the back-up-rotate-reapproach behavior that
-  recovery servers hand-code.
-- **Domain flavors later** — marine station-keeping under wave disturbance,
-  multirotor altitude hold: pure state-based control on the same substrate.
-
-**Tier 2 — high-level behavior** (discrete choice among sub-behaviors — the
-tier that matches this repo's focus):
-
-- **Learned executive** — learn the BT's arbitration: choose among
-  patrol / investigate / return-to-dock from `{battery, target-seen?,
-  distances, time}`; reward targets investigated, penalize a dead battery.
-  Then race it against the hand-written tree.
-- **Active search** — find the target: obs = lidar + oracle bearing-if-seen;
-  reward detection / time-to-detection. This rehearses the repo's whole
-  search → recognize → trigger loop with zero pixels.
-- **Coverage / patrol optimization** — area per unit battery; penalize
-  revisits.
-
-The **visibility oracle is the unlock**: any behavior that would trigger off
-the camera trains against ground-truth "is it in view", then gets re-validated
-against the real camera + detector at eval. And because the sim knows every
-pose, rewards are dense, cheap, and exact — half the battle in RL.
-
-## Vision: pretrained models, not vision RL
-
-Learning *from pixels* is out of scope here, deliberately. It sits in the worst
-corner of both costs at once: the renderer throttles sampling (~10³ steps/s at
-best with rendering in the loop, vs 10⁵–10⁷ without), *and* pixel policies need
-enormous sample counts — GPU-weeks, not a laptop afternoon. Meanwhile the
-state-based RL above trains in **hours on a laptop** precisely because the
-observations are low-dimensional.
-
-Vision enters this stack a different way: **pretrained models at inference
-time.** Small VLMs/VLAs (Moondream-class) run on a laptop and consume the
-sim's rendered camera frames directly. The swap point is already built:
-`anomaly_detector` is deliberately just "pixels -> labeled map-frame point on
-`perception/detections`" - replace the HSV node with a model node that
-publishes the same Detection message with its own label, and the behavior
-tree doesn't change. That was the design intent from day one (see the
-detector's own header comment).
-
-So the division of labor is:
-
-- **RL learns control and decision-making** in low-dimensional state, fast,
-  in the pure-MuJoCo loop.
-- **Pretrained models supply recognition** from the sim's real rendered
-  pixels, with zero training.
-- They meet at eval: learned behaviors, triggered by model-recognized things,
-  in the full stack.
-
-(Heavy inference dependencies stay out of the base container image — a model
-node runs in your own environment and just subscribes to the camera topics.)
-
-> **TODO:** don't let a model override or second-guess the BT's/policy's
-> decisions in real time (a "VLM supervisor" that can accept, modify, or
-> veto actions). [Anthropic's robotics eval](https://www.anthropic.com/research/claude-plays-robotics)
-> tried exactly that — a model supervising a pretrained VLA policy — and it
-> scored *worse* than just running the policy alone; only their best model
-> broke even, and only on tasks the policy had never seen. Keep models
-> perception-only here (labeling pixels, like `anomaly_detector` does
-> today), not in the decision loop.
-
-## Visibility: instrumenting the training loop with Rerun
-
-Nothing in the loop above has a visibility story yet: no viewer, no replay,
-no run comparison. [Rerun](https://rerun.io) fills that gap specifically,
-not the deployed stack's (that's rviz, `make rviz`): a Python SDK
-(`pip install rerun-sdk`, no ROS, no container changes) built for
-exactly this kind of multi-rate robotics/RL data. Keep it out of the base
-image, same reasoning as the vision models above: it's a training-time tool
-for your own environment, not part of what students run to get the stack up.
-
-**Two timelines, two logging rates.** Spatial detail every step (10⁵-10⁷
-steps/s) would drown both disk and the viewer, so split by what's cheap:
-
-- `step` (a `sequence` timeline): scalars, every step. Reward, episode
-  length, PPO loss/entropy, straight out of the SB3 callback.
-- `sim_time` (a `duration` timeline): spatial detail, only for one
-  designated rollout every N episodes (an eval rollout, not every training
-  env). Robot pose, lidar hits, goal position, oracle bearing.
-
-```python
-import rerun as rr
-
-rr.init("spar_rl", spawn=True)   # or rr.connect_grpc() to a viewer
-                                        # already running (headless boxes),
-                                        # or rr.save("run.rrd") for batch/offline
-
-# every step, cheap:
-rr.set_time("step", sequence=global_step)
-rr.log("train/reward", rr.Scalars(reward))
-rr.log("train/episode_length", rr.Scalars(episode_len))
-
-# every N episodes, one designated env only, full detail:
-rr.set_time("sim_time", duration=t)
-rr.log("world/robot", rr.Transform3D(translation=pos, rotation=quat))
-rr.log("world/lidar", rr.Points3D(lidar_hit_points))
-rr.log("world/goal", rr.Points3D([goal_xy]))
-```
-
-With a `VecEnv`/parallel training (SB3's default, or thousands-wide under
-mjx/Brax), log scalars aggregated across all envs but spatial detail from
-one fixed env index only; logging 32+ robots' full lidar every step is both
-slow and unreadable. For the scalar side at high step rates, `rr.send_columns()`
-batches a whole episode's worth of values into one call instead of one
-`rr.log()` per step, and is significantly faster.
-
-Entity paths under `world/` deliberately echo the `/husky/...` ROS topic
-names from the deployed stack, not because Rerun needs it, but so a
-side-by-side of a training rollout and an eval rollout (below) reads as the
-same robot, not two different ones.
-
-**Where this earns its keep beyond training curves**: at eval time (deploy
-the policy as a behavior node, run it in the full sim+ROS stack), log the
-same `world/robot` and `world/lidar` entities from the deployed run into a
-second Rerun recording. Because MuJoCo loads the same file in both the
-training env and the deployed sim, the two trajectories should overlay
-almost exactly for the same policy on the same world; if they don't, the
-"same physics on both sides" claim
-([sim-architecture.md](sim-architecture.md)) doesn't hold in practice, and
-this is what would show it, not just assert it.
-
-**Deliberately not doing yet**: instrumenting `bt_executive.cpp` or the live
-ROS stack with the C++ SDK. The visibility gap that actually exists today is
-the training loop; the deployed stack already has rviz. Add the C++ side
-only if a real second need shows up (a BT execution trace correlated
-against battery/position over a run is the likely candidate) — an
-abstraction earns its place on the third caller, not the first.
-
-## Student starting point
-
-1. **Get the world:** it's already there — `sim/worlds/blank.xml` (the
-   authored world, robots included by `<include>`).
-2. **Wrap it:** a Gymnasium env holding `mujoco.MjModel/MjData`:
-
-   ```
-   obs    = concat(lidar_64, goal_dx, goal_dy, target_seen, bearing, battery)
-   action = (v, omega)          # wl,wr = (v ∓ ω·TRACK/2) / WHEEL_R → data.ctrl
-   reward = progress − collision − time                # from ground truth
-   done   = reached | collided | timeout;  reset = mj_resetData + new goal
-   ```
-
-3. **Train:** Stable-Baselines3 PPO/SAC to start; graduate to `mjx` + Brax /
-   PureJaxRL when you want thousands of parallel envs on a GPU. Instrument
-   with Rerun as you go (see above), not after the fact.
-4. **Deploy + eval:** load the policy as a behavior node, run the full stack
-   (`make start_sim` + `ros2 launch spar_bringup autonomy.launch.py` +
-   `scripts/mission.sh start`), and compare against the hand-written BT
-   (overlay the Rerun trajectory from training against this run to confirm
-   the physics matches).
-
-Caveat for the `mjx` jump: it supports a subset of MuJoCo (fine for
-primitive-collider worlds and this robot), so the fast-parallel path may want a
-lightly trimmed model rather than the full authored one.
+The current detector publishes `spar_perception/Detection`. A pretrained
+vision model can replace that node without changing either behavior tree.
+Learning from camera pixels is a separate experiment; the first RL slice
+should use low-dimensional state so world variety and control can be tested
+without rendering cost.

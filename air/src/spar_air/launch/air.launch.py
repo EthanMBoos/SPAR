@@ -18,9 +18,9 @@ def generate_launch_description():
         [FindPackageShare("spar_air"), "config", "autonomy.yaml"]
     )
 
-    def behavior_node(executable):
+    def behavior_node(executable, package="spar_air"):
         return Node(
-            package="spar_air",
+            package=package,
             executable=executable,
             namespace=namespace,
             parameters=[autonomy_params, {"use_sim_time": True}],
@@ -34,7 +34,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("namespace", default_value="skydio"),
             behavior_node("tf_from_px4"),
-            behavior_node("anomaly_detector"),
+            behavior_node("anomaly_detector", "spar_perception"),
             behavior_node("bt_executive"),
         ]
     )

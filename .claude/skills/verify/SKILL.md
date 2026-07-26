@@ -28,7 +28,7 @@ checks for which change" below.
   a human to drive the robot stack from by hand (that's the point of it);
   with no TTY attached, it hangs. Bring the containers up with the raw
   `docker compose` command instead (see check 1), and bring up the robot
-  stack with `docker exec -d ... ros2 launch spar_bringup
+  stack with `docker exec -d ... ros2 launch spar_ground
   autonomy.launch.py` (see check 5). This is the one place a fully
   automated, hands-off bring-up belongs at all; the normal dev loop is
   deliberately manual.
@@ -57,17 +57,18 @@ directly (not `make ros2_container`, see the ground rule above):
 
 ```bash
 mkdir -p ground/build ground/install logs
-WORLD=blank docker compose -f docker/compose.yaml up --build -d
+docker compose -f docker/compose.yaml up --build -d
 ```
 
 Nothing auto-launches, the containers just idle (see docker/entrypoint.sh).
 Build the same way a user would, with colcon:
 
 ```bash
-docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --packages-select spar_ground --symlink-install'
+docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --packages-up-to spar_ground --symlink-install'
 ```
 
-Success is `Finished <<< spar_ground` and exit 0. Note the flag
+Success includes `Finished <<< spar_perception` and `Finished <<< spar_ground`
+with exit 0. Note the flag
 order: `--log-base` must come BEFORE the `build`/`test` subcommand.
 
 ### 2. C++ unit tests (container)
@@ -166,12 +167,12 @@ false PASS against code that isn't the code you're verifying.
 ```bash
 make shut_down    # clean slate, whatever was running before
 mkdir -p ground/build ground/install logs
-WORLD=blank docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
+docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
 make start_sim
 sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
 grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
-docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_bringup autonomy.launch.py'
+docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_ground autonomy.launch.py'
 # bash -lc matters here, not bash -c: ROS_LOG_DIR is exported via
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
@@ -186,7 +187,7 @@ sim's own log is `logs/sim.log`.
 
 ### 6. rviz visual check (screenshot)
 
-Required after changes to `ground/src/spar_bringup/rviz/spar.rviz` or
+Required after changes to `ground/src/spar_ground/rviz/spar.rviz` or
 `scripts/rviz.sh`; worth running after any perception/TF/costmap change too,
 since checks 1-5 confirm the topics and logs are right but not that the
 picture is. Needs check 5's stack up first (`ros2 launch` and the sim both
@@ -223,7 +224,7 @@ builds PX4):
 
 ```bash
 mkdir -p air/src air/build air/install logs/air
-WORLD=blank docker compose -f docker/compose.yaml --profile air up --build -d
+docker compose -f docker/compose.yaml --profile air up --build -d
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 ```
 
@@ -243,7 +244,7 @@ the sim clock must not rewind under it).
 ```bash
 make shut_down
 mkdir -p ground/build ground/install logs air/src air/build air/install logs/air
-WORLD=blank docker compose -f docker/compose.yaml --profile air up --build -d
+docker compose -f docker/compose.yaml --profile air up --build -d
 make start_sim
 # wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
@@ -289,7 +290,7 @@ regression check after.
 | --- | --- |
 | BT node types / leaves (C++) | 1, 2, and 5 if behavior changed |
 | behavior_trees/main_tree.xml (tree shape) | 1 (it's installed by CMake), then 5 |
-| anomaly_detector / battery_sim | 1, then 5 |
+| common/src/spar_perception / battery_sim | 1, then 5 |
 | sim/spar_sim/** (sim node, sensors) | 3, then 5 |
 | sim/spar_sim/px4_link.py | 3, then A2 |
 | sim/worlds/* or sim/robots/* | 3, 4, 5; A2 if the drone or the pad moved |

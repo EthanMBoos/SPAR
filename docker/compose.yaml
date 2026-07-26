@@ -38,8 +38,6 @@ services:
     command: sleep infinity
     network_mode: "service:core"
     depends_on: [core]
-    environment:
-      - WORLD=${WORLD:-blank}
     volumes:
       - ../sim:/ws/sim
       - ../third_party:/ws/third_party:ro # x2 mesh assets referenced from sim/robots/x2.xml
@@ -62,13 +60,12 @@ services:
     # 6080 from `make rviz`) are published by core.
     network_mode: "service:core"
     depends_on: [core]
-    environment:
-      - WORLD=${WORLD:-blank}
     # The workspace lives on the host; the image is just the environment.
     # build/ + install/ are written by colcon in the container, run by hand
     # (see README); logs/ gets one runNNN per launch.
     volumes:
-      - ../ground/src:/ws/src
+      - ../ground/src/spar_ground:/ws/src/spar_ground
+      - ../common/src/spar_perception:/ws/src/spar_perception:ro
       - ../scripts:/ws/scripts
       - ../ground/build:/ws/build
       - ../ground/install:/ws/install
@@ -91,13 +88,13 @@ services:
     network_mode: "service:core"
     depends_on: [core]
     environment:
-      - WORLD=${WORLD:-blank}
       - NS=/skydio  # scripts/env.sh default is the Husky; this is the drone
     # Its own workspace mounts: the in-container workflow is the README
     # workflow, and the ground container never sees px4_msgs. logs/air
     # keeps run numbering from interleaving with the ground container's.
     volumes:
-      - ../air/src:/ws/src
+      - ../air/src/spar_air:/ws/src/spar_air
+      - ../common/src/spar_perception:/ws/src/spar_perception:ro
       - ../scripts:/ws/scripts
       - ../air/build:/ws/build
       - ../air/install:/ws/install

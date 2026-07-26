@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-# C, not just CXX: rosidl_generate_interfaces below also builds a C typesupport.
-project(spar_ground C CXX)
+project(spar_ground CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,17 +16,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc)
 find_package(behaviortree_cpp REQUIRED)
 find_package(ament_index_cpp REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Detection.msg"
-  DEPENDENCIES std_msgs geometry_msgs)
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+find_package(spar_perception REQUIRED)
 
 # The tree engine is BehaviorTree.CPP (the same library Nav2 itself runs
 # on); this package only supplies the node types and the tree it composes
@@ -46,20 +37,7 @@ target_link_libraries(bt_executive PRIVATE
   ${sensor_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
   ${std_msgs_TARGETS}
-  "${cpp_typesupport_target}")
-
-# Perception: the simplest detector that can support a behavior.
-add_executable(anomaly_detector src/anomaly_detector.cpp)
-target_link_libraries(anomaly_detector PRIVATE
-  rclcpp::rclcpp
-  cv_bridge::cv_bridge
-  tf2_ros::tf2_ros
-  tf2_geometry_msgs::tf2_geometry_msgs
-  opencv_core
-  opencv_imgproc
-  ${sensor_msgs_TARGETS}
-  ${geometry_msgs_TARGETS}
-  "${cpp_typesupport_target}")
+  ${spar_perception_TARGETS})
 
 add_executable(battery_sim src/battery_sim.cpp)
 target_link_libraries(battery_sim PRIVATE
@@ -76,9 +54,12 @@ target_link_libraries(tf_from_gps PRIVATE
   ${sensor_msgs_TARGETS}
   ${geometry_msgs_TARGETS})
 
-install(TARGETS bt_executive battery_sim anomaly_detector tf_from_gps
+install(TARGETS bt_executive battery_sim tf_from_gps
   DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY behavior_trees/ DESTINATION share/${PROJECT_NAME}/behavior_trees)
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
+install(DIRECTORY rviz/ DESTINATION share/${PROJECT_NAME}/rviz)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

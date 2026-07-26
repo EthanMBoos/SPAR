@@ -1,69 +1,83 @@
 # World generation
 
-Worldgen turns one text description into one small outdoor MuJoCo world. It
-uses a locally running Ollama model for layout and review, then uses the
-repository's existing geometry lint before publishing anything.
+Worldgen is a constrained local-model experiment:
 
 ```text
-description
-  -> Ollama layout
-  -> Ollama review
-  -> temporary MJCF
-  -> MuJoCo compile and lint
-  -> sim/worlds/<name>.xml
+description -> Ollama plan -> Ollama review -> Python MJCF
+            -> MuJoCo compile and lint -> human inspection
 ```
 
-Run Ollama with the model you want. `make lint` creates the repository Python
-environment on first use. Then generate from the repository root:
+Run it directly from the repository root:
 
 ```bash
 make lint
+
 .venv/bin/python scripts/generate_world.py \
   --name loading_yard \
   --model gemma3:4b \
+  --seed 0 \
   "A compact loading yard with fencing, crates, and a red hazard drum"
 ```
 
-`OLLAMA_HOST` overrides the default `http://localhost:11434`. The generator
-tries at most three layouts. Invalid model output, an Ollama review rejection,
-or a lint failure is fed into the next attempt. If all attempts fail, no world
-is written. Existing output is protected unless `--force` is passed.
-Generated worlds are ignored by git by default. Deliberately promote a useful
-shared fixture with `git add -f sim/worlds/<name>.xml`.
+`OLLAMA_HOST` defaults to `http://localhost:11434`. The generator makes at
+most three attempts. Invalid JSON, a semantic review rejection, or a lint
+failure becomes feedback for the next attempt. Nothing is published unless
+the temporary MJCF compiles and passes lint.
 
-Inspect the result without ROS:
+Existing files are protected unless `--force` is passed. Accepted and failed
+runs append one JSON object to `logs/worldgen.jsonl`; use `--record PATH` to
+change it. Records include the description, model, seed, attempts, plan,
+review reason, lint counts, and elapsed time.
+
+Inspect an accepted world before using it:
 
 ```bash
 make inspect WORLD=loading_yard
-```
-
-If it looks right, use it explicitly:
-
-```bash
 make start_sim WORLD=loading_yard
-make view WORLD=loading_yard
-
-# In the ground ROS container:
-ros2 launch spar_bringup autonomy.launch.py
 ```
 
-## What v1 generates
+Generated worlds are ignored by git. Promote the rare reusable fixture with
+`git add -f sim/worlds/<name>.xml`.
 
-Every world is a fixed 16 m square with the same lighting, overview camera,
-and both robot includes needed by the simulator. The robot models own their
-default spawns and home markers. Ollama selects:
+## Model versus Python
 
-- grass, dirt, concrete, or gravel ground colors;
-- 3-7 grounded racks, crates, containers, fences, barrels, or hay bales;
-- one required red anomaly drum;
-- primitive colors, one of eight named outer regions, and horizontal or
-  vertical orientation.
+Ollama chooses only:
 
-Python owns prop sizes, collision geometry, and MJCF. It maps regions to safe
-outer coordinates; the reusable ROS configs generate patrols around each
-robot's home. The model never writes coordinates, XML, or YAML.
+- one of four ground appearances;
+- three to seven primitive props;
+- each prop's kind, non-red color, coarse region, and orientation;
+- exactly one red anomaly drum;
+- whether its own structured plan matches the description.
 
-This first version does not generate robot missions, terrain, meshes, movable
-props, images, seeds, batches, variations, or photorealistic renders. Model
-review reads the structured layout, not a screenshot. Human visual approval is
-the final gate before choosing the world for the simulator.
+Python owns the 16 m world size, prop dimensions, collision geometry, exact
+coordinates, seeded position jitter, robot includes, MJCF, and all safety
+checks. Red is reserved for the anomaly because the current detector finds
+the largest red blob. If the model repeats a valid coarse region, Python moves
+the duplicate to the next free region and records both plans.
+
+The seed changes only Python-owned position jitter. The description, model
+tag, seed, and accepted plan are embedded in the MJCF `<custom>` metadata so
+an accepted file remains traceable if copied away from its JSONL record.
+
+The lint currently validates the Husky route and geometry budget. The air
+robot is included and can fly in every generated world, but the generator
+does not yet validate aerial clearance or avoidance. The drone has no
+obstacle-avoidance sensor today.
+
+This version does not generate missions, waypoint files, meshes, terrain,
+movable props, or photorealistic assets. It does not render a screenshot for
+model review. Human inspection remains the final gate.
+
+## Comparing small models
+
+Use the fixed descriptions in `scripts/worldgen_prompts.txt`, keep the seed
+set constant, and compare the JSONL records. The useful first metrics are:
+
+- accepted worlds per prompt;
+- attempts and elapsed time per accepted world;
+- invalid structured responses;
+- semantic-review and lint rejection reasons.
+
+Increase model size only after a repeatable failure on this fixed set. That
+keeps the experiment about model capability instead of changing prompts,
+schema, and model at the same time.

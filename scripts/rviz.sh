@@ -39,7 +39,7 @@ if ! $xvnc_up; then
 fi
 
 source /ws/scripts/env.sh
-rviz2 -d /ws/src/spar_bringup/rviz/spar.rviz \
+rviz2 -d /ws/src/spar_ground/rviz/spar.rviz \
   --ros-args -p use_sim_time:=true \
   -r /tf:="$NS/tf" -r /tf_static:="$NS/tf_static" \
   >/ws/logs/rviz2.log 2>&1 &

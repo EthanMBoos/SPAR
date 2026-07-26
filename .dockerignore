@@ -1,11 +1,15 @@
-# Keep the build context tiny: the image only needs package manifests and
-# docker/ itself — the workspace is bind-mounted at runtime (compose.yaml).
-build/
-install/
-log/
-logs/
-.venv/
-.git/
-__pycache__/
-*.pyc
-.DS_Store
+**
+!docker/
+!docker/**
+!ground/
+!ground/src/
+!ground/src/spar_ground/
+!ground/src/spar_ground/package.xml
+!air/
+!air/src/
+!air/src/spar_air/
+!air/src/spar_air/package.xml
+!common/
+!common/src/
+!common/src/spar_perception/
+!common/src/spar_perception/package.xml

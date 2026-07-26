@@ -61,8 +61,7 @@ controller_server:
       vy_max: 0.5
       wz_max: 2.5
       iteration_count: 1
-      # Must outrun the horizon: vx_max (1.5) x time_steps*model_dt (2.8s)
-      # ≈ 4.2m — MPPI won't drive faster than the path it's allowed to see.
+      # MPPI needs more path than its 3.0 m prediction horizon.
       prune_distance: 4.5
       transform_tolerance: 0.1
       temperature: 0.3

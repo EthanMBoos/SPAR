@@ -12,19 +12,18 @@ source /opt/ros/jazzy/setup.bash
 # Nothing ROS-related launches here on purpose. The whole stack
 # (localization, Nav2, behavior, see autonomy.launch.py) is meant to be run
 # by hand, in a `make shell`, so a launch/param/bridge change is something
-# you watch happen, not something a script hides. The infra (zenoh router,
-# ROS-TCP endpoint) belongs to the core service, see scripts/core.sh.
+# you watch happen, not something a script hides. The Zenoh router belongs
+# to the core service, see scripts/core.sh.
 
 # ROS_LOG_DIR is set once per container start, in a profile.d script so it
 # reaches every later `docker exec ... bash -lc` shell (make shell, make
 # ros2_container, the verify skill's automated bring-up). That's what lets
-# a plain `ros2 launch spar_bringup autonomy.launch.py`
+# a plain `ros2 launch spar_ground autonomy.launch.py`
 # log correctly with no wrapper script: ros2 launch already respects
 # ROS_LOG_DIR on its own (launch/logging.py), it just needs a value.
 if [ -d /ws/logs ]; then
   ROS_LOG_DIR="$(/ws/scripts/claim_run_dir.sh)"
-  printf 'world=%s\nstarted=%s\n' "${WORLD:-blank}" "$(date -Is)" \
-    > "$ROS_LOG_DIR/run-info"
+  printf 'started=%s\n' "$(date -Is)" > "$ROS_LOG_DIR/session-info"
   echo "export ROS_LOG_DIR=$ROS_LOG_DIR" > /etc/profile.d/spar_ros_log_dir.sh
   echo "[entrypoint] logging to logs/$(basename "$ROS_LOG_DIR")"
 fi

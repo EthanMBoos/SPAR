@@ -12,9 +12,11 @@ import argparse
 import json
 import math
 import os
+import random
 import re
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -22,13 +24,15 @@ import xml.etree.ElementTree as ET
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORLDS = os.path.join(REPO, "sim", "worlds")
 GROUND_AUTONOMY = os.path.join(
-    REPO, "ground", "src", "spar_bringup", "config", "autonomy.yaml")
+    REPO, "ground", "src", "spar_ground", "config", "autonomy.yaml")
+DEFAULT_RECORD = os.path.join(REPO, "logs", "worldgen.jsonl")
 
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from lint_world import validate_world  # noqa: E402
 
 MAX_ATTEMPTS = 3
 WORLD_HALF_M = 8.0
+REGION_JITTER_M = 0.35
 
 # MuJoCo sizes are half-extents. Keeping them here means the model can place
 # known objects but can never invent collision geometry.
@@ -78,7 +82,6 @@ ORIENTATIONS = {
 PLAN_SCHEMA = {
     "type": "object",
     "properties": {
-        "summary": {"type": "string"},
         "ground": {"type": "string", "enum": list(GROUND_COLORS)},
         "props": {
             "type": "array",
@@ -100,7 +103,7 @@ PLAN_SCHEMA = {
             },
         },
     },
-    "required": ["summary", "ground", "props"],
+    "required": ["ground", "props"],
     "additionalProperties": False,
 }
 
@@ -115,8 +118,13 @@ REVIEW_SCHEMA = {
                 "implausible_layout",
             ],
         },
+        "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+        },
     },
-    "required": ["decision"],
+    "required": ["decision", "reason"],
     "additionalProperties": False,
 }
 
@@ -167,6 +175,7 @@ User description:
 Use 3-7 grounded props from: {catalog}.
 Use only these colors: {colors}.
 Place exactly one anomaly_drum and make it red.
+Red is reserved for anomaly_drum; every other prop must use another color.
 Place at most one prop in each named region. Choose east_west or north_south
 orientation. Python maps each region to a safe fixed coordinate.
 Return only the requested structured data."""
@@ -184,7 +193,15 @@ Return only the requested structured data."""
     ]
 
 
-def reviewer_messages(description, plan):
+def reviewer_messages(description, plan, seed):
+    placements = [
+        {
+            "kind": prop["kind"],
+            "region": prop["region"],
+            "xy": list(prop_xy(prop, index, seed)),
+        }
+        for index, prop in enumerate(plan["props"])
+    ]
     return [
         {
             "role": "system",
@@ -192,11 +209,12 @@ def reviewer_messages(description, plan):
                 "Review a proposed small outdoor robot world only for "
                 "semantic fit, outdoor plausibility, and useful patrol "
                 "coverage. It already passed exact programmatic checks for "
-                "schema, catalog, counts, colors, bounds, and clearances; do "
+                "schema, catalog, counts, colors, and unique regions; do "
                 "not second-guess those checks. Catalog props may provide "
                 "reasonable scene context even when the user did not name "
                 "each one. Return approve unless there is a real semantic "
-                "mismatch or the combination is not a plausible outdoor site."
+                "mismatch or the combination is not a plausible outdoor site. "
+                "Give one short reason that is useful if the planner retries."
             ),
         },
         {
@@ -204,6 +222,8 @@ def reviewer_messages(description, plan):
             "content": (
                 f"User description:\n{description}\n\n"
                 f"Candidate layout:\n{json.dumps(plan, indent=2)}\n\n"
+                f"Python-owned placements:\n{json.dumps(placements, indent=2)}\n\n"
+                "The ground patrol is a 5 m square centered on (0, 0). "
                 f"Programmatic facts: {len(plan['props'])} allowed props, "
                 "unique outer regions, and exactly one red anomaly drum."
             ),
@@ -243,10 +263,8 @@ def validate_plan(plan):
     errors = []
     if not isinstance(plan, dict):
         return ["layout must be a JSON object"]
-    if set(plan) != {"summary", "ground", "props"}:
-        errors.append("layout must contain only summary, ground, props")
-    if not isinstance(plan.get("summary"), str) or not plan.get("summary", "").strip():
-        errors.append("summary must be a non-empty string")
+    if set(plan) != {"ground", "props"}:
+        errors.append("layout must contain only ground, props")
     if plan.get("ground") not in GROUND_COLORS:
         errors.append(f"ground must be one of: {', '.join(GROUND_COLORS)}")
 
@@ -274,6 +292,8 @@ def validate_plan(plan):
             anomaly_count += 1
             if prop["color"] != "red":
                 errors.append("anomaly_drum must be red")
+        elif prop["color"] == "red":
+            errors.append("red is reserved for anomaly_drum")
         region = prop["region"]
         if region not in REGIONS:
             errors.append(f"{label} has unknown region: {region}")
@@ -290,10 +310,13 @@ def validate_plan(plan):
 
 def validate_review(review):
     if not isinstance(review, dict) \
-            or set(review) != {"decision"} \
+            or set(review) != {"decision", "reason"} \
             or review.get("decision") not in REVIEW_SCHEMA[
-                "properties"]["decision"]["enum"]:
-        return "review must contain one allowed decision"
+                "properties"]["decision"]["enum"] \
+            or not isinstance(review.get("reason"), str) \
+            or not review["reason"].strip() \
+            or len(review["reason"]) > 160:
+        return "review must contain one allowed decision and a short reason"
     return None
 
 
@@ -301,7 +324,17 @@ def _numbers(values):
     return " ".join(f"{value:.6g}" for value in values)
 
 
-def render_world(plan, name):
+def prop_xy(prop, index, seed):
+    """Return one reproducible Python-owned position inside a safe region."""
+    x, y = REGIONS[prop["region"]]
+    rng = random.Random(f"{seed}:{index}:{prop['region']}")
+    return (
+        x + rng.uniform(-REGION_JITTER_M, REGION_JITTER_M),
+        y + rng.uniform(-REGION_JITTER_M, REGION_JITTER_M),
+    )
+
+
+def render_world(plan, name, seed=0, description="", model_tag=""):
     """Render a validated layout to MJCF text."""
     root = ET.Element("mujoco", {"model": name})
     ET.SubElement(root, "compiler", {"angle": "radian"})
@@ -317,6 +350,26 @@ def render_world(plan, name):
         "specular": "0 0 0",
     })
     ET.SubElement(visual, "global", {"azimuth": "120", "elevation": "-20"})
+
+    metadata = ET.SubElement(root, "custom")
+    ET.SubElement(metadata, "text", {
+        "name": "worldgen.plan",
+        "data": json.dumps(plan, separators=(",", ":")),
+    })
+    if description:
+        ET.SubElement(metadata, "text", {
+            "name": "worldgen.description",
+            "data": description,
+        })
+    if model_tag:
+        ET.SubElement(metadata, "text", {
+            "name": "worldgen.model",
+            "data": model_tag,
+        })
+    ET.SubElement(metadata, "text", {
+        "name": "worldgen.seed",
+        "data": str(seed),
+    })
 
     rgb1, rgb2 = GROUND_COLORS[plan["ground"]]
     asset = ET.SubElement(root, "asset")
@@ -367,11 +420,11 @@ def render_world(plan, name):
     })
 
     kind_counts = {}
-    for prop in plan["props"]:
+    for index, prop in enumerate(plan["props"]):
         shape, size = PROPS[prop["kind"]]
         z = size[2] if shape == "box" else size[1]
         kind_counts[prop["kind"]] = kind_counts.get(prop["kind"], 0) + 1
-        x, y = REGIONS[prop["region"]]
+        x, y = prop_xy(prop, index, seed)
         ET.SubElement(worldbody, "geom", {
             "name": f"prop_{prop['kind']}_{kind_counts[prop['kind']]}",
             "type": shape,
@@ -387,8 +440,19 @@ def render_world(plan, name):
     return ET.tostring(root, encoding="unicode") + "\n"
 
 
+def append_record(path, record):
+    if not path:
+        return
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(path, "a") as output:
+        output.write(json.dumps(record, separators=(",", ":")) + "\n")
+
+
 def generate(description, name, model, host, force=False, chat=ollama_chat,
-             worlds_dir=WORLDS, autonomy_path=GROUND_AUTONOMY):
+             worlds_dir=WORLDS, autonomy_path=GROUND_AUTONOMY, seed=0,
+             record_path=None):
     if name == "blank" or not re.fullmatch(r"[a-z][a-z0-9_-]*", name):
         raise ValueError(
             "name must be lowercase letters, numbers, '_' or '-', and not blank")
@@ -398,6 +462,8 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
             f"refusing to replace {world_path}; pass --force to replace")
 
     feedback = None
+    started = time.monotonic()
+    attempts = []
     for attempt in range(1, MAX_ATTEMPTS + 1):
         print(f"[worldgen] attempt {attempt}/{MAX_ATTEMPTS}")
         try:
@@ -406,30 +472,71 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
                 PLAN_SCHEMA)
         except InvalidModelResponse as exc:
             feedback = str(exc)
+            attempts.append({
+                "attempt": attempt,
+                "stage": "layout",
+                "result": "invalid_response",
+                "detail": feedback,
+            })
             print(f"[worldgen] layout response rejected: {feedback}")
             continue
+        raw_plan = json.loads(json.dumps(plan))
         normalize_plan(plan)
+        if plan != raw_plan:
+            attempts.append({
+                "attempt": attempt,
+                "stage": "layout",
+                "result": "normalized",
+                "detail": {"raw": raw_plan, "normalized": plan},
+            })
         errors = validate_plan(plan)
         if errors:
             feedback = "\n".join(errors)
+            attempts.append({
+                "attempt": attempt,
+                "stage": "layout",
+                "result": "local_rejection",
+                "detail": errors,
+            })
             print(f"[worldgen] layout rejected locally: {feedback}")
             continue
 
         try:
             review = chat(
-                host, model, reviewer_messages(description, plan),
+                host, model, reviewer_messages(description, plan, seed),
                 REVIEW_SCHEMA)
         except InvalidModelResponse as exc:
             feedback = str(exc)
+            attempts.append({
+                "attempt": attempt,
+                "stage": "review",
+                "result": "invalid_response",
+                "detail": feedback,
+            })
             print(f"[worldgen] review response rejected: {feedback}")
             continue
         review_error = validate_review(review)
         if review_error:
             feedback = review_error
+            attempts.append({
+                "attempt": attempt,
+                "stage": "review",
+                "result": "local_rejection",
+                "detail": feedback,
+            })
             print(f"[worldgen] review rejected locally: {feedback}")
             continue
         if review["decision"] != "approve":
-            feedback = f"Ollama review: {review['decision']}"
+            feedback = (
+                f"Ollama review: {review['decision']}: "
+                f"{review['reason'].strip()}"
+            )
+            attempts.append({
+                "attempt": attempt,
+                "stage": "review",
+                "result": review["decision"],
+                "detail": review["reason"].strip(),
+            })
             print(f"[worldgen] Ollama review rejected layout: {feedback}")
             continue
 
@@ -440,24 +547,59 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
                     mode="w", dir=worlds_dir, prefix=".worldgen_",
                     suffix=".xml", delete=False) as output:
                 world_tmp = output.name
-                output.write(render_world(plan, name))
+                output.write(render_world(
+                    plan, name, seed, description, model))
 
-            failures, warnings, _ = validate_world(
+            failures, warnings, counts = validate_world(
                 "husky", world_tmp, autonomy_path)
             for warning in warnings:
                 print(f"[worldgen] lint warning: {warning}")
             if failures:
                 feedback = "\n".join(failures)
+                attempts.append({
+                    "attempt": attempt,
+                    "stage": "lint",
+                    "result": "rejected",
+                    "detail": failures,
+                })
                 print(f"[worldgen] lint rejected layout: {feedback}")
                 continue
 
             os.replace(world_tmp, world_path)
             world_tmp = None
+            attempts.append({
+                "attempt": attempt,
+                "stage": "publish",
+                "result": "accepted",
+            })
+            append_record(record_path, {
+                "status": "accepted",
+                "name": name,
+                "description": description,
+                "model": model,
+                "seed": seed,
+                "elapsed_sec": round(time.monotonic() - started, 3),
+                "successful_attempt": attempt,
+                "plan": plan,
+                "review": review,
+                "lint": counts,
+                "attempts": attempts,
+            })
             return world_path, plan
         finally:
             if world_tmp and os.path.exists(world_tmp):
                 os.unlink(world_tmp)
 
+    append_record(record_path, {
+        "status": "rejected",
+        "name": name,
+        "description": description,
+        "model": model,
+        "seed": seed,
+        "elapsed_sec": round(time.monotonic() - started, 3),
+        "attempts": attempts,
+        "final_feedback": feedback,
+    })
     raise RuntimeError(
         f"no valid world after {MAX_ATTEMPTS} attempts"
         + (f": {feedback}" if feedback else ""))
@@ -468,25 +610,32 @@ def main():
     parser.add_argument("--name", required=True, help="output world name")
     parser.add_argument("--model", required=True, help="installed Ollama model")
     parser.add_argument(
+        "--seed", type=int, default=0,
+        help="seed for reproducible Python-owned position jitter")
+    parser.add_argument(
+        "--record", default=DEFAULT_RECORD,
+        help="append experiment metadata here (default: logs/worldgen.jsonl)")
+    parser.add_argument(
         "--force", action="store_true", help="replace existing output files")
     parser.add_argument(
         "description", help="quoted description of the outdoor scene")
     args = parser.parse_args()
     host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
     try:
-        world, plan = generate(
-            args.description, args.name, args.model, host, args.force)
+        world, _plan = generate(
+            args.description, args.name, args.model, host, args.force,
+            seed=args.seed, record_path=args.record)
     except (FileExistsError, RuntimeError, ValueError) as exc:
         parser.exit(1, f"[worldgen] ERROR: {exc}\n")
 
     print(f"[worldgen] created {os.path.relpath(world, REPO)}")
-    print(f"[worldgen] {plan['summary']}")
+    print(f"[worldgen] model={args.model} seed={args.seed}")
     print("\nReview:")
     print(f"  make inspect WORLD={args.name}")
     print("\nUse with ROS after approval:")
     print(f"  make start_sim WORLD={args.name}")
     print(f"  make view WORLD={args.name}")
-    print("  ros2 launch spar_bringup autonomy.launch.py")
+    print("  ros2 launch spar_ground autonomy.launch.py")
     return 0
 
 

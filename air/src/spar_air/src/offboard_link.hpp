@@ -19,15 +19,14 @@ namespace spar_air {
 
 class OffboardLink {
 public:
-  OffboardLink(rclcpp::Node& node, double pad_x, double pad_y)
-      : node_(node), pad_x_(pad_x), pad_y_(pad_y) {
+  explicit OffboardLink(rclcpp::Node& node) : node_(node) {
     mode_pub_ = node.create_publisher<px4_msgs::msg::OffboardControlMode>(
         "fmu/in/offboard_control_mode", 10);
     setpoint_pub_ = node.create_publisher<px4_msgs::msg::TrajectorySetpoint>(
         "fmu/in/trajectory_setpoint", 10);
     command_pub_ = node.create_publisher<px4_msgs::msg::VehicleCommand>(
         "fmu/in/vehicle_command", 10);
-    target_ = {pad_x, pad_y, 0.0};
+    target_ = {0.0, 0.0, 0.0};
     timer_ = rclcpp::create_timer(
         &node, node.get_clock(), rclcpp::Duration::from_seconds(0.1),
         [this] { stream(); });
@@ -40,11 +39,22 @@ public:
   }
   Vec3 target() const { return target_; }
 
-  void arm() { command(400, 1.0); }
-  void offboardMode() { command(176, 1.0, 6.0); }  // custom mode: OFFBOARD
-  void landCmd() { command(21); }                   // NAV_LAND: PX4 lands + disarms
+  void arm() {
+    command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+            1.0);
+  }
+  void offboardMode() {
+    command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE,
+            1.0, 6.0);
+  }
+  void landCmd() {
+    command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_LAND);
+  }
   // 21196 is PX4's force-disarm magic (bypasses the land detector).
-  void disarmForce() { command(400, 0.0, 21196.0); }
+  void disarmForce() {
+    command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+            0.0, 21196.0);
+  }
 
 private:
   void stream() {
@@ -56,9 +66,8 @@ private:
     mode.position = true;
     mode_pub_->publish(mode);
 
-    // map ENU -> EKF-local NED: subtract the pad (the EKF origin), swap.
-    const auto ned =
-        enuToNed(target_.x - pad_x_, target_.y - pad_y_, target_.z);
+    // The map origin and EKF origin are both the pad: only swap ENU -> NED.
+    const auto ned = enuToNed(target_.x, target_.y, target_.z);
     px4_msgs::msg::TrajectorySetpoint sp;
     sp.timestamp = stamp;
     sp.position = {static_cast<float>(ned.x), static_cast<float>(ned.y),
@@ -83,7 +92,6 @@ private:
   }
 
   rclcpp::Node& node_;
-  double pad_x_, pad_y_;
   Vec3 target_;
   double yaw_ = 0.0;
   rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr mode_pub_;

@@ -53,6 +53,7 @@ WORKDIR /ws
 # enough for rosdep; the real source is bind-mounted at runtime. px4_msgs
 # is skipped because it is the baked underlay above, not an apt package.
 COPY air/src/spar_air/package.xml src/spar_air/
+COPY common/src/spar_perception/package.xml src/spar_perception/
 RUN . /opt/ros/jazzy/setup.sh \
  && apt-get update && rosdep update --rosdistro jazzy \
  && rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \

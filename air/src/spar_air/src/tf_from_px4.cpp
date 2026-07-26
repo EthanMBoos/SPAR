@@ -7,7 +7,7 @@
 // This file owns the attitude half of the frame bug farm: PX4's quaternion
 // is body-FRD relative to world-NED; the map frame is ENU and the robot
 // frame FLU. Both fixed correction rotations are spelled out where they
-// are applied. The position half (axis swap + pad offset) is frames.hpp.
+// are applied. The position axis swap is in frames.hpp.
 
 #include <array>
 #include <cmath>
@@ -27,14 +27,10 @@ namespace spar_air {
 class TfFromPx4 : public rclcpp::Node {
 public:
   TfFromPx4() : Node("tf_from_px4") {
-    declare_parameter("pad_x", 0.0);
-    declare_parameter("pad_y", 0.0);
     declare_parameter("map_frame", "map");
     declare_parameter("base_frame", "base_link");
     declare_parameter("camera_frame", "camera_0_link");
     declare_parameter("camera_pitch_down_deg", 45.0);
-    pad_x_ = get_parameter("pad_x").as_double();
-    pad_y_ = get_parameter("pad_y").as_double();
     map_frame_ = get_parameter("map_frame").as_string();
     base_frame_ = get_parameter("base_frame").as_string();
 
@@ -75,8 +71,8 @@ private:
     tf.child_frame_id = base_frame_;
 
     const auto enu = nedToEnu(msg.x, msg.y, msg.z);
-    tf.transform.translation.x = enu.x + pad_x_;
-    tf.transform.translation.y = enu.y + pad_y_;
+    tf.transform.translation.x = enu.x;
+    tf.transform.translation.y = enu.y;
     tf.transform.translation.z = enu.z;
 
     // q maps FRD -> NED. Wanted: FLU -> ENU. Compose the two fixed frame
@@ -106,7 +102,6 @@ private:
     out[3] = p[0] * q[3] + p[1] * q[2] - p[2] * q[1] + p[3] * q[0];
   }
 
-  double pad_x_ = 0.0, pad_y_ = 0.0;
   std::string map_frame_, base_frame_;
   std::array<float, 4> q_{};
   bool have_q_ = false;

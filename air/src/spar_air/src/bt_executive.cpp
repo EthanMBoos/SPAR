@@ -20,7 +20,7 @@
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <spar_air/msg/detection.hpp>
+#include <spar_perception/msg/detection.hpp>
 #include <std_msgs/msg/string.hpp>
 
 #include "bt/anomaly_seen.hpp"
@@ -40,8 +40,6 @@ public:
   BtExecutive() : rclcpp::Node("bt_executive") {
     declare_parameter("tick_rate_hz", 10.0);
     declare_parameter("patrol_radius_m", 4.0);
-    declare_parameter("pad_x", 0.0);
-    declare_parameter("pad_y", 0.0);
     declare_parameter("cruise_alt_m", 4.0);
     declare_parameter("aloft_alt_m", 1.5);
     declare_parameter("accept_radius_m", 0.6);
@@ -62,9 +60,7 @@ public:
 
   // Building the tree needs `*this` fully constructed, so it lives here.
   void init() {
-    const double pad_x = get_parameter("pad_x").as_double();
-    const double pad_y = get_parameter("pad_y").as_double();
-    link_ = std::make_unique<OffboardLink>(*this, pad_x, pad_y);
+    link_ = std::make_unique<OffboardLink>(*this);
 
     BT::BehaviorTreeFactory factory;
     factory.registerNodeType<MissionActive>("MissionActive");
@@ -104,10 +100,10 @@ public:
       throw std::runtime_error("patrol_radius_m must be positive");
     }
     std::vector<GotoWaypoint::Waypoint> waypoints{
-        {pad_x + patrol_radius, pad_y},
-        {pad_x, pad_y - patrol_radius},
-        {pad_x - patrol_radius, pad_y},
-        {pad_x, pad_y + patrol_radius},
+        {patrol_radius, 0.0},
+        {0.0, -patrol_radius},
+        {-patrol_radius, 0.0},
+        {0.0, patrol_radius},
     };
     GotoWaypoint::Params goto_params;
     goto_params.cruise_alt_m = takeoff_params.cruise_alt_m;
@@ -133,8 +129,6 @@ public:
         });
 
     ReturnToPad::Params pad_params;
-    pad_params.pad_x = pad_x;
-    pad_params.pad_y = pad_y;
     pad_params.cruise_alt_m = takeoff_params.cruise_alt_m;
     pad_params.accept_radius_m = goto_params.accept_radius_m;
     factory.registerBuilder<ReturnToPad>(
@@ -157,19 +151,20 @@ public:
 
     local_position_sub_ = create_subscription<px4_msgs::msg::VehicleLocalPosition>(
         "fmu/out/vehicle_local_position", rclcpp::SensorDataQoS(),
-        [this, blackboard, pad_x, pad_y](
-            const px4_msgs::msg::VehicleLocalPosition& msg) {
+        [this, blackboard](const px4_msgs::msg::VehicleLocalPosition& msg) {
           // EKF local NED -> map ENU; the EKF origin is the pad (spawn).
-          auto enu = nedToEnu(msg.x, msg.y, msg.z);
+          const auto enu = nedToEnu(msg.x, msg.y, msg.z);
           blackboard->set<Stamped<Vec3>>(
-              keys::kPosition,
-              {{enu.x + pad_x, enu.y + pad_y, enu.z}, now().seconds()});
+              keys::kPosition, {enu, now().seconds()});
         });
 
     status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
         "fmu/out/vehicle_status", rclcpp::SensorDataQoS(),
         [blackboard](const px4_msgs::msg::VehicleStatus& msg) {
-          blackboard->set<bool>(keys::kArmed, msg.arming_state == 2);
+          blackboard->set<bool>(
+              keys::kArmed,
+              msg.arming_state ==
+                  px4_msgs::msg::VehicleStatus::ARMING_STATE_ARMED);
         });
 
     battery_sub_ = create_subscription<px4_msgs::msg::BatteryStatus>(
@@ -180,9 +175,10 @@ public:
         });
 
     const auto anomaly_label = get_parameter("anomaly_label").as_string();
-    detections_sub_ = create_subscription<spar_air::msg::Detection>(
+    detections_sub_ = create_subscription<spar_perception::msg::Detection>(
         "perception/detections", 10,
-        [this, blackboard, anomaly_label](const spar_air::msg::Detection& msg) {
+        [this, blackboard, anomaly_label](
+            const spar_perception::msg::Detection& msg) {
           if (msg.label != anomaly_label) return;
           blackboard->set<Stamped<geometry_msgs::msg::Point>>(
               keys::kAnomalyPoint, {msg.point, now().seconds()});
@@ -263,7 +259,7 @@ private:
       local_position_sub_;
   rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr status_sub_;
   rclcpp::Subscription<px4_msgs::msg::BatteryStatus>::SharedPtr battery_sub_;
-  rclcpp::Subscription<spar_air::msg::Detection>::SharedPtr detections_sub_;
+  rclcpp::Subscription<spar_perception::msg::Detection>::SharedPtr detections_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mission_sub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::TimerBase::SharedPtr timer_;

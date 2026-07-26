@@ -10,7 +10,7 @@
 #   (in that shell) colcon build --symlink-install   # first build
 #   (in that shell) cd build/spar_ground && make   # NOT cmake .. && make;
 #                    colcon's build dir caches its own source path, plain make is correct
-#   (in that shell) ros2 launch spar_bringup autonomy.launch.py
+#   (in that shell) ros2 launch spar_ground autonomy.launch.py
 #                    logs go to logs/runNNN automatically (ROS_LOG_DIR is set
 #                    once per container start, see docker/entrypoint.sh)
 #
@@ -26,7 +26,7 @@
 # track.
 COMPOSE   := docker compose -f docker/compose.yaml
 CONTAINER := spar
-LAUNCH    := spar_bringup autonomy.launch.py
+LAUNCH    := spar_ground autonomy.launch.py
 WORLD     ?= blank
 ROBOT     ?= husky
 VENV      := .venv
@@ -44,7 +44,7 @@ ifeq ($(TRACK),air)
   COMPOSE   := $(COMPOSE) --profile air
   CONTAINER := spar-air
   LAUNCH    := spar_air air.launch.py
-  WORKDIRS  += air/src air/build air/install logs/air
+  WORKDIRS  += air/build air/install logs/air
   SMOKE     := /ws/scripts/smoke_test_air.sh
 endif
 COMPOSE_ALL := docker compose -f docker/compose.yaml --profile air
@@ -56,7 +56,7 @@ help:           ## list commands
 
 ros2_container: ## build + start the container (nothing built or launched yet) and drop you into a shell
 	@mkdir -p $(WORKDIRS)
-	WORLD=$(WORLD) $(COMPOSE) up --build -d
+	$(COMPOSE) up --build -d
 	docker exec -it $(CONTAINER) bash -lc '$(ROS_ENV) && exec bash'
 
 ros2_container_air: ## same, for the air track (first build compiles PX4, takes a while)
@@ -70,7 +70,7 @@ clean: shut_down ## shut down, then remove both tracks' build trees (forces a fu
 
 start_sim:      ## start the headless sim (its container comes up if needed; make stop_sim ends it)
 	@mkdir -p logs
-	@WORLD=$(WORLD) $(COMPOSE) up --build -d sim
+	@$(COMPOSE) up --build -d sim
 	@docker exec spar-sim pkill -f spar_sim.sim 2>/dev/null; true
 	docker exec -d spar-sim bash -lc '$(ROS_ENV) && cd /ws/sim && \
 	  MUJOCO_GL=egl WORLD=$(WORLD) python3 -m spar_sim.sim > /ws/logs/sim.log 2>&1'
@@ -123,7 +123,7 @@ smoke_air:      ## end-to-end test of the air track (~4-6 min, ends in PASS)
 
 lint: $(VENV)   ## validate a world against one robot's sensor geometry and route
 	$(VENV)/bin/python scripts/lint_world.py --robot $(ROBOT) sim/worlds/$(WORLD).xml \
-	  ground/src/spar_bringup/config/autonomy.yaml
+	  ground/src/spar_ground/config/autonomy.yaml
 
 $(VENV):
 	python3 -m venv $(VENV) && $(VENV)/bin/pip install mujoco==3.10.0 pyyaml

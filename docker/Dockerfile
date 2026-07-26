@@ -45,7 +45,7 @@ WORKDIR /ws
 # in the container, and lands in ./build on the host (see README), so code
 # edits need an incremental rebuild, never an image rebuild.
 COPY ground/src/spar_ground/package.xml src/spar_ground/
-COPY ground/src/spar_bringup/package.xml src/spar_bringup/
+COPY common/src/spar_perception/package.xml src/spar_perception/
 RUN . /opt/ros/jazzy/setup.sh \
  && apt-get update && rosdep update --rosdistro jazzy \
  && rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \

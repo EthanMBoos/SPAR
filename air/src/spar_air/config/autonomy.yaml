@@ -1,8 +1,5 @@
-# Reusable X2 behavior configuration. All positions are map frame (ENU).
-# The pad is the drone's spawn, which is also where EKF2's local origin
-# lands, so map = PX4 local ENU + pad; pad_x/pad_y here must match the X2
-# spawn in sim/robots/x2.xml, and both deconflict with the Husky: pad off
-# the patrol legs, cruise above the mast.
+# Reusable X2 behavior configuration. The drone's spawn is the origin of both
+# PX4 local position and its ROS map, so the pad is (0, 0) in every world.
 # DevNote: the Husky's lidar still catches the drone crossing its scan
 # plane near the pad. That is a transient costmap obstacle Nav2 routes
 # around, accepted as is; it is not a deconfliction bug to fix here.
@@ -11,8 +8,6 @@
     tick_rate_hz: 10.0
     # The executive expands this into a clockwise diamond around the pad.
     patrol_radius_m: 4.0
-    pad_x: -2.0
-    pad_y: -1.0
     cruise_alt_m: 4.0
     aloft_alt_m: 1.5
     accept_radius_m: 0.6
@@ -30,8 +25,6 @@
 
 /**/tf_from_px4:
   ros__parameters:
-    pad_x: -2.0
-    pad_y: -1.0
     map_frame: map
     base_frame: base_link
     camera_frame: camera_0_link

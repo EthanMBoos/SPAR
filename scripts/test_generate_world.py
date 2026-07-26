@@ -1,5 +1,6 @@
 import copy
 import io
+import json
 import os
 from pathlib import Path
 import sys
@@ -16,7 +17,6 @@ import generate_world as worldgen  # noqa: E402
 
 
 VALID_PLAN = {
-    "summary": "A compact fenced loading yard.",
     "ground": "concrete",
     "props": [
         {
@@ -85,6 +85,15 @@ class WorldgenTest(unittest.TestCase):
         self.assertIn("anomaly_drum must be red", errors)
         self.assertIn("duplicate prop region: northwest", errors)
 
+    def test_validator_reserves_red_for_anomaly(self):
+        plan = copy.deepcopy(VALID_PLAN)
+        plan["props"][0]["color"] = "red"
+
+        self.assertIn(
+            "red is reserved for anomaly_drum",
+            worldgen.validate_plan(plan),
+        )
+
     def test_duplicate_regions_are_normalized(self):
         plan = copy.deepcopy(VALID_PLAN)
         plan["props"][1]["region"] = "northeast"
@@ -98,9 +107,12 @@ class WorldgenTest(unittest.TestCase):
     def test_review_retry_then_publish(self):
         responses = iter([
             copy.deepcopy(VALID_PLAN),
-            {"decision": "semantic_mismatch"},
+            {
+                "decision": "semantic_mismatch",
+                "reason": "The props do not resemble a loading yard.",
+            },
             copy.deepcopy(VALID_PLAN),
-            {"decision": "approve"},
+            {"decision": "approve", "reason": "The layout matches the request."},
         ])
 
         def chat(*_args):
@@ -118,7 +130,7 @@ class WorldgenTest(unittest.TestCase):
             copy.deepcopy(VALID_PLAN),
             worldgen.InvalidModelResponse("truncated JSON"),
             copy.deepcopy(VALID_PLAN),
-            {"decision": "approve"},
+            {"decision": "approve", "reason": "The layout matches the request."},
         ])
 
         def chat(*_args):
@@ -137,7 +149,7 @@ class WorldgenTest(unittest.TestCase):
         def chat(*args):
             if args[-1] == worldgen.PLAN_SCHEMA:
                 return copy.deepcopy(VALID_PLAN)
-            return {"decision": "approve"}
+            return {"decision": "approve", "reason": "The layout matches the request."}
 
         with mock.patch.object(
                 worldgen, "validate_world",
@@ -160,6 +172,43 @@ class WorldgenTest(unittest.TestCase):
                 worlds_dir=str(self.worlds))
 
         self.assertEqual((self.worlds / "yard.xml").read_text(), "user data")
+
+    def test_seeded_positions_and_metadata_are_reproducible(self):
+        first = worldgen.render_world(
+            VALID_PLAN, "yard", seed=7,
+            description="a loading yard", model_tag="test-model")
+        second = worldgen.render_world(
+            VALID_PLAN, "yard", seed=7,
+            description="a loading yard", model_tag="test-model")
+        different = worldgen.render_world(
+            VALID_PLAN, "yard", seed=8,
+            description="a loading yard", model_tag="test-model")
+
+        self.assertEqual(first, second)
+        self.assertNotEqual(first, different)
+        self.assertIn('name="worldgen.plan"', first)
+        self.assertIn('name="worldgen.description" data="a loading yard"', first)
+        self.assertIn('name="worldgen.model" data="test-model"', first)
+        self.assertIn('name="worldgen.seed" data="7"', first)
+
+    def test_success_record_contains_experiment_facts(self):
+        record = self.root / "worldgen.jsonl"
+        responses = iter([
+            copy.deepcopy(VALID_PLAN),
+            {"decision": "approve", "reason": "The layout matches the request."},
+        ])
+
+        worldgen.generate(
+            "a loading yard", "yard", "test-model", "localhost",
+            chat=lambda *_: next(responses), worlds_dir=str(self.worlds),
+            seed=4, record_path=str(record))
+
+        entry = json.loads(record.read_text())
+        self.assertEqual(entry["status"], "accepted")
+        self.assertEqual(entry["model"], "test-model")
+        self.assertEqual(entry["seed"], 4)
+        self.assertEqual(entry["successful_attempt"], 1)
+        self.assertEqual(entry["lint"]["static_solids"], 4)
 
     def test_ollama_connection_error_is_clear(self):
         with mock.patch(

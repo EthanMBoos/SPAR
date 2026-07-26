@@ -1,23 +1,5 @@
 <?xml version="1.0"?>
 <!--
-  The tree, as built in bt_executive.cpp's factory registration:
-
-    ReactiveFallback (root)
-    ├── ReactiveSequence (mission_gate)
-    │   ├── MissionActive?
-    │   └── ReactiveFallback (on_mission)
-    │       ├── ReactiveSequence (battery_concern)
-    │       │   ├── BatteryLow?
-    │       │   └── ReactiveFallback (get_safe)
-    │       │       ├── ReturnToDock
-    │       │       └── HoldPosition
-    │       ├── ReactiveSequence (inspect)
-    │       │   ├── AnomalySeen?
-    │       │   └── Inspect
-    │       ├── Rounds
-    │       └── HoldPosition
-    └── Idle
-
   Every composite here is Reactive: a plain Sequence/Fallback remembers
   which child was last RUNNING and resumes from there, so a higher-priority
   condition earlier in the list would stop being re-checked once a

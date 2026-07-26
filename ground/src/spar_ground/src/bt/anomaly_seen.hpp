@@ -13,16 +13,6 @@ namespace spar_ground {
 // than max_age_sec fails) and no inspection ended within the last
 // cooldown_sec (Inspect stamps keys::kLastInspected, so the robot goes back
 // to its rounds instead of orbiting the same object forever).
-//
-// TODO(multi-detection): keys::kAnomalyPoint holds exactly one point, and a
-// detector that reports several things in the same frame will just
-// overwrite it — whichever hit arrives last on perception/detections wins,
-// arbitrarily, and cooldown_sec is a single global timestamp, so inspecting
-// one object silences every other one too. If you hook up a model that
-// finds multiple things at once (two drums, a person and a cone, whatever),
-// think about what "handle both" should mean here: kAnomalyPoint would need
-// to become a small collection instead of one slot, and cooldown would need
-// to key off which point was actually visited, not just when.
 class AnomalySeen : public BT::ConditionNode {
 public:
   struct Params {
