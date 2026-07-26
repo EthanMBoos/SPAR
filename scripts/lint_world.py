@@ -28,6 +28,7 @@ import os
 import sys
 
 import mujoco
+import numpy as np
 import yaml
 
 # The gate and the map must agree on what counts as world geometry and where
@@ -58,6 +59,23 @@ def geom_z_extent(model, data, gid):
         return abs(R[2][2]) * size[1] + math.hypot(R[2][0], R[2][1]) * size[0]
     # capsule / other: bounding sphere (conservative; fine for a gate)
     return model.geom_rbound[gid]
+
+
+def geom_xy_clearance(model, data, gid, px, py):
+    """Horizontal distance from a point to the geom's world-axis-aligned box,
+    0 when the point is inside it.
+
+    Not geom_rbound: that is a bounding SPHERE, tight only for compact geoms.
+    A 10m wall slab has an rbound of 5.2m, so subtracting it puts the dock
+    "inside" a wall that is really 4.9m away, and every long thin object a
+    site is made of (fences, containers, scaffolding) fails the same way.
+    Same world-AABB construction rasterize_map uses for map bounds."""
+    rot = data.geom_xmat[gid].reshape(3, 3)
+    center = data.geom_xpos[gid] + rot @ model.geom_aabb[gid, :3]
+    half = np.abs(rot) @ model.geom_aabb[gid, 3:]
+    dx = max(abs(px - center[0]) - half[0], 0.0)
+    dy = max(abs(py - center[1]) - half[1], 0.0)
+    return math.hypot(dx, dy)
 
 
 def load_autonomy_yaml(path):
@@ -114,8 +132,7 @@ def main():
     if cfg and cfg["dock"]:
         dx, dy = cfg["dock"]
         for gid in geoms:
-            gx, gy = data.geom_xpos[gid][:2]
-            if math.hypot(gx - dx, gy - dy) - model.geom_rbound[gid] < DOCK_CLEAR_M:
+            if geom_xy_clearance(model, data, gid, dx, dy) < DOCK_CLEAR_M:
                 failures.append(
                     f"dock zone: '{gname(gid)}' intrudes within {DOCK_CLEAR_M}m "
                     f"of the dock ({dx}, {dy})")
@@ -124,11 +141,10 @@ def main():
     if cfg:
         for i, (wx, wy) in enumerate(cfg["waypoints"]):
             for gid in geoms:
-                gx, gy = data.geom_xpos[gid][:2]
-                clear = math.hypot(gx - wx, gy - wy) - model.geom_rbound[gid]
+                clear = geom_xy_clearance(model, data, gid, wx, wy)
                 if clear < WAYPOINT_CLEAR_M:
                     failures.append(
-                        f"waypoint {i} ({wx}, {wy}): only {max(clear, 0):.2f}m from "
+                        f"waypoint {i} ({wx}, {wy}): only {clear:.2f}m from "
                         f"'{gname(gid)}' (needs {WAYPOINT_CLEAR_M}m)")
 
     # 4. budget.

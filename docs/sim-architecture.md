@@ -84,8 +84,14 @@ so every node and PX4 reach each other on localhost.
 
 - Unity as the render/authoring front end (the MuJoCo plugin in-process,
   a C# sensor layer, ROS-TCP into the container): built, shipped, then
-  removed 2026. The reasons are
-  [docs/future/dropping-unity.md](future/dropping-unity.md).
+  removed 2026 (`923f5e0`). Three reasons. World generation needs
+  milliseconds per candidate and a Unity editor batch launch costs ~30s,
+  which is the difference between a search loop and a thought experiment.
+  ROS-TCP-Connector was unmaintained since 2022. And Unity's 2026-06-30
+  terms put ML training on their offerings behind prior authorization,
+  which binds every student who forks this repo individually. Making the
+  MJCF the world instead of a Unity export also collapses two
+  representations into one. See `docs/worldgen.md` for where that goes.
 - Pure Unity/PhysX, and Unity as a render-only viewer over container
   physics: both rejected earlier for the same root cause, physics
   authority must not be split or dishonest.
