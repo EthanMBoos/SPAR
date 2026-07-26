@@ -28,6 +28,7 @@ COMPOSE   := docker compose -f docker/compose.yaml
 CONTAINER := spar
 LAUNCH    := spar_bringup autonomy.launch.py
 WORLD     ?= blank
+ROBOT     ?= husky
 VENV      := .venv
 ROS_ENV   := source /ws/scripts/env.sh
 
@@ -48,7 +49,7 @@ ifeq ($(TRACK),air)
 endif
 COMPOSE_ALL := docker compose -f docker/compose.yaml --profile air
 
-.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view shell shell_air tail tail_air smoke smoke_air map rviz
+.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view shell shell_air tail tail_air smoke smoke_air lint rviz
 
 help:           ## list commands
 	@grep -E '^[a-z0-9_-]+: .*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -110,11 +111,9 @@ smoke:          ## end-to-end test of the whole behavior arc (~4 min, ends in PA
 smoke_air:      ## end-to-end test of the air track (~4-6 min, ends in PASS)
 	$(MAKE) smoke TRACK=air
 
-map: $(VENV)    ## regenerate the AMCL map from the world file (lint gate -> rasterize)
-	$(VENV)/bin/python scripts/lint_world.py sim/worlds/$(WORLD).xml \
+lint: $(VENV)   ## validate a world against one robot's sensor geometry and route
+	$(VENV)/bin/python scripts/lint_world.py --robot $(ROBOT) sim/worlds/$(WORLD).xml \
 	  ground/src/spar_bringup/config/autonomy_$(WORLD).yaml
-	$(VENV)/bin/python scripts/rasterize_map.py sim/worlds/$(WORLD).xml \
-	  ground/src/spar_bringup/maps
 
 $(VENV):
 	python3 -m venv $(VENV) && $(VENV)/bin/pip install mujoco==3.10.0 pyyaml

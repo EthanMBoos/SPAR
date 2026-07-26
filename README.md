@@ -38,8 +38,9 @@ and LLM tracks. Design rationale lives in
 
 The world is an MJCF file (`sim/worlds/blank.xml`). The sim
 (`sim/spar_sim/`) and the autonomy stack run in Docker containers sharing
-one network namespace. The sim publishes clock/odom/TF/lidar/perception
-and consumes `cmd_vel`.
+one network namespace. The sim publishes clock, odometry, noisy GPS, lidar,
+and camera data and consumes `cmd_vel`. The ROS side turns sensor data into
+the `map` transform used by navigation and perception.
 
 ## Quickstart
 
@@ -142,6 +143,7 @@ src/leaves/                      leaves that own Nav2 action calls
 src/bt_executive.cpp             registers node types, ticks the tree at 10 Hz
 src/anomaly_detector.cpp         camera pixels -> map-frame anomaly point
 src/battery_sim.cpp              fake BMS: drains, recharges at the dock
+src/tf_from_gps.cpp              noisy GPS fixes -> map-to-odom correction
 behavior_trees/main_tree.xml     the tree's shape (BehaviorTree.CPP XML)
 test/                            gtest for the node types this repo owns
 ```
@@ -180,16 +182,16 @@ a new world is a new file in `sim/worlds/` that includes them. Inspect a
 world without the stack: `python -m mujoco.viewer --mjcf
 sim/worlds/blank.xml`.
 
-Two things travel with a world:
+A ROS-driven world has one companion behavior config:
+`config/autonomy_<world>.yaml`. Validate its geometry and route against the
+Husky's declared scan site before running it:
 
-- **Its map** (`ground/src/spar_bringup/maps/<world>.*`). Regenerate after
-  changing collision geometry:
+```bash
+make lint
+```
 
-  ```bash
-  make map    # lint gate -> rasterize the map
-  ```
-
-- **Its behavior config**: `config/autonomy_<world>.yaml`.
+The navigation costmaps are rolling and built from the live scan; there is
+no generated occupancy map.
 
 ## Reference
 
@@ -208,6 +210,7 @@ Two things travel with a world:
 | Logs of past runs | `logs/runNNN/`, one per launch |
 | The sim | `sim/spar_sim/` (physics, sensors, PX4 link), started by `make start_sim` |
 | Worlds and robots | `sim/worlds/*.xml`, `sim/robots/*.xml` (MJCF) |
+| Validate a world | `make lint` (`ROBOT=husky` and `WORLD=blank` by default) |
 | Watch the sim | `make view` (native viewer on the host, read-only) |
 | Perception | cameras render in the sim (EGL, headless); the containerized detector turns pixels into labeled points on `perception/detections` |
 | Behavior config | `ground/src/spar_bringup/config/autonomy_<world>.yaml` |

@@ -23,15 +23,17 @@ from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from rosgraph_msgs.msg import Clock
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, NavSatFix
 from tf2_msgs.msg import TFMessage
 
 from spar_sim import sensors
 from spar_sim.px4_link import Px4Link
+from spar_sim.robot_config import scan_site
 
 ODOM_RATE = 50.0   # clock + odom + TF publish together
 SCAN_RATE = sensors.SCAN_RATE
 CAM_RATE = 10.0
+GPS_RATE = sensors.GPS_RATE
 VIEWER_RATE = 30.0
 
 # Husky drive geometry + command watchdog
@@ -51,15 +53,21 @@ def resolve_ids(model):
     anywhere in the MJCF/python contract should die here, not five minutes
     into a smoke run."""
     obj = mujoco.mjtObj
+    try:
+        lidar_frame, lidar_id = scan_site(model, "husky")
+    except ValueError as exc:
+        sys.exit(f"[spar] sim could not resolve ids: {exc}")
     ids = {
         "base_link": mujoco.mj_name2id(model, obj.mjOBJ_BODY, "base_link"),
-        "lidar": mujoco.mj_name2id(model, obj.mjOBJ_SITE, "lidar2d_0_laser"),
+        "lidar": lidar_id,
+        "lidar_frame": lidar_frame,
         "camera_link": mujoco.mj_name2id(model, obj.mjOBJ_SITE, "camera_0_link"),
         "act_left": mujoco.mj_name2id(model, obj.mjOBJ_ACTUATOR, "act_left"),
         "act_right": mujoco.mj_name2id(model, obj.mjOBJ_ACTUATOR, "act_right"),
         "camera_0": mujoco.mj_name2id(model, obj.mjOBJ_CAMERA, "camera_0"),
     }
-    missing = [k for k, v in ids.items() if v < 0]
+    missing = [k for k, v in ids.items()
+               if k != "lidar_frame" and v < 0]
     if missing:
         sys.exit(f"[spar] sim could not resolve ids: missing {missing}, "
                  f"resolved {ids}")
@@ -124,6 +132,7 @@ def main():
     clock_pub = node.create_publisher(Clock, "/clock", 10)
     odom_pub = node.create_publisher(Odometry, "platform/odom", 10)
     scan_pub = node.create_publisher(LaserScan, "sensors/lidar2d_0/scan", 10)
+    gps_pub = node.create_publisher(NavSatFix, "sensors/gps/fix", 10)
     # The container remaps /tf -> tf inside the namespace, so TF lives at
     # /husky/tf -- publish there.
     tf_pub = node.create_publisher(TFMessage, "tf", 10)
@@ -135,6 +144,7 @@ def main():
     print("[spar] camera sensor mounted", flush=True)
 
     lidar = sensors.Lidar()
+    gps = sensors.Gps()
     px4 = Px4Link(model)
     viewer = ViewerStream(model)
 
@@ -154,11 +164,11 @@ def main():
     threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
 
     tf_static_pub.publish(sensors.static_tf(model, [
-        ("lidar2d_0_laser", ids["lidar"]),
+        (ids["lidar_frame"], ids["lidar"]),
         ("camera_0_link", ids["camera_link"]),
     ]))
 
-    next_odom = next_scan = next_cam = next_view = 0.0
+    next_odom = next_scan = next_gps = next_cam = next_view = 0.0
     # Wall-clock pacing anchors: RTF 1.
     wall0, sim0 = time.monotonic(), data.time
 
@@ -185,8 +195,12 @@ def main():
             tf_pub.publish(tf)
         if t >= next_scan:
             next_scan = t + 1.0 / SCAN_RATE
-            scan_pub.publish(lidar.scan(model, data, ids["lidar"],
-                                        ids["base_link"], t))
+            scan_pub.publish(lidar.scan(
+                model, data, ids["lidar"], ids["lidar_frame"],
+                ids["base_link"], t))
+        if t >= next_gps:
+            next_gps = t + 1.0 / GPS_RATE
+            gps_pub.publish(gps.fix(data, ids["base_link"], t))
         if t >= next_cam:
             next_cam = t + 1.0 / CAM_RATE
             husky_cam.publish(data, t)

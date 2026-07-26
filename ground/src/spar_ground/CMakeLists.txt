@@ -69,7 +69,14 @@ target_link_libraries(battery_sim PRIVATE
   ${geometry_msgs_TARGETS}
   ${std_msgs_TARGETS})
 
-install(TARGETS bt_executive battery_sim anomaly_detector
+add_executable(tf_from_gps src/tf_from_gps.cpp)
+target_link_libraries(tf_from_gps PRIVATE
+  rclcpp::rclcpp
+  tf2_ros::tf2_ros
+  ${sensor_msgs_TARGETS}
+  ${geometry_msgs_TARGETS})
+
+install(TARGETS bt_executive battery_sim anomaly_detector tf_from_gps
   DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY behavior_trees/ DESTINATION share/${PROJECT_NAME}/behavior_trees)
 

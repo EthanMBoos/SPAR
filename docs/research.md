@@ -23,7 +23,7 @@ on both sides, and where it reappears.
 
 The claim to test: physics is identical, so the residual train-to-eval gap is
 entirely elsewhere. Candidates for "elsewhere": rclpy timing jitter, the
-10 Hz BT tick, AMCL localization error, the camera render path.
+10 Hz BT tick, noisy GPS localization, the camera render path.
 
 Shape of the experiment: train a local planner in the pure-MuJoCo Gym env,
 deploy it as a behavior node, overlay the two trajectories (the Rerun plan in
@@ -40,7 +40,7 @@ decomposition turns out non-trivial.
 
 ## 2. Cross-domain portability, quantified
 
-Ground (Nav2 + 2D lidar + AMCL) and air (PX4 + offboard) already share one
+Ground (mapless Nav2 + GPS + 2D lidar) and air (PX4 + offboard) already share one
 world and one sensor layer. The "a domain is three swaps, not a fork" claim
 (docs/sim-architecture.md) is currently an assertion in a doc.
 

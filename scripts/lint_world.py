@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""Validate a world MJCF before it ships.
-
-Runs on the same file that feeds rasterize_map.py, so bad collision geometry
-is caught before the robot ever sees it.
+"""Validate a world MJCF against one robot before it ships.
 
 Checks:
-  1. stealth geoms  — every static collision geom must cross the 2D lidar
-                      plane (at the height of the model's lidar site), or the
-                      robot can hit what the lidar, and therefore the map and
-                      costmaps, cannot see.
+  1. stealth geoms  — every static collision geom must cross the robot's 2D
+                      scan plane, or the robot can hit what it cannot see.
   2. dock zone      — the dock area must be clear of collision geometry, or
                       docking/recharge fails in ways that look like bugs.
   3. waypoints      — every route waypoint needs standoff from obstacles, or
@@ -20,9 +15,10 @@ Checks:
   6. settle         — step 2 s with no controller; a well-authored world is
                       at rest, a floating or leaning free prop is not.
 
-Usage: lint_world.py <world.xml> [autonomy_<world>.yaml]
+Usage: lint_world.py --robot <name> <world.xml> [autonomy_<world>.yaml]
 Exits nonzero on any hard failure.
 """
+import argparse
 import math
 import os
 import sys
@@ -31,9 +27,9 @@ import mujoco
 import numpy as np
 import yaml
 
-# The gate and the map must agree on what counts as world geometry and where
-# the lidar plane sits, so both come from rasterize_map.
-from rasterize_map import lidar_z, static_collision_geoms
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(REPO, "sim"))
+from spar_sim.robot_config import scan_site  # noqa: E402
 
 DOCK_CLEAR_M = 1.2    # radius around the dock that must be collision-free
 WAYPOINT_CLEAR_M = 0.6  # robot half-width + margin
@@ -43,6 +39,24 @@ SETTLE_SEC = 2.0
 SETTLE_MOVE_M = 0.15  # a settling robot drops millimeters; a falling or
                       # toppling prop moves decimeters
 SETTLE_VEL = 0.1      # max dof speed once the settle window ends
+
+
+def static_collision_geoms(model):
+    """Static, collidable world geoms; robots and movers are excluded.
+
+    MuJoCo weld membership handles wrapped static assets correctly:
+    body_weldid == 0 is world geometry, while a joint starts a new weld group.
+    """
+    ids = []
+    for gid in range(model.ngeom):
+        if model.body_weldid[model.geom_bodyid[gid]] != 0:
+            continue
+        if model.geom_contype[gid] == 0 and model.geom_conaffinity[gid] == 0:
+            continue
+        if model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_PLANE:
+            continue
+        ids.append(gid)
+    return ids
 
 
 def geom_z_extent(model, data, gid):
@@ -69,7 +83,7 @@ def geom_xy_clearance(model, data, gid, px, py):
     A 10m wall slab has an rbound of 5.2m, so subtracting it puts the dock
     "inside" a wall that is really 4.9m away, and every long thin object a
     site is made of (fences, containers, scaffolding) fails the same way.
-    Same world-AABB construction rasterize_map uses for map bounds."""
+    This avoids the loose bounding sphere used by long thin objects."""
     rot = data.geom_xmat[gid].reshape(3, 3)
     center = data.geom_xpos[gid] + rot @ model.geom_aabb[gid, :3]
     half = np.abs(rot) @ model.geom_aabb[gid, 3:]
@@ -96,23 +110,31 @@ def load_autonomy_yaml(path):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(__doc__)
-        return 2
-    model_path = sys.argv[1]
-    cfg_path = sys.argv[2] if len(sys.argv) > 2 else None
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--robot", required=True,
+                        help="robot custom-config prefix, e.g. husky")
+    parser.add_argument("model", help="MJCF world file")
+    parser.add_argument("autonomy", nargs="?",
+                        help="optional autonomy_<world>.yaml")
+    args = parser.parse_args()
+    model_path = args.model
+    cfg_path = args.autonomy
 
     model = mujoco.MjModel.from_xml_path(model_path)
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     geoms = static_collision_geoms(model)
-    z_lidar = lidar_z(model, data)
+    try:
+        scan_name, scan_id = scan_site(model, args.robot)
+    except ValueError as exc:
+        parser.error(str(exc))
+    z_lidar = float(data.site_xpos[scan_id][2])
     failures, warnings = [], []
 
     def gname(gid):
         return mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gid) or f"geom#{gid}"
 
-    # 1. stealth geoms: static solids must cross the lidar plane.
+    # 1. stealth geoms: static solids must cross the robot's scan plane.
     for gid in geoms:
         z = data.geom_xpos[gid][2]
         half = geom_z_extent(model, data, gid)
@@ -120,11 +142,13 @@ def main():
         if top < z_lidar:
             failures.append(
                 f"stealth obstacle: '{gname(gid)}' tops out at {top:.2f}m, "
-                f"below the {z_lidar:.2f}m lidar plane — robot can hit what it can't see")
+                f"below robot '{args.robot}' scan site '{scan_name}' at "
+                f"{z_lidar:.2f}m — robot can hit what it can't see")
         elif bottom > z_lidar:
             warnings.append(
                 f"overhang: '{gname(gid)}' starts at {bottom:.2f}m, above the "
-                f"lidar plane — invisible to the 2D stack (ok if intended)")
+                f"'{scan_name}' plane — invisible to this robot's 2D scan "
+                "(ok if intended)")
 
     cfg = load_autonomy_yaml(cfg_path) if cfg_path else None
 

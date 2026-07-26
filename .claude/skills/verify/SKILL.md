@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Run and verify changes to this repo end to end without user help - container C++ build and tests, the sim self-check, the map pipeline, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, world, or script change, and for physics experiments in a scratch workspace.
+description: Run and verify changes to this repo end to end without user help - container C++ build and tests, the sim self-check, robot-aware world lint, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, world, or script change, and for physics experiments in a scratch workspace.
 ---
 
 # Verifying SPAR autonomously
@@ -15,7 +15,7 @@ checks for which change" below.
 - Use absolute paths in shell commands. The repo root is the directory
   containing this file's `.claude/`. A `cd` in one command does not reliably
   persist, and can even reset mid-session.
-- Put every temporary file (test worlds, rasterizer output, render output)
+- Put every temporary file (test worlds, probe output, render output)
   in the session scratchpad directory, never in the repo tree and never in
   `/tmp` directly.
 - Read the Makefile before inventing a command. Most workflows are one
@@ -99,26 +99,28 @@ Success is `[spar] check ok: blank.xml` and exit 0. A rename anywhere in
 the MJCF/python contract (body, site, actuator, camera names) fails here
 loudly instead of five minutes into a smoke run.
 
-### 4. Map pipeline
+### 4. World lint
 
 Required after any change to `sim/worlds/`, `sim/robots/`, or to
-`scripts/lint_world.py` / `scripts/rasterize_map.py`.
+`scripts/lint_world.py` / `sim/spar_sim/robot_config.py`.
 
-`make map` does lint -> rasterize and OVERWRITES the committed map. For
-verification without touching the repo, run the scripts by hand into the
-scratchpad:
+Run the repository gate against the selected robot:
 
 ```bash
-.venv/bin/python scripts/lint_world.py sim/worlds/blank.xml ground/src/spar_bringup/config/autonomy_blank.yaml
-.venv/bin/python scripts/rasterize_map.py sim/worlds/blank.xml <scratchpad>/maps
-cmp ground/src/spar_bringup/maps/blank.pgm <scratchpad>/maps/blank.pgm && echo byte-identical
+make lint
 ```
 
-For script-only changes, byte-identical output on the blank world is the
-regression bar. The same bar holds for visual-only world changes (lights,
-materials, `contype 0` pads): the rasterizer must not see them. For
-collision geometry changes the map is EXPECTED to differ; the bar is lint
-passing plus a fresh `make map` committed alongside the world.
+Success is the exact final line
+`[lint] OK: blank.xml (4 static solids, 31 geoms total)`.
+
+Changes to robot custom configuration or scan-site lookup also need two
+scratchpad probes:
+
+- A compiled model with two custom keys and scan sites at different heights;
+  resolve both robot names and prove each selects its own site independent of
+  declaration order.
+- An undeclared robot; it must fail and name the missing
+  `<robot>.scan_site` key.
 
 ### 5. Headless sim + smoke test (full end to end)
 
@@ -181,7 +183,7 @@ a container recreate:
 ```bash
 docker exec spar bash -lc 'apt-get update -qq && apt-get install -y -qq --no-install-recommends imagemagick >/dev/null 2>&1'
 docker exec -d spar /ws/scripts/rviz.sh
-sleep 8   # Xvnc + rviz2 + the first map/costmap swatch
+sleep 8   # Xvnc + rviz2 + the first costmap swatch
 docker exec spar bash -lc 'DISPLAY=:1 import -window root /ws/logs/rviz_check.png'
 docker cp spar:/ws/logs/rviz_check.png <scratchpad>/rviz_check.png
 ```
@@ -244,24 +246,25 @@ phase 1 timing out with the topics still listed.
 ## Physics experiments in the scratchpad
 
 The repo venv has mujoco (`.venv/bin/python`). To test a hypothesis about
-the map pipeline or MuJoCo semantics, write a minimal MJCF world in the
-scratchpad and run the real scripts against it. The scripts import from
-each other by directory, so add `scripts/` to the path:
+MuJoCo semantics or robot configuration, write a minimal MJCF world in the
+scratchpad and run the real lint/config code against it:
 
 ```bash
 .venv/bin/python - <<'EOF'
-import sys; sys.path.insert(0, "<repo>/scripts")
-import mujoco, lint_world, rasterize_map
+import sys
+sys.path.insert(0, "<repo>/sim")
+import mujoco
+from spar_sim.robot_config import scan_site
 m = mujoco.MjModel.from_xml_path("<scratchpad>/test_world.xml")
-# interrogate m / call the scripts' functions directly
+# interrogate m / call scan_site(m, "<robot>")
 EOF
 ```
 
-Two conventions the test worlds must respect: the scripts find the lidar
-plane via a site whose name starts with `lidar` (no site = hard exit), and
-world membership is `body_weldid == 0` (see the docstring in
-rasterize_map.py). Prove a claim with a minimal world before changing the
-scripts, and keep the world as the regression check after.
+Two conventions the test worlds must respect: `<robot>.scan_site` names the
+site used by that robot, and static world membership is `body_weldid == 0`
+(see `static_collision_geoms` in `lint_world.py`). Prove a claim with a
+minimal world before changing the scripts, and keep the world as the
+regression check after.
 
 ## Which checks for which change
 
@@ -272,10 +275,10 @@ scripts, and keep the world as the regression check after.
 | anomaly_detector / battery_sim | 1, then 5 |
 | sim/spar_sim/** (sim node, sensors) | 3, then 5 |
 | sim/spar_sim/px4_link.py | 3, then A2 |
-| sim/worlds/* or sim/robots/* | 3, 4 (fresh `make map` for collision changes, byte-identical for visual-only), 5; A2 if the drone or the pad moved |
+| sim/worlds/* or sim/robots/* | 3, 4, 5; A2 if the drone or the pad moved |
 | sim/viewer.py | 3, plus a manual `make view` glance; no smoke needed, it is read-only |
-| lint_world / rasterize_map | 4 (byte-identical on blank) + a scratchpad probe world |
-| autonomy.launch.py / nav2.yaml / localization.yaml / autonomy_\<world\>.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
+| lint_world / robot_config | 4 + a scratchpad probe world |
+| autonomy.launch.py / nav2.yaml / autonomy_\<world\>.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
 | scripts/rviz.sh / spar.rviz | 6 (needs 5's stack up first) |
 | air/src/** (spar_air) | A1, then A2 if behavior changed |
 | Dockerfile / Dockerfile.air / air compose service / air yaml / core.sh / smoke_test_air.sh | A2 |

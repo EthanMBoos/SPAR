@@ -34,7 +34,7 @@ Two loops, only one of which must be fast:
 
 - **Training** — the loop above. ROS is *never* in it: a ROS round-trip per
   step is orders of magnitude too slow and its timing is nondeterministic.
-- **Eval** — the full stack (the sim, Nav2, AMCL, the behavior tree),
+- **Eval** — the full stack (the sim, GPS localization, Nav2, the behavior tree),
   run at fidelity to check the learned behavior holds up. `make smoke` is the
   template.
 

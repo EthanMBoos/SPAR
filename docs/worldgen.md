@@ -61,8 +61,8 @@ materials go in per prop as the visual layer comes up, without the generator
 changing. See "The visual layer" below.
 
 Nothing is exported or converted. The generator writes the MJCF that the sim
-loads, that `make map` rasterizes, and that the viewer renders. One
-representation, no dump step, nothing to keep in sync.
+and viewer load and that `make lint` validates. One representation, no dump
+step, nothing to keep in sync.
 
 ## Dependency floor
 
@@ -88,11 +88,11 @@ it, and the three consumers want different things. Nothing here is a
 property of "a generated world" in general.
 
 **Looking at it.** Nothing. `MjSpec`, compile, `to_xml()`,
-`mujoco.viewer`. No ROS, no map, no robot, no rules. Prototype here.
+`mujoco.viewer`. No ROS, no robot, no rules. Prototype here.
 
 **Training on it** (`docs/rl.md`). Geometry and a robot. The Gym env holds
-`MjModel`/`MjData` and steps physics directly, so there is no ROS, no AMCL,
-no occupancy grid, and no reason to care about anything below. Add the
+`MjModel`/`MjData` and steps physics directly, so there is no ROS or
+occupancy grid and no reason to care about anything below. Add the
 timestep, since training and deployment reading the same number from the
 same file is the point of `docs/research.md` angle 1. Otherwise a world that
 loads is a world you can train in.
@@ -101,45 +101,26 @@ loads is a world you can train in.
 requirements, and they are mostly the header of `sim/worlds/blank.xml`:
 
 - Robot includes (`../robots/husky.xml`, `x2.xml`) and the `<option>` line.
-- A finite floor plane, because the rasterizer sizes the map from it and
-  skips planes with `size[0] == 0`.
-- Obstacles the robot must avoid, static and crossing the lidar plane at
-  0.567 m. Loose freejointed props are fine, they just will not be mapped.
+- A floor that covers the physical operating area.
+- Obstacles the robot must avoid, crossing the selected robot's declared
+  scan plane. Loose freejointed props are valid moving obstacles.
 - An `autonomy_<name>.yaml` with a dock pose and waypoints, ideally derived
-  from the occupancy grid rather than guessed.
+  from the generated layout rather than guessed.
 
 One thing genuinely worth knowing before you meet it: world membership is
-`body_weldid == 0`, not "child of worldbody". A generated robot without a
-freejoint gets welded to the world and baked into the AMCL map with no error
-anywhere. Silent wrong map, an hour of confusion. Everything else in this
-section fails loudly or not at all.
-
-## Sequencing: `docs/robot-config.md` comes first
-
-Worldgen proceeds after that work lands.
-
-Sensor geometry is currently discovered by scanning the world:
-`rasterize_map.py` finds the map slice height by looking for a site named
-`lidar*` in the compiled model. That makes the map a function of the world
-when it is really a function of the world and the robot reading it, and it
-survives today only because one robot has such a site.
-
-That is not worldgen's bug, but it is worldgen's problem, because it decides
-how much a generator has to know. With robots self-describing, a generated
-world is geometry and nothing else and the generator never learns what a
-mast height is. Without it, that knowledge leaks into the generator and has
-to be unpicked later from worlds already written.
-
-It is a small, self-contained refactor with a byte-identical map as its
-regression bar. Do it first.
+`body_weldid == 0`, not "child of worldbody". Static assets may be wrapped in
+bodies and remain welded to the world; robots and movers need joints to form
+their own weld groups. Robot sensor geometry stays in the robot MJCF through
+custom entries such as `husky.scan_site`, so the generator never learns mast
+heights.
 
 ## What `lint_world.py` becomes
 
 Today it catches hand-authoring mistakes. Once a generator exists it should
-make its own failure classes unrepresentable, clamping obstacle heights
-across the lidar plane and respecting `DOCK_CLEAR_M` (1.2), `WAYPOINT_CLEAR_M`
-(0.6), and `GEOM_BUDGET` (300) by construction. Lint then becomes a
-regression test on the generator, which is a better job for it.
+make its own failure classes unrepresentable, sizing obstacles across each
+target robot's scan plane and respecting `DOCK_CLEAR_M` (1.2),
+`WAYPOINT_CLEAR_M` (0.6), and `GEOM_BUDGET` (300) by construction. Lint then
+becomes a regression test on the generator, which is a better job for it.
 
 It already carries the interpenetration and settling checks the critic
 needs, so the critic should call into it rather than reimplement them.
@@ -163,7 +144,7 @@ The prop library is that seam. A prop is a name, a collision geometry, and a
 visual. Start with a primitive visual, swap in a mesh and materials later,
 and the generator does not change: it places props and never looks at how
 they render. Collision geometry stays primitive even after the visual gets
-real, which keeps the physics fast and the map honest.
+real, which keeps physics and raycasting fast.
 
 Asset processing is offline and per-prop, not per-scene. Run it once on
 whatever machine is convenient, commit the result, and keep it out of the
@@ -180,34 +161,18 @@ offline dataset generation well. Whether it can serve a VLA in the loop
 depends on how fast it renders, and that is worth measuring before
 committing to it.
 
-## Localization is being handled, not deferred
+## Navigation constraints
 
-Outdoor localization used to be the thing that capped how outdoor these
-worlds could get. AMCL matching scans against a rasterized grid is an indoor
-technique, and its premise is a single lidar plane read once at a fixed z,
-which sloped terrain does not have.
-
-That is now part two of `docs/robot-config.md`: the rasterizer, the map, and
-AMCL come out, pose comes from fusion the way the air track already does it,
-and the global costmap goes rolling and mapless. Worldgen inherits the
-result rather than working around it.
-
-The practical consequence here is that the map contract in "What a world
-needs" mostly disappears once that lands. What survives is the lint gate,
-which stops asking whether the map will miss an obstacle and starts asking
-whether the robot can see it. That question needs the robot's scan height,
-which is part one of the same doc.
-
-One new constraint arrives with it, and it is a constraint on generated
-worlds rather than on the stack. NavFn needs the goal inside the global
-costmap, so a rolling window caps how far apart consecutive waypoints can
-be. Blank's are at 7 m and 2.5 m and fit anything. A 30 to 100 m site does
-not, unless the window is sized past the longest leg. Either the generator
-keeps legs inside the window, or the window grows to match the sites, and
-that tradeoff should be settled with a real site rather than assumed here.
+Outdoor localization and planning are mapless. GPS supplies `map -> odom`,
+and the global costmap is a 40 m rolling window populated from the live
+scan. NavFn needs each goal inside that window, so generated waypoint legs
+should stay at roughly 18 m or less, leaving margin around the robot. Larger
+sites must either insert intermediate waypoints or ship a larger costmap
+configuration.
 
 Heightfields and real terrain are still further out. Removing the
-single-plane premise unblocks them; it does not deliver them.
+occupancy-map premise unblocks them; the current horizontal lidar and
+ground-truth odometry do not by themselves deliver terrain navigation.
 
 ## Open
 

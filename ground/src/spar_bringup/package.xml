@@ -5,7 +5,7 @@
   <version>0.1.0</version>
   <description>
     Launch and configuration to bring up the SPAR Husky autonomy stack:
-    Nav2 + AMCL and the behavior layer, fed by the MuJoCo sim node.
+    GPS-localized, mapless Nav2 and the behavior layer, fed by MuJoCo sensors.
   </description>
   <maintainer email="moosboos1@gmail.com">Ethan Boos</maintainer>
   <license>MIT</license>

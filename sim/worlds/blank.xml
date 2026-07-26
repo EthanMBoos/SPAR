@@ -1,12 +1,10 @@
-<!-- The blank world. This file IS the world: the sim loads it, `make map`
-     rasterizes it, the host viewer renders it. Obstacle sizes and poses are
-     parity constants transcribed from the retired Unity scene, not layout
-     suggestions: the committed AMCL map was rasterized from them
-     byte for byte.
+<!-- The blank world. This file IS the world: the sim and host viewer load it
+     directly, and `make lint` validates its geometry against the robot's
+     declared scan site. Obstacle sizes and poses are parity constants
+     transcribed from the retired Unity scene, not layout suggestions.
 
-     Worlds imported from the scenario repo drop into this directory and get
-     the same treatment: `make map WORLD=<name>` plus a matching
-     autonomy_<name>.yaml. -->
+     Worlds imported from the scenario repo drop into this directory with a
+     matching autonomy_<name>.yaml. -->
 <mujoco model="blank">
   <compiler angle="radian"/>
 
@@ -35,13 +33,12 @@
     <!-- The viewer's home view: framing the whole site from the south. -->
     <camera name="overview" pos="0 -14 10" xyaxes="1 0 0 0 0.6 0.8"/>
 
-    <!-- Finite size on purpose: the rasterizer's bounds logic counts the
-         floor toward map extents (a sparse world is still as big as its
-         floor). -->
+    <!-- Finite size keeps the rendered site and physical operating area
+         explicit even though the navigation costmaps are rolling. -->
     <geom name="floor" type="plane" size="20 20 1" material="grid"/>
 
-    <!-- Obstacles. Everything solid must cross the lidar plane (z 0.567)
-         or lint_world.py flags it as a stealth obstacle. -->
+    <!-- Obstacles. Everything solid must cross the Husky's declared scan
+         plane or lint_world.py flags it as a stealth obstacle. -->
     <geom name="rack_a" type="box" size="0.8 0.3 0.6" pos="4 1.5 0.6"
           rgba="0.5 0.52 0.55 1"/>
     <geom name="rack_b" type="box" size="0.8 0.3 0.6" pos="-4 -1.2 0.6"
@@ -55,8 +52,8 @@
     <geom name="anomaly_drum" type="cylinder" size="0.3 0.45" pos="5.6 0.3 0.45"
           rgba="1 0 0 1"/>
 
-    <!-- Visual-only pads (contype 0 conaffinity 0): they can't become
-         stealth obstacles and the map never changes when they move. -->
+    <!-- Visual-only pads (contype 0 conaffinity 0): they cannot become
+         stealth obstacles or enter the live costmaps. -->
     <geom name="checkpoint_0" type="box" size="0.35 0.35 0.004" pos="7 2.5 0.004"
           contype="0" conaffinity="0" group="1" rgba="0.2 0.8 0.3 1"/>
     <geom name="checkpoint_1" type="box" size="0.35 0.35 0.004" pos="7 -2.5 0.004"

@@ -9,11 +9,12 @@ repo's job is to be read, understood, and modified by a student in a
 weekend, not to be a product.
 
 The shape: one Python sim process (`sim/spar_sim/`) steps MuJoCo, renders
-the cameras headless, and publishes ROS topics to a Docker container
-running Nav2, AMCL, and the behavior tree (`ground/src/spar_ground/`);
-all containers share one network namespace. The MJCF file is the world
-(`sim/worlds/`, robots included from `sim/robots/`); `make map` reads the
-same file. Design decisions and their reasons are in
+the cameras headless, and publishes sensor-shaped ROS topics to containers
+running Nav2, PX4, and the behavior trees. The ground stack estimates its
+map transform from noisy GPS; the air stack uses PX4 EKF2. All containers
+share one network namespace. The MJCF file is the world (`sim/worlds/`,
+robots included from `sim/robots/`), and `make lint` validates it against
+the selected robot. Design decisions and their reasons are in
 `docs/sim-architecture.md`.
 
 ## The code I want

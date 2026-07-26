@@ -62,3 +62,13 @@
     map_frame: map
     base_frame: base_link
     publish_rate_hz: 2.0
+
+/**/tf_from_gps:
+  ros__parameters:
+    map_frame: map
+    odom_frame: odom
+    base_frame: base_link
+    origin_average_sec: 1.0
+    # Preserve the previous localization slack. The post-dated transform covers
+    # stamped camera lookups as well as latest-available costmap requests.
+    transform_tolerance: 0.5

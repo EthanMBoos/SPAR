@@ -1,4 +1,4 @@
-"""Sensor message builders: odom, TF, lidar, camera.
+"""Sensor message builders: odom, TF, GPS, lidar, camera.
 
 Everything reads MjData directly. MuJoCo world coordinates are ROS
 coordinates (right-handed, Z-up), so no conversion ever touches the data
@@ -12,13 +12,18 @@ import numpy as np
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import CameraInfo, Image, LaserScan
+from sensor_msgs.msg import CameraInfo, Image, LaserScan, NavSatFix, NavSatStatus
 from tf2_msgs.msg import TFMessage
 
 SCAN_RAYS = 720
 SCAN_RATE = 15.0
 SCAN_MIN_RANGE = 0.1
 SCAN_MAX_RANGE = 25.0
+GPS_RATE = 10.0
+GPS_DATUM_LAT_DEG = 42.0
+GPS_DATUM_LON_DEG = -71.0
+GPS_STDDEV_M = 0.03
+EARTH_RADIUS_M = 6378137.0
 
 
 def stamp_of(t):
@@ -89,6 +94,45 @@ def static_tf(model, site_names_ids):
     return TFMessage(transforms=tfs)
 
 
+class Gps:
+    """RTK-grade GPS fix from the robot's world position.
+
+    The datum is deliberately private to the simulated receiver. Consumers
+    establish their own local origin from the fixes, just as a real ROS
+    localization stack does, so no datum is duplicated in ROS config.
+    """
+
+    def __init__(self):
+        self._rng = np.random.default_rng()
+
+    def fix(self, data, base_body, t):
+        east, north, up = data.xpos[base_body]
+        east, north, up = (
+            np.array([east, north, up])
+            + self._rng.normal(0.0, GPS_STDDEV_M, size=3)
+        )
+
+        lat0 = math.radians(GPS_DATUM_LAT_DEG)
+        msg = NavSatFix()
+        msg.header.stamp = stamp_of(t)
+        msg.header.frame_id = "base_link"
+        msg.status.status = NavSatStatus.STATUS_FIX
+        msg.status.service = NavSatStatus.SERVICE_GPS
+        msg.latitude = GPS_DATUM_LAT_DEG + math.degrees(
+            north / EARTH_RADIUS_M)
+        msg.longitude = GPS_DATUM_LON_DEG + math.degrees(
+            east / (EARTH_RADIUS_M * math.cos(lat0)))
+        msg.altitude = up
+        variance = GPS_STDDEV_M * GPS_STDDEV_M
+        msg.position_covariance = [
+            variance, 0.0, 0.0,
+            0.0, variance, 0.0,
+            0.0, 0.0, variance,
+        ]
+        msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
+        return msg
+
+
 class Lidar:
     """One revolution in the base plane: ray directions in the world frame
     offset by the base yaw, mj_multiRay against geom groups 0+3 excluding
@@ -100,7 +144,7 @@ class Lidar:
         self._dists = np.zeros(SCAN_RAYS)
         self._groups = np.array([1, 0, 0, 1, 0, 0], dtype=np.uint8)
 
-    def scan(self, model, data, lidar_site, base_body, t):
+    def scan(self, model, data, lidar_site, lidar_frame, base_body, t):
         origin = data.site_xpos[lidar_site].copy()
         yaw = base_yaw(data, base_body)
         inc = 2.0 * math.pi / SCAN_RAYS  # [-pi, pi), endpoint excluded
@@ -115,7 +159,7 @@ class Lidar:
 
         msg = LaserScan()
         msg.header.stamp = stamp_of(t)
-        msg.header.frame_id = "lidar2d_0_laser"
+        msg.header.frame_id = lidar_frame
         msg.angle_min = -math.pi
         msg.angle_max = -math.pi + (SCAN_RAYS - 1) * inc
         msg.angle_increment = inc

@@ -5,7 +5,7 @@
   <version>0.1.0</version>
   <description>
     Behavior layer for the SPAR Husky: a BehaviorTree.CPP tree ticking
-    Nav2, plus a simulated battery.
+    Nav2, GPS transform conversion, perception, and a simulated battery.
   </description>
   <maintainer email="moosboos1@gmail.com">Ethan Boos</maintainer>
   <license>MIT</license>

@@ -1,123 +1,157 @@
 # The simulation architecture
 
 One decision drives everything here: MuJoCo is the sim, full stop. One
-Python process (`sim/spar_sim/`) steps the physics, renders the cameras
-headless through EGL, computes the ROS topics directly from MuJoCo's
-state, and publishes them with rclpy. It runs in its own container,
-sharing a network namespace with the container that runs everything ROS:
-Nav2, AMCL, the behavior tree. Same graph, localhost apart.
+Python process (`sim/spar_sim/`) owns one world containing both robots, one
+physics state, and one clock. It renders cameras headless through EGL and
+publishes hardware-shaped sensor messages directly from MuJoCo. The ground
+and air autonomy stacks share its ROS graph but never receive pose truth.
 
 ```
-        ┌───────── autonomy container: Nav2 / AMCL / behavior tree ──────┐
-        │                       pure ROS, no sim                         │
-        └───────────────────────────▲────────────────────────────────────┘
-                                    │ ROS topics (zenoh, shared netns)
-        ┌───────────────────────────┴────────────────────────────────────┐
-        │   THE SIM: python + mujoco (sim/spar_sim), headless in its     │
-        │   container · the MJCF file IS the world (sim/worlds/)         │
-        │   lint → rasterize reads the same file (make map)              │
-        └────────────────────────────────────────────────────────────────┘
-          run it three ways, same env, same sensors, same physics:
-            • HEADLESS  make start_sim: the stack's sim, tests and smoke
-            • WATCHED   make view: a native viewer window on the host,
-                        synced to the running sim, read-only
-            • RL        a training loop drives the env instead of Nav2
+                MuJoCo: one world, both robots, one clock
+                ========================================
+     AIR                                      GROUND
+     noisy HIL_SENSOR + HIL_GPS               noisy NavSatFix + LaserScan
+                  |                                  |
+                  v                                  v
+              PX4 EKF2                          tf_from_gps
+                  |                          translation map -> odom
+                  v                                  |
+             tf_from_px4                             v
+                  |                                 Nav2
+                  v                           TF + live scan only
+          PX4 waypoint flight
 ```
 
-Why MuJoCo:
+The rule is simple: **the sim emits sensors; the ROS side estimates pose
+from them. Nothing downstream is handed truth.**
 
-- MuJoCo's contacts are trustworthy for a mobile base.
-- The whole sim is one readable Python package and three MJCF files; a
-  student can see every line between the physics and the topics.
-- An RL policy trains and deploys on the same physics ([rl.md](rl.md)).
+The air link is lockstep. The sim blocks each physics tick for PX4's actuator
+reply and applies rotor forces itself, so PX4 owns flight control inside the
+physics loop. Ground control is deliberately asynchronous: Nav2 sends
+`cmd_vel` into the skid-steer mixer, and a 0.5 s watchdog stops the wheels
+when commands go stale. A statically stable rover can coast through latency;
+a quadrotor cannot.
 
-## Worlds
+The drone has a camera and detector but no obstacle input. It flies its
+waypoints without avoidance. Adding depth-based offboard avoidance is a real
+subsystem and remains out of scope.
 
-The MJCF file is the world (`sim/worlds/<world>.xml`). You edit it
-directly; the robots come in by `<include>` from `sim/robots/`. `make
-map` runs the same file through a lint gate (geometry the robot can hit
-but its lidar can't see, blocked docks and waypoints, floating or
-interpenetrating props, a settle test) and rasterizes the map AMCL
-localizes against, so the map can't drift from the world.
+The same environment runs three ways:
 
-Keep collision geometry to primitives (box/sphere/capsule/cylinder) and
-mark decorative meshes `contype="0" conaffinity="0"`. That split is what
-lets visuals get as fancy as they want without ever touching physics,
-lidar, or the map.
+- **Headless:** `make start_sim`, used by the ROS stacks and smoke tests.
+- **Watched:** `make view`, a read-only native viewer of the running sim.
+- **Training:** a future Gym loop drives the same MJCF without ROS
+  ([rl.md](rl.md)).
 
-The robot looks like a Husky but is a differential drive under the hood:
-two drive spheres plus frictionless casters, because a four-wheel
-skid-steer with honest friction barely pivots. The tuning and the
-reasoning live in comments in `sim/robots/husky.xml`, next to the values
-they explain.
+## Worlds and robot configuration
+
+The MJCF file is the world (`sim/worlds/<world>.xml`). It contains geometry
+and includes robot definitions from `sim/robots/`. `make lint` compiles the
+same file and checks collision visibility, dock and waypoint clearance,
+support, settling, and the geometry budget. There is no occupancy-map
+artifact and no rasterization step.
+
+Sensor geometry belongs to the robot. A planar-scanning robot declares its
+site through MuJoCo custom text:
+
+```xml
+<custom>
+  <text name="husky.scan_site" data="lidar2d_0_laser"/>
+</custom>
+```
+
+The simulator and `lint_world.py --robot husky` resolve that same entry.
+This makes two robots with different mast heights unambiguous and keeps
+world generation free of robot-specific sensor knowledge.
+
+Keep collision geometry to primitives where practical and mark decorative
+geometry `contype="0" conaffinity="0"`. Visuals can then change without
+changing physics or lidar. Static world membership is `body_weldid == 0`;
+robots and movers have joints and therefore separate weld groups.
+
+The Husky-looking rover uses two drive spheres and frictionless casters
+under its visual shell. An honest four-wheel skid-steer barely pivots in
+MuJoCo because its solver enforces lateral tire friction. The exact model
+and rationale live beside the parameters in `sim/robots/husky.xml`.
+
+## Ground localization and navigation
+
+The ground TF tree follows REP-105:
+
+```
+map --tf_from_gps--> odom --sim odometry--> base_link --> sensor frames
+```
+
+The simulator publishes `sensors/gps/fix` as reliable `NavSatFix` at 10 Hz,
+using a private geographic datum and RTK-scale Gaussian noise. `tf_from_gps`
+averages the first second of fixes as its local origin, converts later fixes
+to ENU, and compares them with stamped `odom -> base_link`. It publishes a
+translation-only `map -> odom`; heading passes through odometry because a
+single-antenna receiver cannot measure yaw.
+
+Transforms are post-dated by 0.5 s, matching the old localization tolerance,
+so costmaps and stamped camera projection have a current correction
+available. Missing stamped odometry drops one correction with a throttled
+warning rather than stopping the stack.
+
+Nav2 is mapless. Its 40 m rolling global costmap uses the live scan's obstacle
+and inflation layers, and the local rolling costmap uses voxel and inflation
+layers. Unknown space is traversable, so global plans are optimistic and
+local sensing corrects them as obstacles enter view. Consecutive route legs
+should stay near 18 m or less unless the global window grows with the site.
+
+One shortcut remains explicit: `platform/odom` and `odom -> base_link` still
+come from MuJoCo pose and do not drift. The next fidelity step is wheel-joint
+odometry plus an IMU, followed by `robot_localization`: a local EKF owns
+`odom -> base_link`, `navsat_transform_node` converts GPS, and a global EKF
+owns `map -> odom`. The sensor and downstream Nav2 interfaces do not change.
+SLAM or 3D LIO can replace the same `map -> odom` owner later, but the current
+single horizontal scan is intentionally thin input for outdoor SLAM.
 
 ## Perception
 
-The camera is real in every run: the sim renders color + depth
-(offscreen EGL, no display), and the container's detector turns pixels
-into a labeled point on `perception/detections` (message `Detection`:
-header, label, map-frame point). The label is generic on purpose: a
-small pretrained VLM or segmentation model can replace the HSV node and
-report whatever classes it sees, one Detection per hit, without the
-topic name changing; the behavior tree filters at the subscription for
-the labels it cares about (`anomaly_label`), not just "anomaly". That,
-not vision RL, is how vision models enter this stack ([rl.md](rl.md)).
+The camera is real in every run: the sim renders color and depth offscreen,
+and the detector turns pixels into a labeled map-frame point on
+`perception/detections`. A pretrained vision model can replace the HSV node
+and publish the same `Detection` message. The behavior tree selects labels
+through `anomaly_label`; it does not depend on the detector implementation.
 
-## Topics
+## Ground topics
 
-Everything lives under `/husky`, published by the sim in every run mode:
+Everything below lives under `/husky` except the global clock:
 
 | Topic / TF | Type | Notes |
 | --- | --- | --- |
-| `/clock` | rosgraph_msgs/Clock | the sim owns time |
-| `platform/odom`, TF `odom→base_link` | nav_msgs/Odometry | drift-free, twist in the child frame |
-| TF `base_link→{lidar2d_0_laser, camera_0_link}` | static TF | published once, latched |
-| `sensors/lidar2d_0/scan` | LaserScan | 720 rays at 15 Hz |
-| `sensors/camera_0/color/image` (+ `camera_info`, `…/depth/image`) | Image | rendered frames, 10 Hz |
-| `perception/detections` | spar/Detection (map) | the pixel detector's labeled hits; `bt_executive`'s `anomaly_label` param picks the one label it acts on |
-| `cmd_vel` (subscribed) | TwistStamped | Nav2 → skid-steer mixer |
+| `/clock` | `rosgraph_msgs/Clock` | MuJoCo owns time |
+| `platform/odom`, TF `odom -> base_link` | `nav_msgs/Odometry` | drift-free shortcut; twist is in the child frame |
+| `sensors/gps/fix` | `sensor_msgs/NavSatFix` | reliable, noisy, 10 Hz |
+| TF `map -> odom` | TF | noisy translation correction from `tf_from_gps` |
+| TF `base_link -> {lidar2d_0_laser, camera_0_link}` | static TF | published once and latched |
+| `sensors/lidar2d_0/scan` | `sensor_msgs/LaserScan` | 720 rays at 15 Hz, 25 m maximum |
+| `sensors/camera_0/...` | `sensor_msgs/Image`, `CameraInfo` | color and depth at 10 Hz |
+| `perception/detections` | `spar_ground/Detection` | labeled map-frame observations |
+| `cmd_vel` | `geometry_msgs/TwistStamped` | Nav2 to skid-steer mixer |
 
-Transport is Zenoh over TCP; all containers share one network namespace,
-so every node and PX4 reach each other on localhost.
+Transport is Zenoh over TCP. The containers share one network namespace, so
+ROS nodes and PX4 communicate over localhost.
 
-## Settled: tried it, or weighed it, and closed it
+## Settled decisions and roadmap
 
-- Unity as the render/authoring front end (the MuJoCo plugin in-process,
-  a C# sensor layer, ROS-TCP into the container): built, shipped, then
-  removed 2026 (`923f5e0`). Three reasons. World generation needs
-  milliseconds per candidate and a Unity editor batch launch costs ~30s,
-  which is the difference between a search loop and a thought experiment.
-  ROS-TCP-Connector was unmaintained since 2022. And Unity's 2026-06-30
-  terms put ML training on their offerings behind prior authorization,
-  which binds every student who forks this repo individually. Making the
-  MJCF the world instead of a Unity export also collapses two
-  representations into one. See `docs/worldgen.md` for where that goes.
-- Pure Unity/PhysX, and Unity as a render-only viewer over container
-  physics: both rejected earlier for the same root cause, physics
-  authority must not be split or dishonest.
-- Time acceleration (RTF): deleted. Planners and vision don't speed up with
-  sim time, so the stack runs at RTF ≈ 1.
-- Out of scope: manipulation, learning from pixels, high-fidelity hydro/aero.
+- Unity as authoring/render front end was built and removed in 2026
+  (`923f5e0`). Per-candidate editor startup was too slow for generation,
+  ROS-TCP-Connector was stale, and Unity's ML terms added a fork-time burden.
+- Physics authority is never split between MuJoCo and a second engine.
+- Time acceleration is removed because ROS planning and vision do not
+  accelerate with simulation time; normal operation is RTF approximately 1.
+- Manipulation, learning from pixels, high-fidelity hydro/aero, and drone
+  obstacle avoidance remain out of scope.
+- The RL harness remains `world.xml -> pure MuJoCo Gym -> policy behavior
+  node` ([rl.md](rl.md)).
+- Generated themed worlds and moving agents belong in a separate scenario
+  repository and arrive here as MJCF.
+- A marine track remains the next portability test: swap dynamics, sensors,
+  and planning without forking the world or mission substrate.
 
-## Roadmap
-
-- The RL harness: `sim/worlds/<world>.xml` → pure-MuJoCo Gym env → deploy
-  the policy as a behavior node ([rl.md](rl.md) has the full design).
-- Themed worlds and moving agents, generated in a separate scenario repo
-  and imported as MJCF files into `sim/worlds/`.
-- Marine. A domain is three swaps, not a fork: dynamics (a force module
-  in the sim loop), sensors (`sim/spar_sim/sensors.py`), and planning
-  (above the topic boundary). The 2D lidar + map + AMCL are the ground
-  domain's module, not universal truth. The air track proved the shape:
-  its dynamics is `sim/spar_sim/px4_link.py` applying rotor forces in
-  the sim loop, its sensors are HIL messages computed from the same
-  MjData, and its planner is PX4 + a second BT in its own container
-  (`air/src/spar_air`), joined to the ground stack only through the
-  shared zenoh graph. What the build taught lives as comments next to
-  the code that earned each lesson, mostly the link and the air
-  Dockerfile.
-
-The bring-up traps (clock-rewind restart order, lockstep engagement, the
-hidden geom group in rendering, and friends) are documented as comments
-next to the code that handles each one, mostly the sim package and the
-Makefile.
+Clock-rewind order, PX4 lockstep engagement, hidden render groups, and other
+bring-up traps are documented next to the code and commands that enforce
+them.
