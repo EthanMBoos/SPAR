@@ -7,6 +7,7 @@
 // mid-run preempts whatever is active and cancels its Nav2 goal. Ticks at
 // ~10 Hz, following /clock so the tree pauses with the sim.
 
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -39,9 +40,7 @@ public:
     declare_parameter("tick_rate_hz", 10.0);
     declare_parameter("goal_frame", "map");
     declare_parameter("cmd_vel_topic", "cmd_vel");
-    declare_parameter("waypoints_x", std::vector<double>{});
-    declare_parameter("waypoints_y", std::vector<double>{});
-    declare_parameter("waypoints_yaw", std::vector<double>{});
+    declare_parameter("patrol_radius_m", 2.5);
     declare_parameter("dock_x", 0.0);
     declare_parameter("dock_y", 0.0);
     declare_parameter("dock_yaw", 0.0);
@@ -101,22 +100,21 @@ public:
     const auto cmd_vel_topic = get_parameter("cmd_vel_topic").as_string();
     const auto cooldown = get_parameter("nav_retry_cooldown_sec").as_double();
 
-    auto xs = get_parameter("waypoints_x").as_double_array();
-    auto ys = get_parameter("waypoints_y").as_double_array();
-    auto yaws = get_parameter("waypoints_yaw").as_double_array();
-    if (xs.size() != ys.size() || xs.size() != yaws.size()) {
-      throw std::runtime_error("waypoints_x/y/yaw must have equal lengths");
-    }
-    std::vector<RoundsLeaf::Waypoint> waypoints;
-    for (size_t i = 0; i < xs.size(); ++i) {
-      waypoints.push_back({xs[i], ys[i], yaws[i]});
-    }
-    const int max_retries =
-        static_cast<int>(get_parameter("waypoint_max_retries").as_int());
-
     RoundsLeaf::Waypoint dock{get_parameter("dock_x").as_double(),
                               get_parameter("dock_y").as_double(),
                               get_parameter("dock_yaw").as_double()};
+    const double radius = get_parameter("patrol_radius_m").as_double();
+    if (radius <= 0.0) {
+      throw std::runtime_error("patrol_radius_m must be positive");
+    }
+    std::vector<RoundsLeaf::Waypoint> waypoints{
+        {dock.x - radius, dock.y + radius, 0.0},
+        {dock.x + radius, dock.y + radius, -M_PI / 2.0},
+        {dock.x + radius, dock.y - radius, M_PI},
+        {dock.x - radius, dock.y - radius, M_PI / 2.0},
+    };
+    const int max_retries =
+        static_cast<int>(get_parameter("waypoint_max_retries").as_int());
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);

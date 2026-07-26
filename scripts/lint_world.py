@@ -15,7 +15,7 @@ Checks:
   6. settle         — step 2 s with no controller; a well-authored world is
                       at rest, a floating or leaning free prop is not.
 
-Usage: lint_world.py --robot <name> <world.xml> [autonomy_<world>.yaml]
+Usage: lint_world.py --robot <name> <world.xml> [autonomy.yaml]
 Exits nonzero on any hard failure.
 """
 import argparse
@@ -93,7 +93,7 @@ def geom_xy_clearance(model, data, gid, px, py):
 
 
 def load_autonomy_yaml(path):
-    """Pull dock pose and patrol waypoints out of the ros params yaml."""
+    """Expand the reusable dock and patrol radius into clearance points."""
     with open(path) as f:
         doc = yaml.safe_load(f)
     merged = {}
@@ -101,33 +101,32 @@ def load_autonomy_yaml(path):
         if isinstance(node, dict):
             merged.update(node.get("ros__parameters", {}))
     dock = (merged.get("dock_x"), merged.get("dock_y"))
-    wx = merged.get("waypoints_x", [])
-    wy = merged.get("waypoints_y", [])
+    dock = dock if None not in dock else None
+    radius = merged.get("patrol_radius_m")
+    waypoints = []
+    if dock and radius is not None:
+        if radius <= 0:
+            raise ValueError("patrol_radius_m must be positive")
+        dx, dy = dock
+        waypoints = [
+            (dx - radius, dy + radius),
+            (dx + radius, dy + radius),
+            (dx + radius, dy - radius),
+            (dx - radius, dy - radius),
+        ]
     return {
-        "dock": dock if dock[0] is not None else None,
-        "waypoints": list(zip(wx, wy)),
+        "dock": dock,
+        "waypoints": waypoints,
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--robot", required=True,
-                        help="robot custom-config prefix, e.g. husky")
-    parser.add_argument("model", help="MJCF world file")
-    parser.add_argument("autonomy", nargs="?",
-                        help="optional autonomy_<world>.yaml")
-    args = parser.parse_args()
-    model_path = args.model
-    cfg_path = args.autonomy
-
+def validate_world(robot, model_path, cfg_path=None):
+    """Return lint failures, warnings, and counts for one compiled world."""
     model = mujoco.MjModel.from_xml_path(model_path)
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     geoms = static_collision_geoms(model)
-    try:
-        scan_name, scan_id = scan_site(model, args.robot)
-    except ValueError as exc:
-        parser.error(str(exc))
+    scan_name, scan_id = scan_site(model, robot)
     z_lidar = float(data.site_xpos[scan_id][2])
     failures, warnings = [], []
 
@@ -142,7 +141,7 @@ def main():
         if top < z_lidar:
             failures.append(
                 f"stealth obstacle: '{gname(gid)}' tops out at {top:.2f}m, "
-                f"below robot '{args.robot}' scan site '{scan_name}' at "
+                f"below robot '{robot}' scan site '{scan_name}' at "
                 f"{z_lidar:.2f}m — robot can hit what it can't see")
         elif bottom > z_lidar:
             warnings.append(
@@ -221,15 +220,37 @@ def main():
             f"settle: still moving after {SETTLE_SEC:.0f}s "
             f"(max dof speed {vmax:.2f})")
 
+    return failures, warnings, {
+        "static_solids": len(geoms),
+        "total_geoms": model.ngeom,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--robot", required=True,
+                        help="robot custom-config prefix, e.g. husky")
+    parser.add_argument("model", help="MJCF world file")
+    parser.add_argument("autonomy", nargs="?",
+                        help="optional reusable autonomy.yaml")
+    args = parser.parse_args()
+    try:
+        failures, warnings, counts = validate_world(
+            args.robot, args.model, args.autonomy)
+    except ValueError as exc:
+        parser.error(str(exc))
+
     for w in warnings:
         print(f"[lint] WARN: {w}")
     for f_ in failures:
         print(f"[lint] FAIL: {f_}")
     if failures:
-        print(f"[lint] {len(failures)} failure(s) in {os.path.basename(model_path)}")
+        print(f"[lint] {len(failures)} failure(s) in "
+              f"{os.path.basename(args.model)}")
         return 1
-    print(f"[lint] OK: {os.path.basename(model_path)} "
-          f"({len(geoms)} static solids, {model.ngeom} geoms total)")
+    print(f"[lint] OK: {os.path.basename(args.model)} "
+          f"({counts['static_solids']} static solids, "
+          f"{counts['total_geoms']} geoms total)")
     return 0
 
 

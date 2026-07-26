@@ -66,7 +66,7 @@ make ros2_container                # starts the container, drops you into a shel
 colcon build --symlink-install
 source install/setup.bash          # only needed this once; later shells (make shell) source it for you
 
-ros2 launch spar_bringup autonomy.launch.py world:=blank
+ros2 launch spar_bringup autonomy.launch.py
 ```
 
 Ctrl-C and rerun any time. After editing code, rebuild first (see "Working
@@ -111,7 +111,7 @@ PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris \
   PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1 &
 ./bin/px4-zenoh start              # joins PX4 to the ROS graph
 
-ros2 launch spar_air air.launch.py world:=blank   # stays in the foreground, like the ground launch
+ros2 launch spar_air air.launch.py   # stays in the foreground, like the ground launch
 ```
 
 Give EKF2 ~10 s to converge after PX4 starts, then the same mission
@@ -163,8 +163,8 @@ Plain `make` reruns cmake itself if needed. Colcon's build dir already
 caches its own source path in `CMakeCache.txt`. Ctrl-C the launch and
 rerun it to pick up the change.
 
-Behavior parameters (waypoints, dock pose, battery thresholds, detector
-tuning): `ground/src/spar_bringup/config/autonomy_<world>.yaml`. Nav2 (speed
+Behavior parameters (patrol radius, dock pose, battery thresholds, detector
+tuning): `ground/src/spar_bringup/config/autonomy.yaml`. Nav2 (speed
 limits, costmaps): `config/nav2.yaml`. Both are symlinked into the install
 tree, so edits take effect on the next launch, no rebuild needed.
 
@@ -175,16 +175,29 @@ one file per node plus `run-info` naming the world. The sim's own log is
 ## The environment
 
 The world is an MJCF file: `sim/worlds/blank.xml` is a small inspection
-site with storage racks, checkpoint pads, the dock pad, and a red drum.
+site with storage racks and a red drum.
 Edit it with any text editor; obstacles are a few lines of `<geom>`. The
 robots are included files (`sim/robots/husky.xml`, `sim/robots/x2.xml`);
-a new world is a new file in `sim/worlds/` that includes them. Inspect a
-world without the stack: `python -m mujoco.viewer --mjcf
-sim/worlds/blank.xml`.
+their model files own their default spawns and visual home pads. A new world
+is only a new file in `sim/worlds/` that includes them. Inspect a world
+without the stack with `make inspect WORLD=blank`.
 
-A ROS-driven world has one companion behavior config:
-`config/autonomy_<world>.yaml`. Validate its geometry and route against the
-Husky's declared scan site before running it:
+Or generate one small primitive world from a description with a local Ollama
+model, then inspect it before deciding whether to launch it:
+
+```bash
+make lint
+.venv/bin/python scripts/generate_world.py --name loading_yard --model gemma3:4b \
+  "A compact loading yard with fencing, crates, and a red hazard drum"
+make inspect WORLD=loading_yard
+```
+
+The full constrained workflow is in
+[docs/worldgen.md](docs/worldgen.md).
+
+Ground and air behavior use reusable robot configs and generate their patrols
+around the model-owned homes. Validate a world's geometry and procedural
+ground route against the Husky's declared scan site before running it:
 
 ```bash
 make lint
@@ -198,7 +211,7 @@ no generated occupancy map.
 | Thing | Where |
 | --- | --- |
 | Build the code (first time, or a full rebuild) | `colcon build --symlink-install` inside the shell (then `source install/setup.bash` if that shell predates the build) |
-| Bring up the stack | `ros2 launch spar_bringup autonomy.launch.py world:=blank`, from a `make ros2_container`/`make shell` |
+| Bring up the stack | `ros2 launch spar_bringup autonomy.launch.py`, from a `make ros2_container`/`make shell` |
 | Start/stop the mission | `scripts/mission.sh start` / `stop`, from a `make shell` |
 | Behavior status feed | `ros2 topic echo /husky/bt/status`, from a `make shell`; JSON: active leaf, mission, battery |
 | Live node logs | `make tail` (`/rosout`, every node merged), from a host terminal (fails if nothing is launched) |
@@ -211,12 +224,13 @@ no generated occupancy map.
 | The sim | `sim/spar_sim/` (physics, sensors, PX4 link), started by `make start_sim` |
 | Worlds and robots | `sim/worlds/*.xml`, `sim/robots/*.xml` (MJCF) |
 | Validate a world | `make lint` (`ROBOT=husky` and `WORLD=blank` by default) |
+| Inspect a world without ROS | `make inspect WORLD=blank` |
 | Watch the sim | `make view` (native viewer on the host, read-only) |
 | Perception | cameras render in the sim (EGL, headless); the containerized detector turns pixels into labeled points on `perception/detections` |
-| Behavior config | `ground/src/spar_bringup/config/autonomy_<world>.yaml` |
+| Behavior config | `ground/src/spar_bringup/config/autonomy.yaml` |
 | Nav2 config | `ground/src/spar_bringup/config/nav2.yaml` (speed: see `vx_max` comments) |
 | The air stack | `air/src/spar_air` (BT + TF + detector), the `make *_air` targets |
-| Air behavior config | `air/src/spar_air/config/autonomy_<world>.yaml` |
+| Air behavior config | `air/src/spar_air/config/autonomy.yaml` |
 | PX4 pins and the topic mapping | `docker/Dockerfile.air`, `docker/air/{pub,sub}.csv` |
 | Why it's built this way | [docs/sim-architecture.md](docs/sim-architecture.md) |
 | Using the sim for RL | [docs/rl.md](docs/rl.md) |

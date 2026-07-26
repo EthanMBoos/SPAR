@@ -26,9 +26,9 @@
   over). ReactiveSequence/ReactiveFallback re-tick every child from the top
   every cycle, which is what keeps the tree reactive.
 
-  No ports here: all tuning (waypoints, dock pose, thresholds, cooldowns)
+  No ports here: all tuning (patrol radius, dock pose, thresholds, cooldowns)
   is injected at registration time from ROS params, not XML attributes, so
-  a tunable lives in exactly one file (config/autonomy_<world>.yaml).
+  a tunable lives in exactly one file (config/autonomy.yaml).
 -->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">

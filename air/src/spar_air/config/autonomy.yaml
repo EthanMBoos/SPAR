@@ -1,5 +1,4 @@
-# Air behavior configuration for the blank world, the parallel of the
-# ground package's autonomy_blank.yaml. All positions are map frame (ENU).
+# Reusable X2 behavior configuration. All positions are map frame (ENU).
 # The pad is the drone's spawn, which is also where EKF2's local origin
 # lands, so map = PX4 local ENU + pad; pad_x/pad_y here must match the X2
 # spawn in sim/robots/x2.xml, and both deconflict with the Husky: pad off
@@ -10,10 +9,8 @@
 /**/bt_executive:
   ros__parameters:
     tick_rate_hz: 10.0
-    # A diamond over the arena, first leg over the red drum at (5.6, 0.3)
-    # so a detection fires early in the arc.
-    waypoints_x: [5.5, 0.0, -5.0, 0.0]
-    waypoints_y: [0.0, -3.0, 0.0, 3.0]
+    # The executive expands this into a clockwise diamond around the pad.
+    patrol_radius_m: 4.0
     pad_x: -2.0
     pad_y: -1.0
     cruise_alt_m: 4.0

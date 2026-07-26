@@ -39,8 +39,7 @@ class BtExecutive : public rclcpp::Node {
 public:
   BtExecutive() : rclcpp::Node("bt_executive") {
     declare_parameter("tick_rate_hz", 10.0);
-    declare_parameter("waypoints_x", std::vector<double>{});
-    declare_parameter("waypoints_y", std::vector<double>{});
+    declare_parameter("patrol_radius_m", 4.0);
     declare_parameter("pad_x", 0.0);
     declare_parameter("pad_y", 0.0);
     declare_parameter("cruise_alt_m", 4.0);
@@ -100,13 +99,16 @@ public:
           return std::make_unique<TakeOff>(name, config, *link_, takeoff_params);
         });
 
-    auto xs = get_parameter("waypoints_x").as_double_array();
-    auto ys = get_parameter("waypoints_y").as_double_array();
-    if (xs.size() != ys.size()) {
-      throw std::runtime_error("waypoints_x/y must have equal lengths");
+    const double patrol_radius = get_parameter("patrol_radius_m").as_double();
+    if (patrol_radius <= 0.0) {
+      throw std::runtime_error("patrol_radius_m must be positive");
     }
-    std::vector<GotoWaypoint::Waypoint> waypoints;
-    for (size_t i = 0; i < xs.size(); ++i) waypoints.push_back({xs[i], ys[i]});
+    std::vector<GotoWaypoint::Waypoint> waypoints{
+        {pad_x + patrol_radius, pad_y},
+        {pad_x, pad_y - patrol_radius},
+        {pad_x - patrol_radius, pad_y},
+        {pad_x, pad_y + patrol_radius},
+    };
     GotoWaypoint::Params goto_params;
     goto_params.cruise_alt_m = takeoff_params.cruise_alt_m;
     goto_params.accept_radius_m = get_parameter("accept_radius_m").as_double();

@@ -18,7 +18,7 @@ source /opt/ros/jazzy/setup.bash
 # ROS_LOG_DIR is set once per container start, in a profile.d script so it
 # reaches every later `docker exec ... bash -lc` shell (make shell, make
 # ros2_container, the verify skill's automated bring-up). That's what lets
-# a plain `ros2 launch spar_bringup autonomy.launch.py world:=blank`
+# a plain `ros2 launch spar_bringup autonomy.launch.py`
 # log correctly with no wrapper script: ros2 launch already respects
 # ROS_LOG_DIR on its own (launch/logging.py), it just needs a value.
 if [ -d /ws/logs ]; then

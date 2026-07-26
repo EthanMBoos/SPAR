@@ -19,12 +19,9 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
-    world = LaunchConfiguration("world")
 
-    # Per-world behavior/localization configuration.
     autonomy_params = PathJoinSubstitution(
-        [FindPackageShare("spar_bringup"), "config",
-         ["autonomy_", world, ".yaml"]]
+        [FindPackageShare("spar_bringup"), "config", "autonomy.yaml"]
     )
 
     nav2 = IncludeLaunchDescription(
@@ -54,7 +51,6 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("namespace", default_value="husky"),
-            DeclareLaunchArgument("world", default_value="blank"),
             nav2,
             behavior_node("tf_from_gps"),
             behavior_node("battery_sim"),

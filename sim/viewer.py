@@ -9,8 +9,8 @@ perturbation stay out (the mission layer is scripts/mission.sh, and a
 viewer that can push on the world quietly breaks eval honesty). Kill it
 and reattach mid-run; the sim never notices.
 
-For a world with no sim running, stock MuJoCo is the inspector:
-    python -m mujoco.viewer --mjcf sim/worlds/blank.xml
+For a world with no sim running, use the repository inspector:
+    make inspect WORLD=blank
 """
 
 import argparse

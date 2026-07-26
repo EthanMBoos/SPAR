@@ -3,8 +3,8 @@
      declared scan site. Obstacle sizes and poses are parity constants
      transcribed from the retired Unity scene, not layout suggestions.
 
-     Worlds imported from the scenario repo drop into this directory with a
-     matching autonomy_<name>.yaml. -->
+     Robot behavior is world-independent; new worlds only need geometry and
+     the robot includes. -->
 <mujoco model="blank">
   <compiler angle="radian"/>
 
@@ -52,20 +52,6 @@
     <geom name="anomaly_drum" type="cylinder" size="0.3 0.45" pos="5.6 0.3 0.45"
           rgba="1 0 0 1"/>
 
-    <!-- Visual-only pads (contype 0 conaffinity 0): they cannot become
-         stealth obstacles or enter the live costmaps. -->
-    <geom name="checkpoint_0" type="box" size="0.35 0.35 0.004" pos="7 2.5 0.004"
-          contype="0" conaffinity="0" group="1" rgba="0.2 0.8 0.3 1"/>
-    <geom name="checkpoint_1" type="box" size="0.35 0.35 0.004" pos="7 -2.5 0.004"
-          contype="0" conaffinity="0" group="1" rgba="0.2 0.8 0.3 1"/>
-    <geom name="checkpoint_2" type="box" size="0.35 0.35 0.004" pos="-7 -2.5 0.004"
-          contype="0" conaffinity="0" group="1" rgba="0.2 0.8 0.3 1"/>
-    <geom name="checkpoint_3" type="box" size="0.35 0.35 0.004" pos="-7 2.5 0.004"
-          contype="0" conaffinity="0" group="1" rgba="0.2 0.8 0.3 1"/>
-    <geom name="dock_pad" type="box" size="0.9 0.9 0.005" pos="0 0 0.005"
-          contype="0" conaffinity="0" group="1" rgba="0.2 0.4 0.8 1"/>
-    <geom name="landing_pad" type="cylinder" size="0.5 0.005" pos="-2 -1 0.005"
-          contype="0" conaffinity="0" group="1" rgba="0.25 0.3 0.4 1"/>
   </worldbody>
 
   <include file="../robots/husky.xml"/>

@@ -7,3 +7,8 @@ __pycache__/
 *.pyc
 .DS_Store
 .env
+
+# Generated scenes are local experiments. Force-add the rare world that is
+# deliberately promoted to a shared fixture; blank.xml remains canonical.
+/sim/worlds/*.xml
+!/sim/worlds/blank.xml

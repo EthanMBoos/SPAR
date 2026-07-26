@@ -53,7 +53,7 @@ log "3/7 robot must boot idle (no mission commanded yet)"
 wait_for "active_leaf == Idle" 60 "[ \"\$(active_leaf)\" = Idle ]" || exit $FAIL
 
 log "4/7 starting the mission -> tree goes to work (the drum is visible"
-log "    from the dock, so Inspect may fire before the first checkpoint)"
+log "    from the dock, so Inspect may fire before the first patrol goal)"
 ros2 topic pub --once "$NS/mission/command" std_msgs/msg/String '{data: start}' >/dev/null
 wait_for "active_leaf is Rounds or Inspect" 60 \
   "[ \"\$(active_leaf)\" = Rounds ] || [ \"\$(active_leaf)\" = Inspect ]" || exit $FAIL

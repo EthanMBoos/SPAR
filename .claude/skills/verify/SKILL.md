@@ -111,7 +111,7 @@ make lint
 ```
 
 Success is the exact final line
-`[lint] OK: blank.xml (4 static solids, 31 geoms total)`.
+`[lint] OK: blank.xml (4 static solids, 27 geoms total)`.
 
 Changes to robot custom configuration or scan-site lookup also need two
 scratchpad probes:
@@ -121,6 +121,23 @@ scratchpad probes:
   declaration order.
 - An undeclared robot; it must fail and name the missing
   `<robot>.scan_site` key.
+
+### 4a. World generator
+
+Required after changes to `scripts/generate_world.py` or its tests:
+
+```bash
+.venv/bin/python -m py_compile scripts/generate_world.py scripts/lint_world.py
+.venv/bin/python -m unittest scripts/test_generate_world.py
+```
+
+Prompt, schema, review-loop, or Ollama integration changes also need a live
+run of the same small fixed prompt set with the intended local model. Record
+the model tag, elapsed time, successful attempt number, and lint result.
+Treat a failure as evidence for a larger model only when it repeats on the
+fixed prompts and belongs to model planning or schema following. Missing
+meshes, terrain, arbitrary placement, or visual review are pipeline limits,
+not evidence that a larger text model is needed.
 
 ### 5. Headless sim + smoke test (full end to end)
 
@@ -154,7 +171,7 @@ make start_sim
 sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
 grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
-docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_bringup autonomy.launch.py world:=blank'
+docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_bringup autonomy.launch.py'
 # bash -lc matters here, not bash -c: ROS_LOG_DIR is exported via
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
@@ -233,7 +250,7 @@ docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --l
 docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1'
 # wait for "px4 lockstep engaged" in logs/sim.log, then:
 docker exec spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && ./bin/px4-zenoh start'
-docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=blank'
+docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py'
 make smoke_air         # ~4-6 min; phase 1 alone waits out PX4 boot + EKF2
 make stop_sim
 ```
@@ -278,7 +295,8 @@ regression check after.
 | sim/worlds/* or sim/robots/* | 3, 4, 5; A2 if the drone or the pad moved |
 | sim/viewer.py | 3, plus a manual `make view` glance; no smoke needed, it is read-only |
 | lint_world / robot_config | 4 + a scratchpad probe world |
-| autonomy.launch.py / nav2.yaml / autonomy_\<world\>.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
+| generate_world.py / test_generate_world.py | 4a; add the live fixed-prompt run when model-facing behavior changed |
+| autonomy.launch.py / nav2.yaml / autonomy.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
 | scripts/rviz.sh / spar.rviz | 6 (needs 5's stack up first) |
 | air/src/** (spar_air) | A1, then A2 if behavior changed |
 | Dockerfile / Dockerfile.air / air compose service / air yaml / core.sh / smoke_test_air.sh | A2 |

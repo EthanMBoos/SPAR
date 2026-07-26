@@ -69,9 +69,9 @@ private:
   rclcpp::Duration hold_success_;
 };
 
-// The rounds: cycles through a fixed list of checkpoints forever. A waypoint
-// that keeps failing is skipped after max_retries so one blocked corner
-// doesn't wedge the whole route.
+// The rounds: cycles through the procedural patrol goals forever. A goal that
+// keeps failing is skipped after max_retries so one blocked corner doesn't
+// wedge the whole route.
 class RoundsLeaf : public NavigateLeaf {
 public:
   struct Waypoint {

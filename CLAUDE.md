@@ -27,6 +27,15 @@ the selected robot. Design decisions and their reasons are in
   abstraction only when the third caller exists.
 - Prefer deleting code to guarding it. One-time utilities get removed after
   use; git history keeps them.
+- Keep experimental world-generation work as directly invoked scripts. It
+  will change quickly and need one-off tests; do not add Make targets for it
+  until the workflow is stable.
+- World generation is a local-model capability probe. Start with the smallest
+  practical Ollama model, improve the schema and deterministic Python before
+  increasing model size, and escalate only after a repeatable failure on a
+  fixed prompt set. Keep heavier systems such as SceneSmith out of the core
+  pipeline until a demonstrated need requires assets, visual reasoning, or
+  more complex spatial planning.
 - Robust means handling the failures that actually happen (stale data,
   unavailable action servers, late callbacks) plainly and locally, not
   wrapping everything in defensive checks.

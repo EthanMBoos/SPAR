@@ -1,16 +1,12 @@
-# Behavior-layer configuration. Waypoints and the dock are in the map frame
-# of the world; the dock sits at the robot's spawn point so
-# "return to dock" is always reachable.
+# Reusable Husky behavior configuration. The GPS local map starts at the
+# robot's spawn, so its dock is (0, 0) in every world.
 /**/bt_executive:
   ros__parameters:
     tick_rate_hz: 10.0
     goal_frame: map
     cmd_vel_topic: cmd_vel
-    # The rounds (checkpoints, map frame). Long legs on purpose: at 1.5 m/s
-    # the robot needs runway to actually reach cruise speed. Tune per world.
-    waypoints_x: [7.0, 7.0, -7.0, -7.0]
-    waypoints_y: [2.5, -2.5, -2.5, 2.5]
-    waypoints_yaw: [0.0, -1.57, 3.14, 1.57]
+    # The executive expands this into a clockwise square around the dock.
+    patrol_radius_m: 2.5
     # The dock (also where the robot spawns).
     dock_x: 0.0
     dock_y: 0.0

@@ -18,8 +18,11 @@
   </asset>
 
   <worldbody>
-    <!-- Spawn on the landing pad (pad_x/pad_y in the air yaml), off the
-         Husky's patrol legs and transit diagonals, clear of the racks. -->
+    <!-- Model-owned default home, matched by pad_x/pad_y in the reusable
+         air config. -->
+    <geom name="landing_pad" type="cylinder" size="0.5 0.005"
+          pos="-2 -1 0.005" contype="0" conaffinity="0" group="1"
+          rgba="0.25 0.3 0.4 1"/>
     <body name="x2" pos="-2 -1 0.1">
       <joint name="x2_free" type="free"/>
       <!-- Visual shell only; the quat is upstream's mesh-to-body mapping.
@@ -52,7 +55,7 @@
       <!-- 45 deg down-forward so patrol legs sweep the ground ahead. The
            container's tf_from_px4 publishes the matching TF mount and the
            two must agree: camera_pitch_down_deg in
-           air/src/spar_air/config/autonomy_blank.yaml. -->
+           air/src/spar_air/config/autonomy.yaml. -->
       <camera name="x2_camera" pos="0.1 0 0.05"
               xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="58"/>
     </body>

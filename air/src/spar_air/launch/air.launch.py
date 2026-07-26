@@ -13,10 +13,9 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
-    world = LaunchConfiguration("world")
 
     autonomy_params = PathJoinSubstitution(
-        [FindPackageShare("spar_air"), "config", ["autonomy_", world, ".yaml"]]
+        [FindPackageShare("spar_air"), "config", "autonomy.yaml"]
     )
 
     def behavior_node(executable):
@@ -34,7 +33,6 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("namespace", default_value="skydio"),
-            DeclareLaunchArgument("world", default_value="blank"),
             behavior_node("tf_from_px4"),
             behavior_node("anomaly_detector"),
             behavior_node("bt_executive"),
