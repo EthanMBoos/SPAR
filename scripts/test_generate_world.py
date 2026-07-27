@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import io
 import json
 import os
@@ -181,6 +182,11 @@ class WorldgenTest(unittest.TestCase):
         self.assertIn('name="worldgen.model" data="test-model"', first)
         self.assertIn('name="worldgen.seed" data="7"', first)
 
+    def test_seed_appears_in_planner_prompt(self):
+        messages = worldgen.planner_messages("a loading yard", seed=17)
+
+        self.assertIn("Variation ID: 17", messages[-1]["content"])
+
     def test_success_record_contains_experiment_facts(self):
         record = self.root / "worldgen.jsonl"
         responses = iter([
@@ -199,6 +205,73 @@ class WorldgenTest(unittest.TestCase):
         self.assertEqual(entry["seed"], 4)
         self.assertEqual(entry["successful_attempt"], 1)
         self.assertEqual(entry["lint"]["static_solids"], 4)
+        world_bytes = (self.worlds / "yard.xml").read_bytes()
+        self.assertEqual(
+            entry["world_sha256"],
+            hashlib.sha256(world_bytes).hexdigest(),
+        )
+        self.assertEqual(entry["plan"], VALID_PLAN)
+
+    def test_ollama_metrics_are_extracted(self):
+        response_body = {
+            "message": {"content": json.dumps(VALID_PLAN)},
+            "load_duration": 12_500_000,
+            "prompt_eval_count": 101,
+            "prompt_eval_duration": 250_000_000,
+            "eval_count": 42,
+            "eval_duration": 1_500_000_000,
+            "total_duration": 1_800_000_000,
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value = io.BytesIO(
+            json.dumps(response_body).encode())
+
+        with mock.patch(
+                "urllib.request.urlopen", return_value=response) as urlopen:
+            result = worldgen.ollama_chat(
+                "localhost", "test-model", [], worldgen.PLAN_SCHEMA)
+
+        self.assertEqual(result.value, VALID_PLAN)
+        self.assertEqual(result.metrics, {
+            "load_ms": 12.5,
+            "prompt_eval_ms": 250.0,
+            "generated_eval_ms": 1500.0,
+            "total_ms": 1800.0,
+            "prompt_tokens": 101,
+            "generated_tokens": 42,
+        })
+        request = urlopen.call_args.args[0]
+        request_body = json.loads(request.data)
+        self.assertEqual(request_body["options"]["temperature"], 0)
+
+    def test_attempt_records_include_ollama_metrics(self):
+        record = self.root / "worldgen.jsonl"
+        metrics = {
+            "load_ms": 1.0,
+            "prompt_tokens": 10,
+            "prompt_eval_ms": 2.0,
+            "generated_tokens": 5,
+            "generated_eval_ms": 3.0,
+            "total_ms": 6.0,
+        }
+        responses = iter([
+            worldgen.OllamaResult(copy.deepcopy(VALID_PLAN), metrics),
+            worldgen.OllamaResult({
+                "decision": "approve",
+                "reason": "The layout matches the request.",
+            }, metrics),
+        ])
+
+        worldgen.generate(
+            "a loading yard", "yard", "test-model", "localhost",
+            chat=lambda *_: next(responses), worlds_dir=str(self.worlds),
+            record_path=str(record))
+
+        attempts = json.loads(record.read_text())["attempts"]
+        self.assertEqual(attempts[0]["stage"], "planner")
+        self.assertEqual(attempts[0]["ollama"], metrics)
+        self.assertEqual(attempts[1]["stage"], "reviewer")
+        self.assertEqual(attempts[1]["ollama"], metrics)
 
     def test_ollama_connection_error_is_clear(self):
         with mock.patch(

@@ -1,13 +1,32 @@
-# SPAR
+# SPAR - Sim Portable Autonomy Runtime
+
+```text
+  description   "a gravel utility depot with racks, barrels, and a red drum"
+       |
+       v
+   generate     primitive: Ollama -> Python MJCF        (today)
+                fidelity:  orchestrator -> BlenderMCP   (planned)
+       |
+       v
+   world.xml    the site alone; robots compose on at load time
+       |
+       v
+      run       SPAR-GroundNav-v0   pure MuJoCo, PPO, no ROS
+                sim/spar_sim        Nav2 + BT (ground), PX4 + BT (air)
+       |
+       v
+  each failure becomes the next description
+```
 
 SPAR is a small robotics playground for learning ROS2, Nav2, behavior trees,
-PX4, and MuJoCo. It is also a test bed for one research direction: generate
-many diverse worlds with a LLM, train behaviors across them, then run the
-learned behavior inside the ROS2 stack.
+PX4, and MuJoCo. It is also a testbed for generating many diverse worlds
+through an orchestrated LLM-and-Blender pipeline, training RL behaviors across
+them, then running and evaluating the learned behaviors inside a deterministic
+ROS 2 stack.
 
-Behavior trees are configured for a Husky ground robot with Nav2 a Skydio X2
-drone controlled by PX4 SITL. Both see the same world via a shared camera-to-detection
-interface.
+Behavior trees are configured for a Husky ground robot with Nav2 and a Skydio
+X2 drone controlled by PX4 SITL. Both see the same world via a shared
+camera-to-detection interface.
 
 The working behavior is basic.
 
@@ -15,6 +34,49 @@ The working behavior is basic.
 - inspect the red anomaly detected from the rendered camera;
 - return home when the battery is low;
 - resume after recharging.
+
+## World generation
+
+Why generate worlds at all? The leading approach to visuomotor policy learning
+is uptraining a large pretrained vision-language or video model into an
+action-output model, which inherits broad scene understanding and spends its
+data budget mapping that to trajectories. It generalizes well in-distribution
+and degrades on the tail: rare geometry, unfamiliar clutter, degenerate
+lighting. Those configurations are sparse in the pretraining corpus and rare in
+teleop. Field data only ever contains failures already encountered, and
+collecting it needs a fleet. This pipeline is a bet that compositional
+generation with LLMs in the loop can synthesize those out-of-sample
+configurations on purpose, cheaply, before deployment surfaces them. See
+[the research direction](docs/research.md).
+
+`scripts/generate_world.py` is the low-fidelity baseline: a description in, a
+small primitive MJCF world out. A local Ollama model picks semantic layout
+fields; Python owns coordinates, geometry, and linting. `--seed` is both the
+semantic variation ID and the coordinate jitter seed.
+
+```bash
+make lint  # creates .venv and validates the canonical world
+
+.venv/bin/python scripts/generate_world.py \
+  --name loading_yard \
+  --model gemma3:4b \
+  --seed 0 \
+  "A compact loading yard with fencing, crates, and a red hazard drum"
+
+make inspect WORLD=loading_yard
+```
+
+Generated worlds are local experiments and ignored by git. Ollama approval and
+lint approval are recorded, but human visual inspection is the final gate. If
+one is useful after inspection, select it when the sim starts:
+
+```bash
+make start_sim WORLD=loading_yard
+```
+
+The planned fidelity mode has an orchestrator, designer, and critic make
+multiple BlenderMCP calls to build and inspect a richer site, exporting into the
+same world contract and passing the same lint gates. Not implemented yet.
 
 ## Ground quickstart
 
@@ -84,31 +146,6 @@ ros2 topic echo /skydio/bt/status
 `make smoke_air` runs takeoff, patrol, inspection, battery return, landing,
 disarming, and relaunch.
 
-## World generation
-
-`scripts/generate_world.py` turns a description into a small primitive MJCF
-world. A local Ollama model chooses semantic layout fields and reviews its
-choice. Python owns coordinates, geometry, robot includes, and linting.
-
-```bash
-make lint  # creates .venv and validates the canonical world
-
-.venv/bin/python scripts/generate_world.py \
-  --name loading_yard \
-  --model gemma3:4b \
-  --seed 0 \
-  "A compact loading yard with fencing, crates, and a red hazard drum"
-
-make inspect WORLD=loading_yard
-```
-
-Generated worlds are local experiments and ignored by git. If one is useful
-after visual inspection, select it when the sim starts:
-
-```bash
-make start_sim WORLD=loading_yard
-```
-
 ## Editing the autonomy code
 
 The main packages are:
@@ -144,12 +181,9 @@ Run `make` to list all stable commands. The common ones are:
 | --- | --- |
 | Start or stop MuJoCo | `make start_sim`, `make stop_sim` |
 | Inspect one world without ROS | `make inspect WORLD=blank` |
-| Validate world geometry and route | `make lint WORLD=blank ROBOT=husky` |
+| Validate world geometry and route | `make lint WORLD=blank ROBOTS=husky` |
 | Enter the running ground container | `make shell` |
 | Enter the running air container | `make shell_air` |
 | Open RViz in a browser | `make rviz` |
 | Run ground or air behavior checks | `make smoke`, `make smoke_air` |
 | Stop all containers | `make shut_down` |
-
-RL is not implemented yet. [The RL note](docs/rl.md) defines the first narrow
-vertical slice without claiming a framework that does not exist.

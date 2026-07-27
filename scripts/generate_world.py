@@ -9,6 +9,7 @@ published for human inspection.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -130,11 +131,45 @@ REVIEW_SCHEMA = {
 
 
 class InvalidModelResponse(RuntimeError):
-    pass
+    def __init__(self, message, metrics=None):
+        super().__init__(message)
+        self.metrics = metrics or {}
+
+
+class OllamaResult:
+    """A decoded structured response plus compact Ollama request metrics."""
+
+    def __init__(self, value, metrics):
+        self.value = value
+        self.metrics = metrics
+
+
+def ollama_metrics(body):
+    """Extract compact timing and token metadata from an Ollama response."""
+    duration_fields = {
+        "load_duration": "load_ms",
+        "prompt_eval_duration": "prompt_eval_ms",
+        "eval_duration": "generated_eval_ms",
+        "total_duration": "total_ms",
+    }
+    metrics = {}
+    for source, target in duration_fields.items():
+        value = body.get(source)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            metrics[target] = round(value / 1_000_000, 3)
+    count_fields = {
+        "prompt_eval_count": "prompt_tokens",
+        "eval_count": "generated_tokens",
+    }
+    for source, target in count_fields.items():
+        value = body.get(source)
+        if isinstance(value, int) and not isinstance(value, bool):
+            metrics[target] = value
+    return metrics
 
 
 def ollama_chat(host, model, messages, schema):
-    """Return one structured Ollama chat response."""
+    """Return one structured Ollama chat response and request metrics."""
     if "://" not in host:
         host = f"http://{host}"
     request = urllib.request.Request(
@@ -152,25 +187,37 @@ def ollama_chat(host, model, messages, schema):
     try:
         with urllib.request.urlopen(request, timeout=300) as response:
             body = json.load(response)
-        return json.loads(body["message"]["content"])
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="replace")
         raise RuntimeError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(
             f"cannot reach Ollama at {host}: {exc.reason}") from exc
-    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+    except (json.JSONDecodeError, TypeError) as exc:
         raise InvalidModelResponse(
             f"Ollama returned an invalid response: {exc}") from exc
 
+    metrics = ollama_metrics(body) if isinstance(body, dict) else {}
+    try:
+        value = json.loads(body["message"]["content"])
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise InvalidModelResponse(
+            f"Ollama returned an invalid response: {exc}", metrics) from exc
+    return OllamaResult(value, metrics)
 
-def planner_messages(description, feedback=None):
+
+def planner_messages(description, seed, feedback=None):
     catalog = ", ".join(PROPS)
     colors = ", ".join(COLORS)
     prompt = f"""Create one compact 16 m by 16 m outdoor robot test world.
 
 User description:
 {description}
+
+Variation ID: {seed}
+Use the variation ID to choose a meaningfully different semantic layout when
+possible, including prop kinds, colors, regions, or orientations. It is an
+experiment identifier, not a request to return random coordinates.
 
 Use 3-7 grounded props from: {catalog}.
 Use only these colors: {colors}.
@@ -423,6 +470,35 @@ def append_record(path, record):
         output.write(json.dumps(record, separators=(",", ":")) + "\n")
 
 
+def unpack_chat_result(result):
+    """Support metric-bearing Ollama results and simple dictionary test fakes."""
+    if isinstance(result, OllamaResult):
+        return result.value, result.metrics
+    return result, {}
+
+
+def attempt_record(attempt, stage, result, detail=None, metrics=None):
+    record = {
+        "attempt": attempt,
+        "stage": stage,
+        "result": result,
+    }
+    if detail is not None:
+        record["detail"] = detail
+    if metrics:
+        record["ollama"] = metrics
+    return record
+
+
+def world_sha256(path):
+    """Return the SHA-256 digest of the exact published MJCF bytes."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as world:
+        for chunk in iter(lambda: world.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def generate(description, name, model, host, force=False, chat=ollama_chat,
              worlds_dir=WORLDS, autonomy_path=GROUND_AUTONOMY, seed=0,
              record_path=None):
@@ -440,54 +516,46 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
     for attempt in range(1, MAX_ATTEMPTS + 1):
         print(f"[worldgen] attempt {attempt}/{MAX_ATTEMPTS}")
         try:
-            plan = chat(
-                host, model, planner_messages(description, feedback),
+            planner_result = chat(
+                host, model, planner_messages(description, seed, feedback),
                 PLAN_SCHEMA)
+            plan, planner_metrics = unpack_chat_result(planner_result)
         except InvalidModelResponse as exc:
             feedback = str(exc)
-            attempts.append({
-                "attempt": attempt,
-                "stage": "layout",
-                "result": "invalid_response",
-                "detail": feedback,
-            })
+            attempts.append(attempt_record(
+                attempt, "planner", "invalid_response", feedback,
+                exc.metrics))
             print(f"[worldgen] layout response rejected: {feedback}")
             continue
         errors = validate_plan(plan)
         if errors:
             feedback = "\n".join(errors)
-            attempts.append({
-                "attempt": attempt,
-                "stage": "layout",
-                "result": "local_rejection",
-                "detail": errors,
-            })
+            attempts.append(attempt_record(
+                attempt, "planner", "local_rejection", errors,
+                planner_metrics))
             print(f"[worldgen] layout rejected locally: {feedback}")
             continue
+        attempts.append(attempt_record(
+            attempt, "planner", "accepted", metrics=planner_metrics))
 
         try:
-            review = chat(
+            reviewer_result = chat(
                 host, model, reviewer_messages(description, plan, seed),
                 REVIEW_SCHEMA)
+            review, reviewer_metrics = unpack_chat_result(reviewer_result)
         except InvalidModelResponse as exc:
             feedback = str(exc)
-            attempts.append({
-                "attempt": attempt,
-                "stage": "review",
-                "result": "invalid_response",
-                "detail": feedback,
-            })
+            attempts.append(attempt_record(
+                attempt, "reviewer", "invalid_response", feedback,
+                exc.metrics))
             print(f"[worldgen] review response rejected: {feedback}")
             continue
         review_error = validate_review(review)
         if review_error:
             feedback = review_error
-            attempts.append({
-                "attempt": attempt,
-                "stage": "review",
-                "result": "local_rejection",
-                "detail": feedback,
-            })
+            attempts.append(attempt_record(
+                attempt, "reviewer", "local_rejection", feedback,
+                reviewer_metrics))
             print(f"[worldgen] review rejected locally: {feedback}")
             continue
         if review["decision"] != "approve":
@@ -495,14 +563,14 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
                 f"Ollama review: {review['decision']}: "
                 f"{review['reason'].strip()}"
             )
-            attempts.append({
-                "attempt": attempt,
-                "stage": "review",
-                "result": review["decision"],
-                "detail": review["reason"].strip(),
-            })
+            attempts.append(attempt_record(
+                attempt, "reviewer", review["decision"],
+                review["reason"].strip(), reviewer_metrics))
             print(f"[worldgen] Ollama review rejected layout: {feedback}")
             continue
+        attempts.append(attempt_record(
+            attempt, "reviewer", "approve", review["reason"].strip(),
+            reviewer_metrics))
 
         os.makedirs(worlds_dir, exist_ok=True)
         world_tmp = None
@@ -520,22 +588,16 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
                 print(f"[worldgen] lint warning: {warning}")
             if failures:
                 feedback = "\n".join(failures)
-                attempts.append({
-                    "attempt": attempt,
-                    "stage": "lint",
-                    "result": "rejected",
-                    "detail": failures,
-                })
+                attempts.append(attempt_record(
+                    attempt, "lint", "rejected", failures))
                 print(f"[worldgen] lint rejected layout: {feedback}")
                 continue
 
             os.replace(world_tmp, world_path)
             world_tmp = None
-            attempts.append({
-                "attempt": attempt,
-                "stage": "publish",
-                "result": "accepted",
-            })
+            sha256 = world_sha256(world_path)
+            attempts.append(attempt_record(
+                attempt, "publish", "accepted"))
             append_record(record_path, {
                 "status": "accepted",
                 "name": name,
@@ -545,6 +607,7 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
                 "elapsed_sec": round(time.monotonic() - started, 3),
                 "successful_attempt": attempt,
                 "plan": plan,
+                "world_sha256": sha256,
                 "review": review,
                 "lint": counts,
                 "attempts": attempts,
@@ -575,7 +638,7 @@ def main():
     parser.add_argument("--model", required=True, help="installed Ollama model")
     parser.add_argument(
         "--seed", type=int, default=0,
-        help="seed for reproducible Python-owned position jitter")
+        help="semantic variation ID and reproducible coordinate-jitter seed")
     parser.add_argument(
         "--record", default=DEFAULT_RECORD,
         help="append experiment metadata here (default: logs/worldgen.jsonl)")
