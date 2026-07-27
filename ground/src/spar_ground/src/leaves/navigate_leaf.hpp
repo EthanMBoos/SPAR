@@ -6,9 +6,8 @@
 #include <vector>
 
 #include <geometry_msgs/msg/point.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -112,9 +111,7 @@ private:
 // Drives to a stand-off point near the last anomaly fix on the blackboard
 // (perception wrote it; this leaf only reads). Success or failure, it stamps
 // keys::kLastInspected so the AnomalySeen? condition backs off and the robot
-// returns to its rounds instead of orbiting one object forever. A successful
-// inspection publishes the anomaly's position to inspection/findings: the
-// robot's work product is a report, and the run logs are the record.
+// returns to its rounds instead of orbiting one object forever.
 class InspectLeaf : public NavigateLeaf {
 public:
   struct Params {
@@ -135,7 +132,6 @@ private:
   std::string goal_frame_;
   std::string base_frame_;
   Params params_;
-  rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr findings_pub_;
 };
 
 // The safe default at the bottom of the tree: stream zero velocity so the
@@ -145,14 +141,15 @@ private:
 class HoldLeaf : public BT::StatefulActionNode {
 public:
   HoldLeaf(const std::string& name, const BT::NodeConfig& config,
-           rclcpp::Node& node, const std::string& cmd_vel_topic);
+           rclcpp::Node& node);
 
   BT::NodeStatus onStart() override;
   BT::NodeStatus onRunning() override;
   void onHalted() override {}
 
 private:
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_pub_;
+  rclcpp::Node& node_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_pub_;
 };
 
 }  // namespace spar_ground

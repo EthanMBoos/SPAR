@@ -52,10 +52,6 @@ public:
     declare_parameter("anomaly_stale_sec", 6.0);
     declare_parameter("inspect_cooldown_sec", 45.0);
     declare_parameter("anomaly_label", "anomaly");
-    declare_parameter("autostart_mission", false);
-    declare_parameter("bt_xml_path",
-        ament_index_cpp::get_package_share_directory("spar_air") +
-        "/behavior_trees/air_tree.xml");
   }
 
   // Building the tree needs `*this` fully constructed, so it lives here.
@@ -144,10 +140,11 @@ public:
           return std::make_unique<Land>(name, config, *link_, land_params);
         });
 
-    tree_ = factory.createTreeFromFile(get_parameter("bt_xml_path").as_string());
+    tree_ = factory.createTreeFromFile(
+        ament_index_cpp::get_package_share_directory("spar_air") +
+        "/behavior_trees/air_tree.xml");
     auto blackboard = tree_.rootBlackboard();
-    blackboard->set<bool>(keys::kMissionActive,
-                          get_parameter("autostart_mission").as_bool());
+    blackboard->set<bool>(keys::kMissionActive, false);
 
     local_position_sub_ = create_subscription<px4_msgs::msg::VehicleLocalPosition>(
         "fmu/out/vehicle_local_position", rclcpp::SensorDataQoS(),
@@ -181,7 +178,8 @@ public:
             const spar_perception::msg::Detection& msg) {
           if (msg.label != anomaly_label) return;
           blackboard->set<Stamped<geometry_msgs::msg::Point>>(
-              keys::kAnomalyPoint, {msg.point, now().seconds()});
+              keys::kAnomalyPoint,
+              {msg.point, rclcpp::Time(msg.header.stamp).seconds()});
         });
 
     mission_sub_ = create_subscription<std_msgs::msg::String>(

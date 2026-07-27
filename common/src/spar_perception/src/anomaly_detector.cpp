@@ -77,22 +77,46 @@ public:
 
     info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
         get_parameter("info_topic").as_string(), 10,
-        [this](const sensor_msgs::msg::CameraInfo& msg) { info_ = msg; });
+        [this](const sensor_msgs::msg::CameraInfo& msg) {
+          info_ = msg;
+          process_pair();
+        });
     depth_sub_ = create_subscription<sensor_msgs::msg::Image>(
         get_parameter("depth_topic").as_string(), rclcpp::SensorDataQoS(),
         [this](const sensor_msgs::msg::Image::ConstSharedPtr msg) {
           depth_ = msg;
+          process_pair();
         });
     color_sub_ = create_subscription<sensor_msgs::msg::Image>(
         get_parameter("color_topic").as_string(), rclcpp::SensorDataQoS(),
         [this](const sensor_msgs::msg::Image::ConstSharedPtr msg) {
-          process(msg);
+          color_ = msg;
+          process_pair();
         });
   }
 
 private:
-  void process(const sensor_msgs::msg::Image::ConstSharedPtr& color) {
-    if (!info_ || !depth_) return;  // camera not fully up yet
+  void process_pair() {
+    if (!info_ || !color_ || !depth_) return;
+    const auto color_stamp = rclcpp::Time(color_->header.stamp).nanoseconds();
+    const auto depth_stamp = rclcpp::Time(depth_->header.stamp).nanoseconds();
+    if (color_stamp < depth_stamp) {
+      color_.reset();
+      return;
+    }
+    if (depth_stamp < color_stamp) {
+      depth_.reset();
+      return;
+    }
+    const auto color = color_;
+    const auto depth = depth_;
+    color_.reset();
+    depth_.reset();
+    process(color, depth);
+  }
+
+  void process(const sensor_msgs::msg::Image::ConstSharedPtr& color,
+               const sensor_msgs::msg::Image::ConstSharedPtr& depth) {
 
     cv::Mat bgr;
     try {
@@ -128,7 +152,7 @@ private:
     // 3. Depth at the centroid -> a 3D point in the camera's optical frame.
     // The depth stream may be a different resolution than the color stream;
     // sample it in its own pixel coordinates or the range is fiction.
-    const auto range = depth_at(cx / bgr.cols, cy / bgr.rows);
+    const auto range = depth_at(depth, cx / bgr.cols, cy / bgr.rows);
     if (!range || *range <= 0.1 || *range > max_range_) return;
     const double fx = info_->k[0], fy = info_->k[4];
     const double px = info_->k[2], py = info_->k[5];
@@ -176,14 +200,16 @@ private:
   // Median of the valid depth readings in a small patch around the centroid
   // (given as fractions of image size, so color/depth resolutions may differ) —
   // single pixels lie (NaN, zero, edge bleed), neighborhoods mostly don't.
-  std::optional<double> depth_at(double u_frac, double v_frac) const {
-    cv_bridge::CvImageConstPtr depth;
+  std::optional<double> depth_at(
+      const sensor_msgs::msg::Image::ConstSharedPtr& message,
+      double u_frac, double v_frac) const {
+    cv_bridge::CvImageConstPtr depth_image;
     try {
-      depth = cv_bridge::toCvShare(depth_);
+      depth_image = cv_bridge::toCvShare(message);
     } catch (const cv_bridge::Exception&) {
       return std::nullopt;
     }
-    const cv::Mat& img = depth->image;
+    const cv::Mat& img = depth_image->image;
     std::vector<double> samples;
     for (int dy = -2; dy <= 2; ++dy) {
       for (int dx = -2; dx <= 2; ++dx) {
@@ -212,6 +238,7 @@ private:
   double max_range_ = 8.0;
   cv::Scalar hsv_low_1_, hsv_high_1_, hsv_low_2_, hsv_high_2_;
   std::optional<sensor_msgs::msg::CameraInfo> info_;
+  sensor_msgs::msg::Image::ConstSharedPtr color_;
   sensor_msgs::msg::Image::ConstSharedPtr depth_;
 
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;

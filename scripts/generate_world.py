@@ -231,33 +231,6 @@ def reviewer_messages(description, plan, seed):
     ]
 
 
-def normalize_plan(plan):
-    """Move duplicate valid regions to the next free safe anchor."""
-    if not isinstance(plan, dict):
-        return plan
-    props = plan.get("props")
-    if not isinstance(props, list):
-        return plan
-    available = list(REGIONS)
-    used = set()
-    for prop in props:
-        if not isinstance(prop, dict):
-            continue
-        region = prop.get("region")
-        if region in available and region not in used:
-            used.add(region)
-            continue
-        if region in REGIONS:
-            replacement = next(
-                (candidate for candidate in available if candidate not in used),
-                None,
-            )
-            if replacement:
-                prop["region"] = replacement
-                used.add(replacement)
-    return plan
-
-
 def validate_plan(plan):
     """Return human-readable errors for a model-produced layout."""
     errors = []
@@ -480,15 +453,6 @@ def generate(description, name, model, host, force=False, chat=ollama_chat,
             })
             print(f"[worldgen] layout response rejected: {feedback}")
             continue
-        raw_plan = json.loads(json.dumps(plan))
-        normalize_plan(plan)
-        if plan != raw_plan:
-            attempts.append({
-                "attempt": attempt,
-                "stage": "layout",
-                "result": "normalized",
-                "detail": {"raw": raw_plan, "normalized": plan},
-            })
         errors = validate_plan(plan)
         if errors:
             feedback = "\n".join(errors)

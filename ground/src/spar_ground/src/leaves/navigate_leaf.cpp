@@ -165,10 +165,7 @@ InspectLeaf::InspectLeaf(const std::string& name, const BT::NodeConfig& config,
       tf_buffer_(tf_buffer),
       goal_frame_(std::move(goal_frame)),
       base_frame_(std::move(base_frame)),
-      params_(std::move(params)) {
-  findings_pub_ = node.create_publisher<geometry_msgs::msg::PointStamped>(
-      "inspection/findings", 10);
-}
+      params_(std::move(params)) {}
 
 std::optional<geometry_msgs::msg::PoseStamped> InspectLeaf::next_goal() {
   Stamped<geometry_msgs::msg::Point> anomaly;
@@ -202,37 +199,26 @@ std::optional<geometry_msgs::msg::PoseStamped> InspectLeaf::next_goal() {
                    node_.now());
 }
 
-void InspectLeaf::on_result(bool succeeded) {
+void InspectLeaf::on_result(bool) {
   // Either way this inspection is over: stamp the cooldown so the condition
   // above backs off and the rounds resume. A failed approach retried forever
   // would pin the robot to one corner of the map.
   config().blackboard->set<double>(keys::kLastInspected, node_.now().seconds());
-
-  // A successful inspection produces the work product: a finding at the
-  // anomaly's map position. The run logs keep the record.
-  Stamped<geometry_msgs::msg::Point> anomaly;
-  const bool have = config().blackboard->get<Stamped<geometry_msgs::msg::Point>>(
-      keys::kAnomalyPoint, anomaly);
-  if (!succeeded || !have) return;
-  geometry_msgs::msg::PointStamped finding;
-  finding.header.frame_id = goal_frame_;
-  finding.header.stamp = node_.now();
-  finding.point = anomaly.value;
-  findings_pub_->publish(finding);
-  RCLCPP_INFO(node_.get_logger(), "finding logged: anomaly at (%.1f, %.1f)",
-              anomaly.value.x, anomaly.value.y);
 }
 
 HoldLeaf::HoldLeaf(const std::string& name, const BT::NodeConfig& config,
-                   rclcpp::Node& node, const std::string& cmd_vel_topic)
-    : BT::StatefulActionNode(name, config) {
-  cmd_pub_ = node.create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic, 10);
+                   rclcpp::Node& node)
+    : BT::StatefulActionNode(name, config), node_(node) {
+  cmd_pub_ =
+      node.create_publisher<geometry_msgs::msg::TwistStamped>("cmd_vel", 10);
 }
 
 BT::NodeStatus HoldLeaf::onStart() { return onRunning(); }
 
 BT::NodeStatus HoldLeaf::onRunning() {
-  cmd_pub_->publish(geometry_msgs::msg::Twist{});
+  geometry_msgs::msg::TwistStamped stop;
+  stop.header.stamp = node_.now();
+  cmd_pub_->publish(stop);
   return BT::NodeStatus::RUNNING;
 }
 

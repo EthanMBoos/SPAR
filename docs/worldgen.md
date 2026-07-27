@@ -52,8 +52,8 @@ Ollama chooses only:
 Python owns the 16 m world size, prop dimensions, collision geometry, exact
 coordinates, seeded position jitter, robot includes, MJCF, and all safety
 checks. Red is reserved for the anomaly because the current detector finds
-the largest red blob. If the model repeats a valid coarse region, Python moves
-the duplicate to the next free region and records both plans.
+the largest red blob. If the model repeats a coarse region, local validation
+rejects the plan and returns that error on the next attempt.
 
 The seed changes only Python-owned position jitter. The description, model
 tag, seed, and accepted plan are embedded in the MJCF `<custom>` metadata so

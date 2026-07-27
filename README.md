@@ -2,27 +2,19 @@
 
 SPAR is a small robotics playground for learning ROS2, Nav2, behavior trees,
 PX4, and MuJoCo. It is also a test bed for one research direction: generate
-many simple worlds with a local LLM, train behaviors across them, then run the
+many diverse worlds with a LLM, train behaviors across them, then run the
 learned behavior inside the ROS2 stack.
 
-It is the starter repository for the
-[GT Cloud Robotics](https://www.gtcloudrobotics.com/course-home/) Autonomy
-and LLM tracks.
+Behavior trees are configured for a Husky ground robot with Nav2 a Skydio X2
+drone controlled by PX4 SITL. Both see the same world via a shared camera-to-detection
+interface.
 
-The repository intentionally stops short of an application framework. One
-Python process owns MuJoCo and publishes sensor-shaped ROS topics. The ground
-track runs a Husky with Nav2 and a C++ behavior tree. The air track runs a
-Skydio X2 model controlled by PX4 SITL and a separate behavior tree. Both see
-the same world and camera-to-detection interface.
-
-The working behavior is deliberately basic:
+The working behavior is basic.
 
 - patrol while a mission is active;
 - inspect the red anomaly detected from the rendered camera;
 - return home when the battery is low;
 - resume after recharging.
-
-[Simulation architecture](docs/sim-architecture.md) explains the boundaries.
 
 ## Ground quickstart
 
@@ -116,9 +108,6 @@ after visual inspection, select it when the sim starts:
 ```bash
 make start_sim WORLD=loading_yard
 ```
-
-There are intentionally no Make targets for generation. The script and its
-tests are still changing quickly. See [world generation](docs/worldgen.md).
 
 ## Editing the autonomy code
 

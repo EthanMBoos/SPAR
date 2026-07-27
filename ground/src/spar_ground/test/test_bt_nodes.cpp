@@ -25,6 +25,11 @@ TEST(Stamped, StaleOutsideWindow) {
   EXPECT_FALSE(fresh(s, 106.0, 5.0));
 }
 
+TEST(Stamped, FutureReadingIsNotFresh) {
+  Stamped<double> s{50.0, /*stamp=*/101.0};
+  EXPECT_FALSE(fresh(s, 100.0, 5.0));
+}
+
 BT::NodeConfig FreshConfig() {
   BT::NodeConfig config;
   config.blackboard = BT::Blackboard::create();

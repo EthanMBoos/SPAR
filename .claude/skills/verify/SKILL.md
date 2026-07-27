@@ -223,7 +223,7 @@ air container (start it with `--profile air`; a bare compose up never
 builds PX4):
 
 ```bash
-mkdir -p air/src air/build air/install logs/air
+mkdir -p air/build air/install logs/air
 docker compose -f docker/compose.yaml --profile air up --build -d
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 ```
@@ -243,7 +243,7 @@ the sim clock must not rewind under it).
 
 ```bash
 make shut_down
-mkdir -p ground/build ground/install logs air/src air/build air/install logs/air
+mkdir -p ground/build ground/install logs air/build air/install logs/air
 docker compose -f docker/compose.yaml --profile air up --build -d
 make start_sim
 # wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
@@ -294,7 +294,7 @@ regression check after.
 | sim/spar_sim/** (sim node, sensors) | 3, then 5 |
 | sim/spar_sim/px4_link.py | 3, then A2 |
 | sim/worlds/* or sim/robots/* | 3, 4, 5; A2 if the drone or the pad moved |
-| sim/viewer.py | 3, plus a manual `make view` glance; no smoke needed, it is read-only |
+| sim/viewer.py | 3; no smoke needed, it is read-only |
 | lint_world / robot_config | 4 + a scratchpad probe world |
 | generate_world.py / test_generate_world.py | 4a; add the live fixed-prompt run when model-facing behavior changed |
 | autonomy.launch.py / nav2.yaml / autonomy.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
@@ -304,5 +304,5 @@ regression check after.
 | Docs / comments only | none, but grep that referenced files/names still exist |
 
 A full sign-off pass is 1 through 5 in order. Report results plainly: what
-ran, the exact pass/fail evidence (the PASS line, the byte-identical cmp,
-the error count), and anything skipped with the reason.
+ran, the exact pass/fail evidence (the PASS line and error count), and
+anything skipped with the reason.

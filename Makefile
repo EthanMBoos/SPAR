@@ -15,9 +15,8 @@
 #                    once per container start, see docker/entrypoint.sh)
 #
 # Ctrl-C the launch and rerun it after every rebuild. `make shell` gets you
-# back into a running container later without restarting anything. The one
-# fully automated exception is `make smoke`, which brings the whole stack
-# up itself for an unattended end-to-end check.
+# back into a running container later without restarting anything. `make
+# smoke` checks a stack that is already running.
 #
 # If you restart the sim, restart the containers after it: the sim owns
 # /clock, and a fresh sim rewinds time, which clears TF buffers, puts Nav2's

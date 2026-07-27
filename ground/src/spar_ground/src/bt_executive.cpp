@@ -39,7 +39,6 @@ public:
   BtExecutive() : rclcpp::Node("bt_executive") {
     declare_parameter("tick_rate_hz", 10.0);
     declare_parameter("goal_frame", "map");
-    declare_parameter("cmd_vel_topic", "cmd_vel");
     declare_parameter("patrol_radius_m", 2.5);
     declare_parameter("dock_x", 0.0);
     declare_parameter("dock_y", 0.0);
@@ -57,14 +56,6 @@ public:
     // one label AnomalySeen filters for.
     declare_parameter("anomaly_label", "anomaly");
     declare_parameter("inspect_standoff_m", 1.2);
-    // The robot boots idle and waits to be told. Set true to skip the wait
-    // (the smoke test and impatient demos).
-    declare_parameter("autostart_mission", false);
-    // Overridable so a student can point at an alternate tree without a
-    // rebuild; defaults to the one this package ships.
-    declare_parameter("bt_xml_path",
-        ament_index_cpp::get_package_share_directory("spar_ground") +
-        "/behavior_trees/main_tree.xml");
   }
 
   // Building the tree needs `*this` fully constructed, so it lives here
@@ -97,7 +88,6 @@ public:
 
     const auto goal_frame = get_parameter("goal_frame").as_string();
     const auto base_frame = get_parameter("base_frame").as_string();
-    const auto cmd_vel_topic = get_parameter("cmd_vel_topic").as_string();
     const auto cooldown = get_parameter("nav_retry_cooldown_sec").as_double();
 
     RoundsLeaf::Waypoint dock{get_parameter("dock_x").as_double(),
@@ -146,17 +136,16 @@ public:
         });
     factory.registerBuilder<HoldLeaf>(
         "HoldPosition",
-        [this, cmd_vel_topic](const std::string& name, const BT::NodeConfig& config) {
-          return std::make_unique<HoldLeaf>(name, config, *this, cmd_vel_topic);
+        [this](const std::string& name, const BT::NodeConfig& config) {
+          return std::make_unique<HoldLeaf>(name, config, *this);
         });
 
-    tree_ = factory.createTreeFromFile(get_parameter("bt_xml_path").as_string());
+    tree_ = factory.createTreeFromFile(
+        ament_index_cpp::get_package_share_directory("spar_ground") +
+        "/behavior_trees/main_tree.xml");
     auto blackboard = tree_.rootBlackboard();
 
-    // The mission layer's single knob. One writer per key: this and
-    // mission_sub_'s callback below.
-    blackboard->set<bool>(keys::kMissionActive,
-                          get_parameter("autostart_mission").as_bool());
+    blackboard->set<bool>(keys::kMissionActive, false);
 
     battery_sub_ = create_subscription<sensor_msgs::msg::BatteryState>(
         "battery/state", 10,
@@ -176,7 +165,8 @@ public:
             const spar_perception::msg::Detection& msg) {
           if (msg.label != anomaly_label) return;
           blackboard->set<Stamped<geometry_msgs::msg::Point>>(
-              keys::kAnomalyPoint, {msg.point, now().seconds()});
+              keys::kAnomalyPoint,
+              {msg.point, rclcpp::Time(msg.header.stamp).seconds()});
         });
 
     mission_sub_ = create_subscription<std_msgs::msg::String>(

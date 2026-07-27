@@ -22,10 +22,6 @@ services:
                               # remote desktop (Xvnc -SecurityTypes None)
       # No MAVLink HIL port: PX4's simulator_mavlink is the TCP client and
       # dials the sim's listener on localhost:4560 inside this namespace.
-      # DevNote: QGroundControl needs no port either: PX4 SENDS to the GCS
-      # (UDP 14550), so an inbound mapping would do nothing. Docker's NAT
-      # eats PX4's default broadcast; if QGC won't auto-connect, aim PX4's
-      # GCS mavlink stream at host.docker.internal (not yet verified).
     init: true
     stop_grace_period: 10s
 

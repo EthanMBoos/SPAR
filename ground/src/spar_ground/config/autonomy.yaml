@@ -4,7 +4,6 @@
   ros__parameters:
     tick_rate_hz: 10.0
     goal_frame: map
-    cmd_vel_topic: cmd_vel
     # The executive expands this into a clockwise square around the dock.
     patrol_radius_m: 2.5
     # The dock (also where the robot spawns).

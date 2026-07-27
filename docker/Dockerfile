@@ -3,8 +3,6 @@ FROM ros:jazzy
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ros-jazzy-navigation2 \
-      ros-jazzy-nav2-bringup \
       ros-jazzy-rmw-zenoh-cpp \
       ros-jazzy-rviz2 \
       tigervnc-standalone-server \

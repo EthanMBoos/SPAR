@@ -94,16 +94,6 @@ class WorldgenTest(unittest.TestCase):
             worldgen.validate_plan(plan),
         )
 
-    def test_duplicate_regions_are_normalized(self):
-        plan = copy.deepcopy(VALID_PLAN)
-        plan["props"][1]["region"] = "northeast"
-
-        worldgen.normalize_plan(plan)
-
-        self.assertEqual(plan["props"][0]["region"], "northeast")
-        self.assertEqual(plan["props"][1]["region"], "northwest")
-        self.assertEqual(worldgen.validate_plan(plan), [])
-
     def test_review_retry_then_publish(self):
         responses = iter([
             copy.deepcopy(VALID_PLAN),
