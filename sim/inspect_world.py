@@ -22,7 +22,7 @@ def main():
     if not os.path.isfile(path):
         sys.exit(
             f"world '{args.world}' does not exist at {path}\n"
-            "generate it first with scripts/generate_world.py")
+            "export it first with scripts/export_blender_world.py")
 
     # Compile on this thread so missing assets and invalid MJCF retain their
     # useful MuJoCo error instead of becoming the viewer's "unknown exception".

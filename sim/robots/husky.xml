@@ -31,7 +31,7 @@
         clamped +-80 Nm to keep stall torque physical.
 
      Contracts: husky.scan_site below makes the lidar site a robot-owned
-     property consumed by both the simulator and the world lint gate. The
+     property consumed by the simulator. The
      freejoint distinguishes the robot from static world geometry
      (body_weldid != 0). Collision geoms in group 3 or 0 are the two groups
      scanned by the lidar. -->

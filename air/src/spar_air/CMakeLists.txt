@@ -45,4 +45,10 @@ install(DIRECTORY behavior_trees/ DESTINATION share/${PROJECT_NAME}/behavior_tre
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_route test/test_route.cpp)
+  target_include_directories(test_route PRIVATE src)
+endif()
+
 ament_package()

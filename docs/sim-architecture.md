@@ -46,9 +46,7 @@ The same environment runs three ways:
 ## Worlds and robot configuration
 
 The MJCF file is the world (`sim/worlds/<world>.xml`). It contains geometry
-and includes robot definitions from `sim/robots/`. `make lint` compiles the
-same file and checks collision visibility, dock and waypoint clearance,
-support, settling, and the geometry budget. There is no occupancy-map
+and includes robot definitions from `sim/robots/`. There is no occupancy-map
 artifact and no rasterization step.
 
 Sensor geometry belongs to the robot. A planar-scanning robot declares its
@@ -60,9 +58,9 @@ site through MuJoCo custom text:
 </custom>
 ```
 
-The simulator and `lint_world.py --robot husky` resolve that same entry.
-This makes two robots with different mast heights unambiguous and keeps
-world generation free of robot-specific sensor knowledge.
+The simulator resolves that entry through `sim/spar_sim/robot_config.py`.
+This makes two robots with different mast heights unambiguous and keeps world
+generation free of robot-specific sensor knowledge.
 
 Keep collision geometry to primitives where practical and mark decorative
 geometry `contype="0" conaffinity="0"`. Visuals can then change without

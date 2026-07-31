@@ -14,36 +14,19 @@ MCP interface is capable, and agentic generation of robotics worlds is still
 greenfield. SPAR is a convenient place to try this because the simulator,
 robots, tasks, learning harness, and acceptance gates already exist.
 
-The primitive generator stays as the fast baseline and fallback, not the
-ceiling.
-
 ## Golden path
 
-Worldgen has one contract and two authoring modes:
+Worldgen has one authoring path:
 
 ```text
-                            primitive mode
-description -> plan ----------------------------------+
-                                                      |
-                            Blender fidelity mode     v
-description -> orchestrator -> BlenderMCP work loop -> site artifact
-                              |  build / query / render / revise
-                              +------------------------------^
-
-site artifact -> MuJoCo compose/compile -> SPAR lint -> visual review -> publish
-                                      |                        |
-                                      +------ repair feedback --+
+description -> BlenderMCP full layout -> detail / render / revise
+            -> visual scene + explicit collision proxies
+            -> deterministic MJCF export -> MuJoCo compile -> visual review
 ```
 
-The default primitive mode keeps today's cheap, deterministic path for tests,
-fast RL curriculum generation, ablations, and machines without Blender. A
-fidelity option will activate the Blender loop. Both modes must ultimately
-produce the same kind of site-focused MuJoCo artifact under `sim/worlds/`;
-robot selection and composition stay outside the Blender authoring loop.
-
-The Blender loop is intentionally iterative and multi-LLM. A useful world will
-normally require multiple model calls and multiple Blender queries rather than
-one heroic prompt. The logical roles are:
+The first BlenderMCP call owns the whole spatial layout. Later calls add detail,
+materials, collision proxies, and bounded repairs without replacing that
+layout. The logical responsibilities are:
 
 - an orchestrator that owns the description, seed, constraints, progress, and
   termination decision;
@@ -51,8 +34,8 @@ one heroic prompt. The logical roles are:
   collision proxies through BlenderMCP;
 - a critic that inspects structured scene state and rendered views, then
   requests concrete repairs;
-- deterministic export and lint code that remains the final authority on what
-  is safe and runnable.
+- deterministic export and MuJoCo compilation code that remains the final
+  authority on what is runnable.
 
 These are separate LLM-driven workers in the orchestration loop. They may
 initially share the same underlying model and differ by prompt, context, and
@@ -82,12 +65,9 @@ case proves a larger interchange layer is needed. Existing Blender-to-MJCF
 projects are useful references, but SPAR should not inherit a general
 articulation format merely to export static outdoor sites.
 
-No model or Blender render can approve its own physics. The current MuJoCo
-compile, collision visibility, dock and route clearance, support, settling,
-and geometry-budget checks remain mandatory. Blender-specific lint should be
-added only for observed failures, likely unapplied transforms, missing asset
-files, excessive mesh complexity, invalid collision proxies, and inconsistent
-visual/collision bounds.
+No model or Blender render can approve its own physics. MuJoCo compilation and
+human inspection are the initial gates. Automated validation should be added
+only for observed failures.
 
 ## Research questions
 
@@ -106,13 +86,11 @@ The first comparisons should answer:
 
 1. How often does the Blender loop publish a world without human repair?
 2. Which feedback is most useful: structured scene queries, renders, MuJoCo
-   lint failures, or task rollouts?
+   compile errors, or task rollouts?
 3. Does iteration improve semantic fidelity and layout diversity over a
    single Blender call?
-4. What fidelity actually changes downstream perception, navigation, or policy
-   generalization, and does cheap domain randomization in primitive mode match
-   it? Randomization rather than realism is the likelier reason simulated
-   locomotion transferred, so primitive-plus-randomization is the baseline.
+4. Which visual and physical variations actually change downstream perception,
+   navigation, or policy generalization?
 5. How many distinct failure modes does the pipeline surface per N worlds, and
    does the yield decay?
 6. Does hardening on generated cases transfer to a held-out suite authored by a
@@ -120,24 +98,19 @@ The first comparisons should answer:
 7. What is the cost in model calls, Blender time, asset downloads, geometry,
    simulation throughput, and human review?
 
-Every high-fidelity result needs a matched primitive baseline where practical.
-That keeps the experiment about the value of fidelity and orchestration rather
-than merely demonstrating that Blender can produce better screenshots.
-
 ## Staged implementation
 
-1. Preserve and measure the current primitive generator.
-2. Produce one static outdoor site through BlenderMCP, with visual meshes and
-   explicit simple collision proxies, and pass the existing lint unchanged.
-3. Record the full multi-call build/query/render/repair trace and make a fixed
+1. Produce one static outdoor site through BlenderMCP, with visual meshes,
+   explicit simple collision proxies, and a deterministic MJCF export.
+2. Record the full multi-call build/query/render/repair trace and make a fixed
    prompt-and-seed run repeatable at the artifact level.
-4. Add critic-driven render inspection and automatic repair attempts.
-5. Close the failure-driven loop: run a policy or BT over generated worlds,
+3. Add critic-driven render inspection and automatic repair attempts.
+4. Close the failure-driven loop: run a policy or BT over generated worlds,
    collect failures, generate mutations that keep the failure mode, measure
    novel-failure yield across rounds.
-6. Generate a small matched primitive/Blender corpus and compare acceptance,
-   diversity, runtime, and task outcomes.
-7. Only then expand toward movable or articulated assets, indoor scenes,
+5. Generate a Blender-authored corpus and compare acceptance, diversity,
+   runtime, and task outcomes.
+6. Only then expand toward movable or articulated assets, indoor scenes,
    alternative renderers, or large-scale parallel generation.
 
 The next system milestone remains one complete learning loop: train on

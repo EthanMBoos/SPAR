@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Run and verify changes to this repo end to end without user help - container C++ build and tests, the sim self-check, robot-aware world lint, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, world, or script change, and for physics experiments in a scratch workspace.
+description: Run and verify changes to this repo end to end without user help - container C++ build and tests, the sim self-check, Blender world export checks, headless sim, the smoke test, and a screenshot-based rviz visual check. Use after any code, world, or script change, and for physics experiments in a scratch workspace.
 ---
 
 # Verifying SPAR autonomously
@@ -38,7 +38,7 @@ checks for which change" below.
 
   ```bash
   docker exec spar-sim python3 -c 'import mujoco; print(mujoco.__version__)'
-  .venv/bin/python -c 'import mujoco; print(mujoco.__version__)'
+  uv run --locked python -c 'import mujoco; print(mujoco.__version__)'
   ```
 
 ## The checks, cheapest first
@@ -100,45 +100,25 @@ Success is `[spar] check ok: blank.xml` and exit 0. A rename anywhere in
 the MJCF/python contract (body, site, actuator, camera names) fails here
 loudly instead of five minutes into a smoke run.
 
-### 4. World lint
+### 4. Blender world export
 
-Required after any change to `sim/worlds/`, `sim/robots/`, or to
-`scripts/lint_world.py` / `sim/spar_sim/robot_config.py`.
-
-Run the repository gate against the selected robot:
+Required after changes to `scripts/export_blender_world.py`,
+`scripts/check_world_export.py`, or the BlenderMCP scene contract:
 
 ```bash
-make lint
+uv sync --managed-python --locked
+uv run --locked python -m py_compile \
+  scripts/export_blender_world.py scripts/check_world_export.py
+open -n -W -a Blender --args --background \
+  "$PWD/artifacts/worldgen/utility_depot_40_v1/waypoints.blend" \
+  --python "$PWD/scripts/export_blender_world.py" -- \
+  --world utility_depot_40_v1 --world-waypoints
+uv run --locked python scripts/check_world_export.py utility_depot_40_v1
 ```
 
-Success is the exact final line
-`[lint] OK: blank.xml (4 static solids, 27 geoms total)`.
-
-Changes to robot custom configuration or scan-site lookup also need two
-scratchpad probes:
-
-- A compiled model with two custom keys and scan sites at different heights;
-  resolve both robot names and prove each selects its own site independent of
-  declaration order.
-- An undeclared robot; it must fail and name the missing
-  `<robot>.scan_site` key.
-
-### 4a. World generator
-
-Required after changes to `scripts/generate_world.py` or its tests:
-
-```bash
-.venv/bin/python -m py_compile scripts/generate_world.py scripts/lint_world.py
-.venv/bin/python -m unittest scripts/test_generate_world.py
-```
-
-Prompt, schema, review-loop, or Ollama integration changes also need a live
-run of the same small fixed prompt set with the intended local model. Record
-the model tag, elapsed time, successful attempt number, and lint result.
-Treat a failure as evidence for a larger model only when it repeats on the
-fixed prompts and belongs to model planning or schema following. Missing
-meshes, terrain, arbitrary placement, or visual review are pipeline limits,
-not evidence that a larger text model is needed.
+Success is `[world-export] OK` plus nonzero visual-mesh and collision-proxy
+counts. Inspect the world after changes to mesh, material, texture, camera, or
+coordinate conversion code.
 
 ### 5. Headless sim + smoke test (full end to end)
 
@@ -168,11 +148,11 @@ false PASS against code that isn't the code you're verifying.
 make shut_down    # clean slate, whatever was running before
 mkdir -p ground/build ground/install logs
 docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
-make start_sim
+make start_sim WORLD=utility_depot_40_v1
 sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
 grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
-docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_ground autonomy.launch.py'
+docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_ground autonomy.launch.py world:=utility_depot_40_v1'
 # bash -lc matters here, not bash -c: ROS_LOG_DIR is exported via
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
@@ -245,13 +225,13 @@ the sim clock must not rewind under it).
 make shut_down
 mkdir -p ground/build ground/install logs air/build air/install logs/air
 docker compose -f docker/compose.yaml --profile air up --build -d
-make start_sim
+make start_sim WORLD=utility_depot_40_v1
 # wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1'
 # wait for "px4 lockstep engaged" in logs/sim.log, then:
 docker exec spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && ./bin/px4-zenoh start'
-docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py'
+docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=utility_depot_40_v1'
 make smoke_air         # ~4-6 min; phase 1 alone waits out PX4 boot + EKF2
 make stop_sim
 ```
@@ -263,12 +243,12 @@ phase 1 timing out with the topics still listed.
 
 ## Physics experiments in the scratchpad
 
-The repo venv has mujoco (`.venv/bin/python`). To test a hypothesis about
-MuJoCo semantics or robot configuration, write a minimal MJCF world in the
-scratchpad and run the real lint/config code against it:
+The locked host environment has MuJoCo. To test a hypothesis about MuJoCo
+semantics or robot configuration, write a minimal MJCF world in the scratchpad
+and run the real configuration code against it:
 
 ```bash
-.venv/bin/python - <<'EOF'
+uv run --locked python - <<'EOF'
 import sys
 sys.path.insert(0, "<repo>/sim")
 import mujoco
@@ -278,11 +258,9 @@ m = mujoco.MjModel.from_xml_path("<scratchpad>/test_world.xml")
 EOF
 ```
 
-Two conventions the test worlds must respect: `<robot>.scan_site` names the
-site used by that robot, and static world membership is `body_weldid == 0`
-(see `static_collision_geoms` in `lint_world.py`). Prove a claim with a
-minimal world before changing the scripts, and keep the world as the
-regression check after.
+Test worlds must preserve the `<robot>.scan_site` custom-text contract. Prove a
+claim with a minimal world before changing the scripts, and keep the world as
+the regression check after.
 
 ## Which checks for which change
 
@@ -293,10 +271,10 @@ regression check after.
 | common/src/spar_perception / battery_sim | 1, then 5 |
 | sim/spar_sim/** (sim node, sensors) | 3, then 5 |
 | sim/spar_sim/px4_link.py | 3, then A2 |
-| sim/worlds/* or sim/robots/* | 3, 4, 5; A2 if the drone or the pad moved |
+| sim/worlds/* or sim/robots/* | 3, 5; A2 if the drone or the pad moved |
 | sim/viewer.py | 3; no smoke needed, it is read-only |
-| lint_world / robot_config | 4 + a scratchpad probe world |
-| generate_world.py / test_generate_world.py | 4a; add the live fixed-prompt run when model-facing behavior changed |
+| robot_config | 3 + a scratchpad probe world |
+| Blender world export scripts or scene contract | 4 |
 | autonomy.launch.py / nav2.yaml / autonomy.yaml / compose.yaml / entrypoint.sh / scripts/*.sh | 5 (its bring-up always tears down and starts the whole stack fresh, so this covers any of these; configs are symlinked, no rebuild needed for yaml-only changes) |
 | scripts/rviz.sh / spar.rviz | 6 (needs 5's stack up first) |
 | air/src/** (spar_air) | A1, then A2 if behavior changed |

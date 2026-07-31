@@ -13,9 +13,8 @@ the cameras headless, and publishes sensor-shaped ROS topics to containers
 running Nav2, PX4, and the behavior trees. The ground stack estimates its
 map transform from noisy GPS; the air stack uses PX4 EKF2. All containers
 share one network namespace. The MJCF file is the world (`sim/worlds/`,
-robots included from `sim/robots/`), and `make lint` validates it against
-the selected robot. Design decisions and their reasons are in
-`docs/sim-architecture.md`.
+robots included from `sim/robots/`). Design decisions and their reasons are
+in `docs/sim-architecture.md`.
 
 ## The code I want
 
@@ -30,12 +29,9 @@ the selected robot. Design decisions and their reasons are in
 - Keep experimental world-generation work as directly invoked scripts. It
   will change quickly and need one-off tests; do not add Make targets for it
   until the workflow is stable.
-- World generation is a local-model capability probe. Start with the smallest
-  practical Ollama model, improve the schema and deterministic Python before
-  increasing model size, and escalate only after a repeatable failure on a
-  fixed prompt set. Keep heavier systems such as SceneSmith out of the core
-  pipeline until a demonstrated need requires assets, visual reasoning, or
-  more complex spatial planning.
+- BlenderMCP is the only generated-world authoring path. Blender owns layout,
+  visuals, explicit collision proxies, and semantic sites; deterministic
+  Python only exports that accepted scene to MuJoCo assets and MJCF.
 - Robust means handling the failures that actually happen (stale data,
   unavailable action servers, late callbacks) plainly and locally, not
   wrapping everything in defensive checks.

@@ -4,37 +4,54 @@ smoke script or by hand, see the README); this launch is only the ROS
 side, so a BT or config change is a Ctrl-C and rerun away, PX4 untouched.
 """
 
+import os
+
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 
 
-def generate_launch_description():
-    namespace = LaunchConfiguration("namespace")
+def launch_stack(context):
+    namespace = LaunchConfiguration("namespace").perform(context)
+    world = LaunchConfiguration("world").perform(context)
+    if not world:
+        raise RuntimeError("world is required for the air waypoint route")
+    if not world.replace("_", "").isalnum():
+        raise RuntimeError("world must contain only letters, numbers, and underscores")
 
-    autonomy_params = PathJoinSubstitution(
-        [FindPackageShare("spar_air"), "config", "autonomy.yaml"]
-    )
+    package = get_package_share_directory("spar_air")
+    autonomy_params = os.path.join(package, "config", "autonomy.yaml")
+    world_params = os.path.join(package, "config", "worlds", f"{world}.yaml")
+    if not os.path.isfile(world_params):
+        raise RuntimeError(f"world waypoint parameters do not exist: {world_params}")
+    node_params = [autonomy_params, world_params]
 
     def behavior_node(executable, package="spar_air"):
         return Node(
             package=package,
             executable=executable,
             namespace=namespace,
-            parameters=[autonomy_params, {"use_sim_time": True}],
+            parameters=[*node_params, {"use_sim_time": True}],
             # TransformListener subscribes to the absolute /tf; this stack
             # publishes TF namespaced. Remap it in.
             remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
             output="screen",
         )
 
-    return LaunchDescription(
-        [
-            DeclareLaunchArgument("namespace", default_value="skydio"),
-            behavior_node("tf_from_px4"),
-            behavior_node("anomaly_detector", "spar_perception"),
-            behavior_node("bt_executive"),
-        ]
-    )
+    return [
+        behavior_node("tf_from_px4"),
+        behavior_node("anomaly_detector", "spar_perception"),
+        behavior_node("bt_executive"),
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument("namespace", default_value="skydio"),
+        DeclareLaunchArgument(
+            "world", default_value="",
+            description="world name selecting the required 3D air route"),
+        OpaqueFunction(function=launch_stack),
+    ])

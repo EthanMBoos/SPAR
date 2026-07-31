@@ -6,13 +6,12 @@
 /**/bt_executive:
   ros__parameters:
     tick_rate_hz: 10.0
-    # The executive expands this into a clockwise diamond around the pad.
-    patrol_radius_m: 4.0
+    # A world-specific file supplies patrol_waypoints as x, y, z, yaw tuples.
     cruise_alt_m: 4.0
-    aloft_alt_m: 1.5
+    takeoff_accept_m: 0.3
     accept_radius_m: 0.6
     orbit_radius_m: 2.0
-    orbit_alt_m: 3.0
+    orbit_alt_m: 4.0
     orbit_rate_rad_s: 0.4
     # The BT decides first: PX4's own low-battery failsafe (COM_LOW_BAT_ACT)
     # stays on its default warn-only level, below this 30% return threshold.

@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <behaviortree_cpp/action_node.h>
@@ -15,6 +16,7 @@
 #include "bt/blackboard_keys.hpp"
 #include "bt/stamped.hpp"
 #include "offboard_link.hpp"
+#include "route.hpp"
 
 namespace spar_air {
 
@@ -34,14 +36,13 @@ inline bool getPosition(const BT::NodeConfig& config, Vec3& out) {
   return true;
 }
 
-// Arm, switch to offboard, climb to cruise over the current spot. Doubles
-// as the "airborne?" gate in front of GotoWaypoint: once aloft it returns
-// SUCCESS immediately every tick.
+// Arm, switch to offboard, and finish the collision-clear vertical climb over
+// the pad before allowing any horizontal flight.
 class TakeOff : public BT::StatefulActionNode {
 public:
   struct Params {
     double cruise_alt_m = 4.0;
-    double aloft_alt_m = 1.5;
+    double accept_altitude_m = 0.3;
   };
 
   TakeOff(const std::string& name, const BT::NodeConfig& config,
@@ -52,7 +53,9 @@ public:
   BT::NodeStatus onStart() override {
     Vec3 pos;
     if (!getPosition(config(), pos)) return BT::NodeStatus::RUNNING;
-    if (pos.z >= params_.aloft_alt_m) return BT::NodeStatus::SUCCESS;
+    if (pos.z >= params_.cruise_alt_m - params_.accept_altitude_m) {
+      return BT::NodeStatus::SUCCESS;
+    }
     link_.setTarget(pos.x, pos.y, params_.cruise_alt_m, 0.0);
     next_command_ = 0.0;
     return BT::NodeStatus::RUNNING;
@@ -61,7 +64,9 @@ public:
   BT::NodeStatus onRunning() override {
     Vec3 pos;
     if (!getPosition(config(), pos)) return BT::NodeStatus::RUNNING;
-    if (pos.z >= params_.aloft_alt_m) return BT::NodeStatus::SUCCESS;
+    if (pos.z >= params_.cruise_alt_m - params_.accept_altitude_m) {
+      return BT::NodeStatus::SUCCESS;
+    }
     // Re-send arm + offboard until they stick: PX4 refuses the mode until
     // the setpoint stream has been up for a moment, so one shot is a race.
     // The target rides along in case onStart ran before the first position
@@ -86,20 +91,17 @@ private:
   double next_command_ = 0.0;
 };
 
-// Cycle the patrol waypoints at cruise altitude forever (the battery
+// Cycle explicit world-authored 3D patrol waypoints forever (the battery
 // branch is what ends a mission).
 class GotoWaypoint : public BT::StatefulActionNode {
 public:
-  struct Waypoint {
-    double x = 0, y = 0;
-  };
   struct Params {
-    double cruise_alt_m = 4.0;
     double accept_radius_m = 0.6;
   };
 
   GotoWaypoint(const std::string& name, const BT::NodeConfig& config,
-               OffboardLink& link, std::vector<Waypoint> waypoints, Params params)
+               OffboardLink& link, std::vector<AirWaypoint> waypoints,
+               Params params)
       : BT::StatefulActionNode(name, config),
         link_(link),
         waypoints_(std::move(waypoints)),
@@ -115,7 +117,11 @@ public:
     Vec3 pos;
     if (getPosition(config(), pos)) {
       const auto& wp = waypoints_[index_];
-      if (std::hypot(pos.x - wp.x, pos.y - wp.y) < params_.accept_radius_m) {
+      const double dx = pos.x - wp.x;
+      const double dy = pos.y - wp.y;
+      const double dz = pos.z - wp.z;
+      if (std::sqrt(dx * dx + dy * dy + dz * dz) <
+          params_.accept_radius_m) {
         index_ = (index_ + 1) % waypoints_.size();
         aim();
       }
@@ -128,15 +134,11 @@ public:
 private:
   void aim() {
     const auto& wp = waypoints_[index_];
-    Vec3 pos;
-    // Face the direction of travel; the camera looks down-forward.
-    double yaw = 0.0;
-    if (getPosition(config(), pos)) yaw = std::atan2(wp.y - pos.y, wp.x - pos.x);
-    link_.setTarget(wp.x, wp.y, params_.cruise_alt_m, yaw);
+    link_.setTarget(wp.x, wp.y, wp.z, wp.yaw);
   }
 
   OffboardLink& link_;
-  std::vector<Waypoint> waypoints_;
+  std::vector<AirWaypoint> waypoints_;
   Params params_;
   size_t index_ = 0;
 };

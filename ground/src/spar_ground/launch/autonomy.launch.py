@@ -16,8 +16,18 @@ from nav2_common.launch import RewrittenYaml
 
 def launch_stack(context):
     namespace = LaunchConfiguration("namespace").perform(context)
+    world = LaunchConfiguration("world").perform(context)
+    if not world:
+        raise RuntimeError("world is required for the ground waypoint route")
+    if not world.replace("_", "").isalnum():
+        raise RuntimeError("world must contain only letters, numbers, and underscores")
+
     package = get_package_share_directory("spar_ground")
     autonomy_params = os.path.join(package, "config", "autonomy.yaml")
+    world_params = os.path.join(package, "config", "worlds", f"{world}.yaml")
+    if not os.path.isfile(world_params):
+        raise RuntimeError(f"world waypoint parameters do not exist: {world_params}")
+    node_params = [autonomy_params, world_params]
     nav2_params = RewrittenYaml(
         source_file=os.path.join(package, "config", "nav2.yaml"),
         root_key=namespace,
@@ -79,7 +89,7 @@ def launch_stack(context):
             package=package_name,
             executable=executable,
             namespace=namespace,
-            parameters=[autonomy_params, {"use_sim_time": True}],
+            parameters=[*node_params, {"use_sim_time": True}],
             remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
             output="screen",
         )
@@ -96,5 +106,8 @@ def launch_stack(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("namespace", default_value="husky"),
+        DeclareLaunchArgument(
+            "world", default_value="",
+            description="world name selecting the required ground route"),
         OpaqueFunction(function=launch_stack),
     ])

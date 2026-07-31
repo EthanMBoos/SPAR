@@ -4,8 +4,8 @@
   ros__parameters:
     tick_rate_hz: 10.0
     goal_frame: map
-    # The executive expands this into a clockwise square around the dock.
-    patrol_radius_m: 2.5
+    # The selected world supplies patrol_waypoints as ordered x, y, yaw triples.
+    # Future route-planning behaviors need not use this input.
     # The dock (also where the robot spawns).
     dock_x: 0.0
     dock_y: 0.0

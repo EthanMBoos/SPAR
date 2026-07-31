@@ -10,7 +10,7 @@
 #   (in that shell) colcon build --symlink-install   # first build
 #   (in that shell) cd build/spar_ground && make   # NOT cmake .. && make;
 #                    colcon's build dir caches its own source path, plain make is correct
-#   (in that shell) ros2 launch spar_ground autonomy.launch.py
+#   (in that shell) ros2 launch spar_ground autonomy.launch.py world:=blank
 #                    logs go to logs/runNNN automatically (ROS_LOG_DIR is set
 #                    once per container start, see docker/entrypoint.sh)
 #
@@ -27,8 +27,6 @@ COMPOSE   := docker compose -f docker/compose.yaml
 CONTAINER := spar
 LAUNCH    := spar_ground autonomy.launch.py
 WORLD     ?= blank
-ROBOT     ?= husky
-VENV      := .venv
 ROS_ENV   := source /ws/scripts/env.sh
 
 # The *_air targets below are two-line aliases onto this TRACK switch,
@@ -48,7 +46,7 @@ ifeq ($(TRACK),air)
 endif
 COMPOSE_ALL := docker compose -f docker/compose.yaml --profile air
 
-.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view inspect shell shell_air tail tail_air smoke smoke_air lint rviz
+.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view inspect shell shell_air tail tail_air smoke smoke_air rviz
 
 help:           ## list commands
 	@grep -E '^[a-z0-9_-]+: .*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -78,22 +76,28 @@ start_sim:      ## start the headless sim (its container comes up if needed; mak
 stop_sim:       ## stop the sim
 	@docker exec spar-sim pkill -f spar_sim.sim && echo "stopped" || echo "not running"
 
-view: $(VENV)   ## native viewer window attached to the running sim
+view:           ## native viewer window attached to the running sim
+	@command -v uv >/dev/null || { \
+	  echo "uv is required; follow docs/install.md"; exit 1; \
+	}
 	@# macOS's launch_passive needs mjpython; elsewhere plain python works.
-	@if [ -x $(VENV)/bin/mjpython ]; then \
-	  $(VENV)/bin/mjpython sim/viewer.py --world $(WORLD); \
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+	  uv run mjpython sim/viewer.py --world $(WORLD); \
 	else \
-	  $(VENV)/bin/python sim/viewer.py --world $(WORLD); \
+	  uv run python sim/viewer.py --world $(WORLD); \
 	fi
 
-inspect: $(VENV) ## open one world directly in MuJoCo, without a running sim
+inspect:        ## open one world directly in MuJoCo, without a running sim
+	@command -v uv >/dev/null || { \
+	  echo "uv is required; follow docs/install.md"; exit 1; \
+	}
 	@test -f sim/worlds/$(WORLD).xml || { \
 	  echo "world '$(WORLD)' does not exist; generate it first"; exit 1; \
 	}
-	@if [ -x $(VENV)/bin/mjpython ]; then \
-	  $(VENV)/bin/mjpython sim/inspect_world.py --world $(WORLD); \
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+	  uv run mjpython sim/inspect_world.py --world $(WORLD); \
 	else \
-	  $(VENV)/bin/python sim/inspect_world.py --world $(WORLD); \
+	  uv run python sim/inspect_world.py --world $(WORLD); \
 	fi
 
 shell:          ## a shell inside the container, ROS already sourced
@@ -119,10 +123,3 @@ smoke:          ## end-to-end test of the whole behavior arc (~4 min, ends in PA
 
 smoke_air:      ## end-to-end test of the air track (~4-6 min, ends in PASS)
 	$(MAKE) smoke TRACK=air
-
-lint: $(VENV)   ## validate a world against one robot's sensor geometry and route
-	$(VENV)/bin/python scripts/lint_world.py --robot $(ROBOT) sim/worlds/$(WORLD).xml \
-	  ground/src/spar_ground/config/autonomy.yaml
-
-$(VENV):
-	python3 -m venv $(VENV) && $(VENV)/bin/pip install mujoco==3.10.0 pyyaml

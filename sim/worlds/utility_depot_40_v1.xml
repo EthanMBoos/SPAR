@@ -1,0 +1,140 @@
+<mujoco model="utility_depot_40_v1">
+  <compiler angle="radian" meshdir="assets/utility_depot_40_v1" texturedir="assets/utility_depot_40_v1" />
+  <option timestep="0.002" integrator="implicitfast" magnetic="0 0 0" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <global azimuth="120" elevation="-20" offwidth="1280" offheight="720" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.55 0.65 0.75" rgb2="0.08 0.1 0.14" width="512" height="3072" />
+    <texture type="2d" name="ground_texture" file="ground_color.png" />
+    <material name="ground_material" rgba="0.8 0.8 0.8 1" reflectance="0.05" texture="ground_texture" texuniform="true" texrepeat="8 8" />
+    <mesh name="visual_mat_cabinet" file="visual_mat_cabinet.obj" smoothnormal="true" />
+    <material name="visual_mat_cabinet" rgba="0.47 0.5 0.47 1" />
+    <mesh name="visual_mat_cable" file="visual_mat_cable.obj" smoothnormal="true" />
+    <material name="visual_mat_cable" rgba="0.018 0.02 0.022 1" />
+    <mesh name="visual_mat_concrete" file="visual_mat_concrete.obj" smoothnormal="true" />
+    <material name="visual_mat_concrete" rgba="0.32 0.31 0.28 1" />
+    <mesh name="visual_mat_cone_orange" file="visual_mat_cone_orange.obj" smoothnormal="true" />
+    <material name="visual_mat_cone_orange" rgba="0.9 0.22 0.025 1" />
+    <mesh name="visual_mat_dark_steel" file="visual_mat_dark_steel.obj" smoothnormal="true" />
+    <material name="visual_mat_dark_steel" rgba="0.075 0.09 0.095 1" />
+    <mesh name="visual_mat_drum_blue" file="visual_mat_drum_blue.obj" smoothnormal="true" />
+    <material name="visual_mat_drum_blue" rgba="0.035 0.16 0.29 1" />
+    <mesh name="visual_mat_drum_green" file="visual_mat_drum_green.obj" smoothnormal="true" />
+    <material name="visual_mat_drum_green" rgba="0.08 0.25 0.16 1" />
+    <mesh name="visual_mat_galvanized" file="visual_mat_galvanized.obj" smoothnormal="true" />
+    <material name="visual_mat_galvanized" rgba="0.36 0.39 0.4 1" />
+    <mesh name="visual_mat_gravel_stone" file="visual_mat_gravel_stone.obj" smoothnormal="true" />
+    <material name="visual_mat_gravel_stone" rgba="0.16 0.145 0.12 1" />
+    <mesh name="visual_mat_inspection_red" file="visual_mat_inspection_red.obj" smoothnormal="true" />
+    <material name="visual_mat_inspection_red" rgba="0.72 0.012 0.008 1" />
+    <mesh name="visual_mat_label_white" file="visual_mat_label_white.obj" smoothnormal="true" />
+    <material name="visual_mat_label_white" rgba="0.78 0.77 0.7 1" />
+    <mesh name="visual_mat_pallet_wood" file="visual_mat_pallet_wood.obj" smoothnormal="true" />
+    <material name="visual_mat_pallet_wood" rgba="0.33 0.16 0.065 1" />
+    <mesh name="visual_mat_pipe" file="visual_mat_pipe.obj" smoothnormal="true" />
+    <material name="visual_mat_pipe" rgba="0.18 0.21 0.23 1" />
+    <mesh name="visual_mat_rack_blue" file="visual_mat_rack_blue.obj" smoothnormal="true" />
+    <material name="visual_mat_rack_blue" rgba="0.045 0.16 0.28 1" />
+    <mesh name="visual_mat_safety_yellow" file="visual_mat_safety_yellow.obj" smoothnormal="true" />
+    <material name="visual_mat_safety_yellow" rgba="0.8 0.47 0.035 1" />
+    <mesh name="visual_mat_shed" file="visual_mat_shed.obj" smoothnormal="true" />
+    <material name="visual_mat_shed" rgba="0.29 0.31 0.3 1" />
+    <mesh name="visual_mat_tire_wear" file="visual_mat_tire_wear.obj" smoothnormal="true" />
+    <material name="visual_mat_tire_wear" rgba="0.055 0.048 0.038 1" />
+    <mesh name="visual_mat_warning_black" file="visual_mat_warning_black.obj" smoothnormal="true" />
+    <material name="visual_mat_warning_black" rgba="0.012 0.014 0.015 1" />
+  </asset>
+  <worldbody>
+    <light name="sun" directional="true" pos="-4 -6 12" dir="0.25 0.35 -1" diffuse="0.9 0.88 0.82" />
+    <camera name="overview" pos="37 -45 39" quat="0.82640088 0.45085961 0.1615545 0.29612058" fovy="25.9892" />
+    <geom name="floor" type="plane" size="20 20 1" pos="0 0 0" material="ground_material" />
+    <geom name="visual_mat_cabinet" type="mesh" mesh="visual_mat_cabinet" material="visual_mat_cabinet" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_cable" type="mesh" mesh="visual_mat_cable" material="visual_mat_cable" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_concrete" type="mesh" mesh="visual_mat_concrete" material="visual_mat_concrete" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_cone_orange" type="mesh" mesh="visual_mat_cone_orange" material="visual_mat_cone_orange" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_dark_steel" type="mesh" mesh="visual_mat_dark_steel" material="visual_mat_dark_steel" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_drum_blue" type="mesh" mesh="visual_mat_drum_blue" material="visual_mat_drum_blue" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_drum_green" type="mesh" mesh="visual_mat_drum_green" material="visual_mat_drum_green" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_galvanized" type="mesh" mesh="visual_mat_galvanized" material="visual_mat_galvanized" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_gravel_stone" type="mesh" mesh="visual_mat_gravel_stone" material="visual_mat_gravel_stone" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_inspection_red" type="mesh" mesh="visual_mat_inspection_red" material="visual_mat_inspection_red" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_label_white" type="mesh" mesh="visual_mat_label_white" material="visual_mat_label_white" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_pallet_wood" type="mesh" mesh="visual_mat_pallet_wood" material="visual_mat_pallet_wood" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_pipe" type="mesh" mesh="visual_mat_pipe" material="visual_mat_pipe" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_rack_blue" type="mesh" mesh="visual_mat_rack_blue" material="visual_mat_rack_blue" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_safety_yellow" type="mesh" mesh="visual_mat_safety_yellow" material="visual_mat_safety_yellow" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_shed" type="mesh" mesh="visual_mat_shed" material="visual_mat_shed" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_tire_wear" type="mesh" mesh="visual_mat_tire_wear" material="visual_mat_tire_wear" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="visual_mat_warning_black" type="mesh" mesh="visual_mat_warning_black" material="visual_mat_warning_black" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="col_barrel_01" type="cylinder" size="0.30500001 0.44999999" pos="-16 -14 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_02" type="cylinder" size="0.30500001 0.44999999" pos="-15.25 -14.15 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_03" type="cylinder" size="0.30500001 0.44999999" pos="-15.699998 -13.25 0.47999996" quat="0.99968749 0 0 0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_04" type="cylinder" size="0.30500001 0.44999999" pos="-14.900001 -13.35 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_05" type="cylinder" size="0.30500001 0.44999999" pos="15.700001 12.5 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_06" type="cylinder" size="0.30500001 0.44999999" pos="14.950001 12.65 0.47999996" quat="0.99968749 0 0 0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_07" type="cylinder" size="0.30500001 0.44999999" pos="15.35 13.4 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_08" type="cylinder" size="0.30500001 0.44999999" pos="14.55 13.35 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_09" type="cylinder" size="0.30500001 0.44999999" pos="8.8000002 -14.5 0.47999996" quat="0.99968749 0 0 0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_10" type="cylinder" size="0.30500001 0.44999999" pos="9.5499992 -14.35 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_11" type="cylinder" size="0.30500001 0.44999999" pos="9.1499996 -13.65 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_12" type="cylinder" size="0.30500001 0.44999999" pos="-5.1999998 14.8 0.47999996" quat="0.99968749 0 0 0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_13" type="cylinder" size="0.30500001 0.44999999" pos="-4.4499993 14.7 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_14" type="cylinder" size="0.30500001 0.44999999" pos="-4.8499999 15.5 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_15" type="cylinder" size="0.30500001 0.44999999" pos="15.6 -1.8000002 0.47999996" quat="0.99968749 0 0 0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_barrel_16" type="cylinder" size="0.30500001 0.44999999" pos="15.1 -1.0500002 0.47999996" quat="0.99968749 0 0 -0.024997393" group="3" rgba="0 0 0 0" />
+    <geom name="col_cable_spool_east" type="box" size="0.66554493 0.51884317 0.63" pos="-8.5 -14.999999 0.58000004" quat="0.99920011 0 0 0.039989322" group="3" rgba="0 0 0 0" />
+    <geom name="col_cable_spool_expanded_03" type="box" size="0.66554439 0.51884282 0.63" pos="15.000002 7.5000005 0.58000004" quat="0.99595273 0 0 0.089878567" group="3" rgba="0 0 0 0" />
+    <geom name="col_cable_spool_expanded_04" type="box" size="0.68173414 0.54203928 0.63" pos="-15.000001 11.999999 0.58000004" quat="0.99680179 0 0 -0.079914719" group="3" rgba="0 0 0 0" />
+    <geom name="col_cable_spool_south" type="box" size="0.6817342 0.54203892 0.63" pos="8 14.5 0.58000004" quat="0.99820054 0 0 -0.059964001" group="3" rgba="0 0 0 0" />
+    <geom name="col_covered_work_shed_post_1" type="box" size="0.079999998 0.079999998 1.3599999" pos="-15.831283 12.59954 1.3599999" quat="0.99988753 0 0 0.014999437" group="3" rgba="0 0 0 0" />
+    <geom name="col_covered_work_shed_post_2" type="box" size="0.079999998 0.079999998 1.3599999" pos="-15.911964 15.288129 1.3599999" quat="0.99988753 0 0 0.014999437" group="3" rgba="0 0 0 0" />
+    <geom name="col_covered_work_shed_post_3" type="box" size="0.079999998 0.079999998 1.3599999" pos="-12.088036 12.711871 1.3599999" quat="0.99988753 0 0 0.014999437" group="3" rgba="0 0 0 0" />
+    <geom name="col_covered_work_shed_post_4" type="box" size="0.079999998 0.079999998 1.3599999" pos="-12.168718 15.40046 1.3599999" quat="0.99988753 0 0 0.014999437" group="3" rgba="0 0 0 0" />
+    <geom name="col_covered_work_shed_roof" type="box" size="1.9524658 1.4248999 0.090000004" pos="-14 14 2.8099999" quat="0.99988753 0 0 0.014999438" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_east_1" type="box" size="7.8549995 0.055000342 1" pos="19.5 -12 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_east_2" type="box" size="7.855 0.055000342 1" pos="19.5 0 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_east_3" type="box" size="7.8549995 0.055000342 1" pos="19.5 12 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_north_1" type="box" size="7.8549995 0.055 1" pos="-12 19.5 1" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_north_2" type="box" size="7.855 0.055 1" pos="0 19.5 1" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_north_3" type="box" size="7.8549995 0.055 1" pos="12 19.5 1" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_south_1" type="box" size="7.8549995 0.055 1" pos="-11.5 -19.5 1" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_south_2" type="box" size="7.8549995 0.055 1" pos="11.5 -19.5 1" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_west_1" type="box" size="7.8549995 0.055000342 1" pos="-19.5 -12 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_west_2" type="box" size="7.855 0.055000342 1" pos="-19.5 0 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_fence_west_3" type="box" size="7.8549995 0.055000342 1" pos="-19.5 12 1" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_inspection_drum_red" type="cylinder" size="0.30500001 0.44999999" pos="6.1999998 -5 0.47999999" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_expanded_04" type="box" size="1.65 0.5374999 1.25" pos="12.499699 -6.992506 1.25" quat="0.019998722 -0 -0 -0.99980003" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_expanded_05" type="box" size="1.65 0.53749996 1.25" pos="12.800375 4.8074908 1.25" quat="0.024997449 0 0 0.99968749" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_expanded_06" type="box" size="1.7449999 1.45 1.25" pos="2.9923513 14.454886 1.25" quat="0.71763349 0 0 -0.69642097" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_north_east" type="box" size="1.7449998 1.4499998 1.25" pos="-13.054797 8.1898031 1.25" quat="0.99980003 0 0 0.019998666" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_west_mid" type="box" size="1.65 0.53750044 1.25" pos="-12.99985 -8.0074987 1.25" quat="0.99994999 0 0 0.009999834" group="3" rgba="0 0 0 0" />
+    <geom name="col_rack_west_north" type="box" size="1.65 0.53750002 1.25" pos="-13.200226 -0.0074964776 1.25" quat="0.99988753 0 0 -0.01499944" group="3" rgba="0 0 0 0" />
+    <geom name="col_utility_cabinet_east" type="box" size="0.25000003 0.51150024 0.89999998" pos="16.5 5.0865002 0.89999998" quat="7.5497901e-08 -0 -0 -1" group="3" rgba="0 0 0 0" />
+    <geom name="col_utility_cabinet_expanded_03" type="box" size="0.25000003 0.5115 0.89999998" pos="-16.5 -3.5864999 0.89999998" quat="1 0 0 0" group="3" rgba="0 0 0 0" />
+    <geom name="col_utility_cabinet_expanded_04" type="box" size="0.42500001 0.27875048 0.89999998" pos="10.02875 -16.299999 0.89999998" quat="0.70710683 0 0 0.70710671" group="3" rgba="0 0 0 0" />
+    <geom name="col_utility_cabinet_north" type="box" size="0.42500001 0.27875048 0.89999998" pos="-9.0287504 16.5 0.89999998" quat="0.70710683 0 0 -0.70710671" group="3" rgba="0 0 0 0" />
+    <site name="site_airpatrol_01" pos="0 -6 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_02" pos="8 -10 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_03" pos="10 -4 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_04" pos="8 10 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_05" pos="0 10 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_06" pos="-7 8 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_07" pos="-7 0 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_airpatrol_08" pos="-7 -8 4" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_dock" pos="0 0 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_huskyspawn" pos="0 0 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_01" pos="0 -6 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_02" pos="8 -10 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_03" pos="8 0 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_04" pos="8 10 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_05" pos="0 10 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_06" pos="-7 8 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_07" pos="-7 0 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_patrol_08" pos="-7 -8 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    <site name="site_x2spawn" pos="-2 -1 0" size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+  </worldbody>
+  <include file="../robots/husky.xml" />
+  <include file="../robots/x2.xml" />
+</mujoco>

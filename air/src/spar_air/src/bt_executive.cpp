@@ -32,6 +32,7 @@
 #include "frames.hpp"
 #include "leaves/leaves.hpp"
 #include "offboard_link.hpp"
+#include "route.hpp"
 
 namespace spar_air {
 
@@ -39,9 +40,10 @@ class BtExecutive : public rclcpp::Node {
 public:
   BtExecutive() : rclcpp::Node("bt_executive") {
     declare_parameter("tick_rate_hz", 10.0);
-    declare_parameter("patrol_radius_m", 4.0);
+    declare_parameter<std::vector<double>>(
+        "patrol_waypoints", std::vector<double>{});
     declare_parameter("cruise_alt_m", 4.0);
-    declare_parameter("aloft_alt_m", 1.5);
+    declare_parameter("takeoff_accept_m", 0.3);
     declare_parameter("accept_radius_m", 0.6);
     declare_parameter("orbit_radius_m", 2.0);
     declare_parameter("orbit_alt_m", 3.0);
@@ -84,25 +86,24 @@ public:
 
     TakeOff::Params takeoff_params;
     takeoff_params.cruise_alt_m = get_parameter("cruise_alt_m").as_double();
-    takeoff_params.aloft_alt_m = get_parameter("aloft_alt_m").as_double();
+    takeoff_params.accept_altitude_m =
+        get_parameter("takeoff_accept_m").as_double();
     factory.registerBuilder<TakeOff>(
         "TakeOff",
         [this, takeoff_params](const std::string& name, const BT::NodeConfig& config) {
           return std::make_unique<TakeOff>(name, config, *link_, takeoff_params);
         });
 
-    const double patrol_radius = get_parameter("patrol_radius_m").as_double();
-    if (patrol_radius <= 0.0) {
-      throw std::runtime_error("patrol_radius_m must be positive");
+    const auto waypoint_parameter = get_parameter("patrol_waypoints");
+    if (waypoint_parameter.get_type() !=
+        rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY) {
+      throw std::runtime_error("patrol_waypoints must be a double array");
     }
-    std::vector<GotoWaypoint::Waypoint> waypoints{
-        {patrol_radius, 0.0},
-        {0.0, -patrol_radius},
-        {-patrol_radius, 0.0},
-        {0.0, patrol_radius},
-    };
+    const auto waypoints =
+        parsePatrolWaypoints(waypoint_parameter.as_double_array());
+    RCLCPP_INFO(get_logger(), "using %zu configured 3D patrol waypoints",
+                waypoints.size());
     GotoWaypoint::Params goto_params;
-    goto_params.cruise_alt_m = takeoff_params.cruise_alt_m;
     goto_params.accept_radius_m = get_parameter("accept_radius_m").as_double();
     factory.registerBuilder<GotoWaypoint>(
         "GotoWaypoint",

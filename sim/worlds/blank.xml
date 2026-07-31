@@ -1,7 +1,6 @@
 <!-- The blank world. This file IS the world: the sim and host viewer load it
-     directly, and `make lint` validates its geometry against the robot's
-     declared scan site. Obstacle sizes and poses are parity constants
-     transcribed from the retired Unity scene, not layout suggestions.
+     directly. Obstacle sizes and poses are parity constants transcribed from
+     the retired Unity scene, not layout suggestions.
 
      Robot behavior is world-independent; new worlds only need geometry and
      the robot includes. -->
@@ -37,8 +36,8 @@
          explicit even though the navigation costmaps are rolling. -->
     <geom name="floor" type="plane" size="20 20 1" material="grid"/>
 
-    <!-- Obstacles. Everything solid must cross the Husky's declared scan
-         plane or lint_world.py flags it as a stealth obstacle. -->
+    <!-- Obstacles. Solids cross the Husky's declared scan plane so its lidar
+         can detect them. -->
     <geom name="rack_a" type="box" size="0.8 0.3 0.6" pos="4 1.5 0.6"
           rgba="0.5 0.52 0.55 1"/>
     <geom name="rack_b" type="box" size="0.8 0.3 0.6" pos="-4 -1.2 0.6"

@@ -39,7 +39,8 @@ public:
   BtExecutive() : rclcpp::Node("bt_executive") {
     declare_parameter("tick_rate_hz", 10.0);
     declare_parameter("goal_frame", "map");
-    declare_parameter("patrol_radius_m", 2.5);
+    declare_parameter<std::vector<double>>(
+        "patrol_waypoints", std::vector<double>{});
     declare_parameter("dock_x", 0.0);
     declare_parameter("dock_y", 0.0);
     declare_parameter("dock_yaw", 0.0);
@@ -93,16 +94,29 @@ public:
     RoundsLeaf::Waypoint dock{get_parameter("dock_x").as_double(),
                               get_parameter("dock_y").as_double(),
                               get_parameter("dock_yaw").as_double()};
-    const double radius = get_parameter("patrol_radius_m").as_double();
-    if (radius <= 0.0) {
-      throw std::runtime_error("patrol_radius_m must be positive");
+    std::vector<RoundsLeaf::Waypoint> waypoints;
+    const auto waypoint_parameter = get_parameter("patrol_waypoints");
+    if (waypoint_parameter.get_type() !=
+        rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY) {
+      throw std::runtime_error("patrol_waypoints must be a double array");
     }
-    std::vector<RoundsLeaf::Waypoint> waypoints{
-        {dock.x - radius, dock.y + radius, 0.0},
-        {dock.x + radius, dock.y + radius, -M_PI / 2.0},
-        {dock.x + radius, dock.y - radius, M_PI},
-        {dock.x - radius, dock.y - radius, M_PI / 2.0},
-    };
+    const auto configured_waypoints = waypoint_parameter.as_double_array();
+    if (configured_waypoints.size() < 9 ||
+        configured_waypoints.size() % 3 != 0) {
+      throw std::runtime_error(
+          "patrol_waypoints must contain at least three x, y, yaw triples");
+    }
+    for (size_t i = 0; i < configured_waypoints.size(); i += 3) {
+      if (!std::isfinite(configured_waypoints[i]) ||
+          !std::isfinite(configured_waypoints[i + 1]) ||
+          !std::isfinite(configured_waypoints[i + 2])) {
+        throw std::runtime_error("patrol_waypoints values must be finite");
+      }
+      waypoints.push_back({configured_waypoints[i], configured_waypoints[i + 1],
+                           configured_waypoints[i + 2]});
+    }
+    RCLCPP_INFO(get_logger(), "using %zu configured patrol waypoints",
+                waypoints.size());
     const int max_retries =
         static_cast<int>(get_parameter("waypoint_max_retries").as_int());
 

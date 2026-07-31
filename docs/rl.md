@@ -26,7 +26,7 @@ infrastructure:
 - observation: downsampled planar lidar plus a relative local goal;
 - action: linear and angular velocity;
 - task: reach the goal without collision;
-- worlds: the fixed prompts and seeds recorded by worldgen;
+- worlds: accepted Blender scenes and their recorded prompts and manifests;
 - baseline: the existing Nav2 behavior on the same start and goal pairs;
 - deployment: a BT leaf with the same halt and stale-input behavior as the
   existing navigation leaves.

@@ -122,10 +122,6 @@ RoundsLeaf::RoundsLeaf(const std::string& name, const BT::NodeConfig& config,
       max_retries_(max_retries) {}
 
 std::optional<geometry_msgs::msg::PoseStamped> RoundsLeaf::next_goal() {
-  if (waypoints_.empty()) {
-    RCLCPP_ERROR_ONCE(node_.get_logger(), "Rounds: no waypoints configured");
-    return std::nullopt;
-  }
   const Waypoint& wp = waypoints_[index_];
   return make_pose(wp.x, wp.y, wp.yaw, goal_frame_, node_.now());
 }

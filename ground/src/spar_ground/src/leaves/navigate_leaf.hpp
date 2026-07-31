@@ -68,7 +68,7 @@ private:
   rclcpp::Duration hold_success_;
 };
 
-// The rounds: cycles through the procedural patrol goals forever. A goal that
+// The rounds: cycles through the configured patrol goals forever. A goal that
 // keeps failing is skipped after max_retries so one blocked corner doesn't
 // wedge the whole route.
 class RoundsLeaf : public NavigateLeaf {
