@@ -2,7 +2,7 @@
 cmd_vel, and runs the PX4 lockstep link. Run it headless in the sim
 container:
 
-    MUJOCO_GL=egl WORLD=blank python3 -m spar_sim.sim
+    MUJOCO_GL=egl WORLD=utility_depot_40_v2 python3 -m spar_sim.sim
 
 Two threads: this main thread owns MjData (step, publish, pace); an rclpy
 spin thread services the cmd_vel subscription and nothing else. The ROS
@@ -43,7 +43,7 @@ CMD_TIMEOUT_SEC = 0.5
 
 
 def world_path():
-    world = os.environ.get("WORLD", "blank")
+    world = os.environ.get("WORLD", "utility_depot_40_v2")
     return os.path.normpath(os.path.join(
         os.path.dirname(__file__), "..", "worlds", f"{world}.xml"))
 

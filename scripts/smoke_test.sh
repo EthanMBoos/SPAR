@@ -52,14 +52,14 @@ wait_for "navigate_to_pose action" 180 \
 log "3/7 robot must boot idle (no mission commanded yet)"
 wait_for "active_leaf == Idle" 60 "[ \"\$(active_leaf)\" = Idle ]" || exit $FAIL
 
-log "4/7 starting the mission -> tree goes to work (the drum is visible"
-log "    from the dock, so Inspect may fire before the first patrol goal)"
+log "4/7 starting the mission -> tree goes to work (the generated route"
+log "    exposes the drum early, so Inspect may precede the first goal)"
 ros2 topic pub --once "$NS/mission/command" std_msgs/msg/String '{data: start}' >/dev/null
 wait_for "active_leaf is Rounds or Inspect" 60 \
   "[ \"\$(active_leaf)\" = Rounds ] || [ \"\$(active_leaf)\" = Inspect ]" || exit $FAIL
 
 log "4b/7 the red drum gets inspected"
-wait_for "active_leaf == Inspect" 180 "[ \"\$(active_leaf)\" = Inspect ]" || exit $FAIL
+wait_for "active_leaf == Inspect" 300 "[ \"\$(active_leaf)\" = Inspect ]" || exit $FAIL
 
 log "4c/7 inspection ends (cooldown) and the rounds take over"
 wait_for "active_leaf == Rounds" 120 "[ \"\$(active_leaf)\" = Rounds ]" || exit $FAIL
@@ -76,5 +76,5 @@ wait_for "active_leaf == Rounds again" 60 "[ \"\$(active_leaf)\" = Rounds ]" || 
 ros2 topic pub --once "$NS/mission/command" std_msgs/msg/String '{data: stop}' >/dev/null
 wait_for "stop preempts back to Idle" 30 "[ \"\$(active_leaf)\" = Idle ]" || exit $FAIL
 
-log "PASS: idle -> start -> rounds -> low battery -> dock -> recharge -> rounds -> stop"
+log "PASS: idle -> start -> inspect -> rounds -> low battery -> dock -> recharge -> rounds -> stop"
 exit $PASS

@@ -102,18 +102,18 @@ loudly instead of five minutes into a smoke run.
 
 ### 4. Blender world export
 
-Required after changes to `scripts/export_blender_world.py`,
-`scripts/check_world_export.py`, or the BlenderMCP scene contract:
+Required after changes to `worldgen/export.py`, `worldgen/check_export.py`,
+or the BlenderMCP scene contract:
 
 ```bash
 uv sync --managed-python --locked
 uv run --locked python -m py_compile \
-  scripts/export_blender_world.py scripts/check_world_export.py
+  worldgen/export.py worldgen/check_export.py
 open -n -W -a Blender --args --background \
-  "$PWD/artifacts/worldgen/utility_depot_40_v1/waypoints.blend" \
-  --python "$PWD/scripts/export_blender_world.py" -- \
-  --world utility_depot_40_v1 --world-waypoints
-uv run --locked python scripts/check_world_export.py utility_depot_40_v1
+  "$PWD/artifacts/worldgen/utility_depot_40_v2/waypoints.blend" \
+  --python "$PWD/worldgen/export.py" -- \
+  --world utility_depot_40_v2 --world-waypoints
+uv run --locked python worldgen/check_export.py utility_depot_40_v2
 ```
 
 Success is `[world-export] OK` plus nonzero visual-mesh and collision-proxy
@@ -148,11 +148,11 @@ false PASS against code that isn't the code you're verifying.
 make shut_down    # clean slate, whatever was running before
 mkdir -p ground/build ground/install logs
 docker compose -f docker/compose.yaml up --build -d # nothing builds or launches yet (never `make ros2_container`, see ground rules)
-make start_sim WORLD=utility_depot_40_v1
+make start_sim WORLD=utility_depot_40_v2
 sleep 10 && grep -m1 "sim ids ok" logs/sim.log   # retry until it appears
 grep -m1 "camera sensor mounted" logs/sim.log
 docker exec spar bash -lc 'source /opt/ros/jazzy/setup.bash && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
-docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_ground autonomy.launch.py world:=utility_depot_40_v1'
+docker exec -d spar bash -lc 'source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && ros2 launch spar_ground autonomy.launch.py world:=utility_depot_40_v2'
 # bash -lc matters here, not bash -c: ROS_LOG_DIR is exported via
 # /etc/profile.d (see docker/entrypoint.sh), which only login shells source
 
@@ -225,13 +225,13 @@ the sim clock must not rewind under it).
 make shut_down
 mkdir -p ground/build ground/install logs air/build air/install logs/air
 docker compose -f docker/compose.yaml --profile air up --build -d
-make start_sim WORLD=utility_depot_40_v1
+make start_sim WORLD=utility_depot_40_v2
 # wait for "sim ids ok" and "px4 link ids ok" in logs/sim.log
 docker exec spar-air bash -lc 'source /ws/scripts/env.sh && cd /ws && colcon --log-base /ws/build/log build --symlink-install'
 docker exec -d spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1'
 # wait for "px4 lockstep engaged" in logs/sim.log, then:
 docker exec spar-air bash -c 'cd /opt/px4/build/px4_sitl_zenoh && ./bin/px4-zenoh start'
-docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=utility_depot_40_v1'
+docker exec -d spar-air bash -lc 'source /ws/scripts/env.sh && ros2 launch spar_air air.launch.py world:=utility_depot_40_v2'
 make smoke_air         # ~4-6 min; phase 1 alone waits out PX4 boot + EKF2
 make stop_sim
 ```

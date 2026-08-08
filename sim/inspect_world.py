@@ -12,7 +12,7 @@ import mujoco.viewer
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--world", default="blank")
+    parser.add_argument("--world", default="utility_depot_40_v2")
     args = parser.parse_args()
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -22,7 +22,7 @@ def main():
     if not os.path.isfile(path):
         sys.exit(
             f"world '{args.world}' does not exist at {path}\n"
-            "export it first with scripts/export_blender_world.py")
+            "export it first with worldgen/export.py")
 
     # Compile on this thread so missing assets and invalid MJCF retain their
     # useful MuJoCo error instead of becoming the viewer's "unknown exception".

@@ -1,7 +1,7 @@
 """The viewer: a native mujoco.viewer window on the host, synced to the
 running sim over its qpos stream. Runs from the repo venv:
 
-    make view          (sim/viewer.py --world blank)
+    make view          (sim/viewer.py --world utility_depot_40_v2)
 
 Loads the same MJCF the sim loaded and copies time + qpos from the stream
 into a passive viewer. View only, strictly one way: commands, teleop, and
@@ -10,7 +10,7 @@ viewer that can push on the world quietly breaks eval honesty). Kill it
 and reattach mid-run; the sim never notices.
 
 For a world with no sim running, use the repository inspector:
-    make inspect WORLD=blank
+    make inspect WORLD=utility_depot_40_v2
 """
 
 import argparse
@@ -37,7 +37,8 @@ def read_exact(sock, n):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--world", default=os.environ.get("WORLD", "blank"))
+    ap.add_argument(
+        "--world", default=os.environ.get("WORLD", "utility_depot_40_v2"))
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=9000)
     args = ap.parse_args()

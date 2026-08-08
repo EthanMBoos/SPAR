@@ -10,7 +10,7 @@
 #   (in that shell) colcon build --symlink-install   # first build
 #   (in that shell) cd build/spar_ground && make   # NOT cmake .. && make;
 #                    colcon's build dir caches its own source path, plain make is correct
-#   (in that shell) ros2 launch spar_ground autonomy.launch.py world:=blank
+#   (in that shell) ros2 launch spar_ground autonomy.launch.py
 #                    logs go to logs/runNNN automatically (ROS_LOG_DIR is set
 #                    once per container start, see docker/entrypoint.sh)
 #
@@ -26,7 +26,10 @@
 COMPOSE   := docker compose -f docker/compose.yaml
 CONTAINER := spar
 LAUNCH    := spar_ground autonomy.launch.py
-WORLD     ?= blank
+WORLD     ?= utility_depot_40_v2
+SEED      ?=
+BRIEF     ?=
+WORLDGEN_ARGS ?=
 ROS_ENV   := source /ws/scripts/env.sh
 
 # The *_air targets below are two-line aliases onto this TRACK switch,
@@ -46,10 +49,15 @@ ifeq ($(TRACK),air)
 endif
 COMPOSE_ALL := docker compose -f docker/compose.yaml --profile air
 
-.PHONY: help ros2_container ros2_container_air clean shut_down start_sim stop_sim view inspect shell shell_air tail tail_air smoke smoke_air rviz
+.PHONY: help worldgen ros2_container ros2_container_air clean shut_down start_sim stop_sim view inspect shell shell_air tail tail_air smoke smoke_air rviz
 
 help:           ## list commands
 	@grep -E '^[a-z0-9_-]+: .*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
+
+worldgen: export SPAR_WORLDGEN_SEED := $(SEED)
+worldgen: export SPAR_WORLDGEN_BRIEF := $(BRIEF)
+worldgen:       ## generate, export, and validate one world (set WORLD; optionally SEED and BRIEF)
+	uv run python -m worldgen $(WORLD) $(WORLDGEN_ARGS)
 
 ros2_container: ## build + start the container (nothing built or launched yet) and drop you into a shell
 	@mkdir -p $(WORKDIRS)

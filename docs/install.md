@@ -57,7 +57,27 @@ In Blender:
 2. Select `/tmp/blender_mcp_addon.py`.
 3. Enable **Interface: Blender MCP**.
 4. In the 3D View, press `N` and open the **BlenderMCP** tab.
-5. Enable **Poly Haven** for the utility-depot prompts.
+
+Leave **Poly Haven** disabled. The current world-generation families do not use
+downloaded assets.
+
+### Configure Claude Code
+
+`worldgen/mcp.json` configures BlenderMCP for Claude Code. The worldgen runner
+passes that file explicitly, starts Blender's listener automatically, and
+drives each authoring stage in a fresh model-pinned Claude process. Verify that
+the installed family bank is available:
+
+```bash
+uv run python -m worldgen.stage --list
+```
+
+The runner explicitly selects Sonnet at medium effort, overriding a user-level
+default such as Opus or high effort. It starts one non-interactive Claude
+session per bounded prompt. The MCP config disables telemetry and uses the
+local Blender server on port 9876. Continue with the one-command flow in the
+[top-level README](../README.md), or use [worldgen/README.md](../worldgen/README.md)
+for manual family qualification and debugging.
 
 ### Configure Claude Desktop
 
@@ -79,7 +99,8 @@ the command with the output of `which uvx`:
       "env": {
         "UV_PYTHON_PREFERENCE": "only-managed",
         "BLENDER_HOST": "localhost",
-        "BLENDER_PORT": "9876"
+        "BLENDER_PORT": "9876",
+        "DISABLE_TELEMETRY": "true"
       }
     }
   }
@@ -99,7 +120,8 @@ Use BlenderMCP to inspect the current Blender scene. Do not modify it. Report
 the object names, then stop.
 ```
 
-Continue with the world-generation workflow in the [README](../README.md).
+Continue with the visible world-generation workflow in the
+[README](../README.md).
 
 ## Ubuntu
 

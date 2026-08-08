@@ -21,9 +21,12 @@
      The tuning, all parity constants:
       - Drive spheres: r 0.165 (the real wheel radius, so v = omega*r holds),
         sliding friction 0.9, hinge damping 0.2 as rolling resistance.
-      - Casters: near-frictionless (0.005) with priority="1". The priority is
+      - Drive spheres use priority="1", so their declared 0.9 friction wins
+        over a world's default ground friction instead of being raised to 1.0
+        by MuJoCo's equal-priority maximum rule.
+      - Casters: near-frictionless (0.005) with priority="2". The priority is
         load-bearing: MuJoCo resolves a contact pair with the HIGHER-priority
-        geom's friction, so without it the floor's friction (1.0) would win
+        geom's friction, so without it the floor's friction would win
         the pairing and the "frictionless" casters would drag:
         https://mujoco.readthedocs.io/en/stable/computation/index.html#contact-parameters
       - Actuators: proportional velocity servos (gain 35, bias -35: force =
@@ -61,10 +64,10 @@
       <geom name="camera_body" type="box" size="0.015 0.045 0.015" pos="0.42 0 0.28"
             mass="0.1" rgba="0.2 0.2 0.25 1"/>
       <geom name="caster_front" type="sphere" size="0.164" pos="0.3 0 -0.036"
-            group="3" priority="1" friction="0.005 0.001" mass="1"
+            group="3" priority="2" friction="0.005 0.001" mass="1"
             rgba="0.25 0.25 0.25 1"/>
       <geom name="caster_rear" type="sphere" size="0.164" pos="-0.3 0 -0.036"
-            group="3" priority="1" friction="0.005 0.001" mass="1"
+            group="3" priority="2" friction="0.005 0.001" mass="1"
             rgba="0.25 0.25 0.25 1"/>
       <site name="lidar2d_0_laser" pos="0.3 0 0.37" size="0.01"/>
       <site name="camera_0_link" pos="0.44 0 0.28" size="0.01"/>
@@ -75,12 +78,12 @@
       <body name="wheel_left" pos="0 0.2854 -0.035">
         <joint name="wheel_left_j" axis="0 1 0" damping="0.2"/>
         <geom name="drive_wheel_left" type="sphere" size="0.165" group="3"
-              friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
+              priority="1" friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
       </body>
       <body name="wheel_right" pos="0 -0.2854 -0.035">
         <joint name="wheel_right_j" axis="0 1 0" damping="0.2"/>
         <geom name="drive_wheel_right" type="sphere" size="0.165" group="3"
-              friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
+              priority="1" friction="0.9" mass="2.6" rgba="0.1 0.1 0.1 1"/>
       </body>
     </body>
   </worldbody>

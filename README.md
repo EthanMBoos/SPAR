@@ -1,15 +1,15 @@
 # SPAR - Sim Portable Autonomy Runtime
 
-![Generated 40 by 40 meter utility depot](docs/assets/utility_depot_40_v1.png)
+![Generated 40 by 40 meter utility depot](docs/assets/utility_depot_40_v2.png)
 
-*The committed `utility_depot_40_v1` showcase, authored in Blender through
+*The default `utility_depot_40_v2` world, authored in Blender through
 BlenderMCP and exported for MuJoCo.*
 
 ```text
   description   "a gravel utility depot with racks, barrels, and a red drum"
        |
        v
-   author       BlenderMCP -> visual scene + collision proxies
+   author       BlenderMCP -> visual scene + physical assembly metadata
        |
        v
     export      deterministic Blender -> OBJ/PNG + MJCF
@@ -49,122 +49,36 @@ before using the commands below. It contains the exact macOS setup used for
 SPAR and a shorter Linux equivalent. This README assumes Docker is running,
 `uv sync` has completed, and BlenderMCP is connected.
 
-## World generation
+## Generate a world
 
-Why generate worlds at all? The leading approach to visuomotor policy learning
-is uptraining a large pretrained vision-language or video model into an
-action-output model, which inherits broad scene understanding and spends its
-data budget mapping that to trajectories. It generalizes well in-distribution
-and degrades on the tail: rare geometry, unfamiliar clutter, degenerate
-lighting. Those configurations are sparse in the pretraining corpus and rare in
-teleop. Field data only ever contains failures already encountered, and
-collecting it needs a fleet. This pipeline is a bet that compositional
-generation with LLMs in the loop can synthesize those out-of-sample
-configurations on purpose, cheaply, before deployment surfaces them. See
-[the research direction](docs/research.md).
-
-BlenderMCP owns the generated layout and visual scene. The accepted `.blend`
-contains detailed render geometry, explicit simple collision proxies, and
-semantic sites. A deterministic exporter turns that scene into the OBJ/PNG
-assets and MJCF consumed by SPAR.
-
-For now, every newly generated environment is exactly 40×40 m. The autonomy
-stack's current patrol behavior does not dynamically explore an unknown scene:
-it navigates between explicit patrol goals. Its demo workflow therefore
-includes a dedicated final BlenderMCP pass that sees the completed layout and
-places reachable waypoints through its aisles.
-
-### Generate and run a world
-
-World creation happens in the AI client connected to BlenderMCP; the repository
-owns the prompts, scene contract, export, and runtime steps.
-
-1. Choose a lowercase world name and open a new Blender scene. Load
-   [the utility-depot prompts](prompts/utility_depot.md) and send all three in
-   order: initial 40×40 layout, detailing, then the
-   recommended world-authored waypoint pass. That final prompt sends Blender
-   the autonomy contract for marker names, order, aisle clearance, headings,
-   and anomaly visibility. Replace `<REPO>` and `<WORLD>` before sending them.
-
-2. Export the accepted waypoint scene. `--world-waypoints` reads the ordered
-   Blender markers and writes two plain YAML parameter files:
-
-   - `ground/src/spar_ground/config/worlds/<world>.yaml` contains the ground
-     route as `[x, y, yaw, ...]`.
-   - `air/src/spar_air/config/worlds/<world>.yaml` contains the air route as
-     `[x, y, z, yaw, ...]`.
-
-   The same export writes the world's MJCF and visual assets:
+Choose a new world name and run the complete visible authoring, export, and
+validation pipeline:
 
 ```bash
-WORLD=utility_depot_40_v1
-
-open -n -W -a Blender --args --background \
-  "$PWD/artifacts/worldgen/$WORLD/waypoints.blend" \
-  --python "$PWD/scripts/export_blender_world.py" -- \
-  --world "$WORLD" --world-waypoints
+make worldgen WORLD=utility_depot_trial_01 SEED=42 \
+  BRIEF='Denser west-side storage and a more weathered shed.'
 ```
 
-3. Compile the exported MJCF and inspect it visually. These are ordinary
-   Python scripts; no Make target is involved:
+The command opens clean Blender, runs the family's bounded prompts in order,
+exports the final scene and routes, and validates the resulting MuJoCo world.
+`WORLD` is only the output identity. `SEED` controls repeatable repo-owned
+sampling, while `BRIEF` supplies one supported family-instance override; both
+are optional and recorded with the generated artifacts. World names are
+normalized to lowercase; other characters remain limited to letters, digits,
+and underscores for filesystem and MJCF identifiers.
+It does not require manual approval between stages. Family development,
+individual stage commands, checkpoint inspection, resume procedures, and
+debugging are documented inside the [world-generation subsystem](worldgen/README.md).
+The research motivation is in [docs/research.md](docs/research.md).
 
-```bash
-uv run python scripts/check_world_export.py "$WORLD"
-uv run mjpython sim/inspect_world.py --world "$WORLD"  # macOS
-# On Linux: uv run python sim/inspect_world.py --world "$WORLD"
-```
+`utility_depot_40_v2` is the repository default and committed runnable
+showcase, including its MJCF, OBJ/PNG assets, and ground and air waypoint files.
 
-4. Start that exact world in MuJoCo from the host:
+## Ground quickstart: default utility depot
 
-```bash
-make start_sim WORLD="$WORLD"
-make view WORLD="$WORLD"  # optional live viewer; leave the sim running
-```
-
-5. In a second terminal, build and launch ground autonomy with the matching
-   waypoint file. `world:=<name>` selects
-   `config/worlds/<name>.yaml`:
-
-```bash
-make ros2_container
-
-# Now inside the container:
-colcon build --symlink-install
-source install/setup.bash
-WORLD=utility_depot_40_v1
-ros2 launch spar_ground autonomy.launch.py world:="$WORLD"
-```
-
-6. In another host terminal, start the mission and observe its active behavior:
-
-```bash
-make shell
-
-# Now inside the container:
-scripts/mission.sh start
-ros2 topic echo /husky/bt/status
-scripts/mission.sh stop
-```
-
-With the simulator and autonomy launch still running, `make smoke` from the
-host exercises the complete patrol, inspection, battery-return, recharge, and
-resume arc.
-
-`utility_depot_40_v1` is committed as the runnable showcase, including its
-MJCF, OBJ/PNG assets, and ground and air waypoint files. New generated worlds
-and editable Blender files remain local until deliberately promoted the same
-way.
-`--world-waypoints` is only needed by behaviors that consume explicit patrol
-goals. A future behavior that dynamically plans its own route can omit the
-waypoint pass and flag; the exporter will create the world without autonomy
-waypoint files. See [world generation](docs/worldgen.md) for the complete scene
-and export contracts.
-
-## Ground quickstart: handwritten blank world
-
-This shorter path uses `blank.xml` and the explicit waypoint file in
-`config/worlds/blank.yaml`; generated worlds should use the complete workflow
-above. Complete the install guide first.
+This path runs the tested `utility_depot_40_v2` world and its matching waypoint
+file by default. `blank.xml` remains available as a small explicit fixture via
+`WORLD=blank` and `world:=blank`.
 
 Start the sim:
 
@@ -181,7 +95,7 @@ make ros2_container
 # Inside the container:
 colcon build --symlink-install
 source install/setup.bash
-ros2 launch spar_ground autonomy.launch.py world:=blank
+ros2 launch spar_ground autonomy.launch.py
 ```
 
 In another container shell:
@@ -209,18 +123,16 @@ avoid obstacles dynamically. Export checks that route against the world's
 collision geometry.
 
 ```bash
-WORLD=utility_depot_40_v1
-make start_sim WORLD="$WORLD"
+make start_sim
 make ros2_container_air
 
 # Inside the container:
 colcon build --symlink-install
-WORLD=utility_depot_40_v1
 cd /opt/px4/build/px4_sitl_zenoh
 PX4_SYS_AUTOSTART=10016 PX4_SIM_MODEL=none_iris \
   PX4_SIM_HOSTNAME=localhost ./bin/px4 -d > /tmp/px4.log 2>&1 &
 ./bin/px4-zenoh start
-ros2 launch spar_air air.launch.py world:="$WORLD"
+ros2 launch spar_air air.launch.py
 ```
 
 After PX4's estimator settles:
@@ -268,8 +180,9 @@ Run `make` to list all stable commands. The common ones are:
 
 | Task | Command |
 | --- | --- |
+| Generate, export, and validate a new world | `make worldgen WORLD=<name> [SEED=<n>] [BRIEF='...']` |
 | Start or stop MuJoCo | `make start_sim`, `make stop_sim` |
-| Inspect one world without ROS (macOS) | `uv run mjpython sim/inspect_world.py --world blank` |
+| Inspect the default world without ROS (macOS) | `uv run mjpython sim/inspect_world.py` |
 | Enter the running ground container | `make shell` |
 | Enter the running air container | `make shell_air` |
 | Open RViz in a browser | `make rviz` |

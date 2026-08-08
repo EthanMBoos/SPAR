@@ -51,7 +51,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("namespace", default_value="skydio"),
         DeclareLaunchArgument(
-            "world", default_value="",
+            "world", default_value="utility_depot_40_v2",
             description="world name selecting the required 3D air route"),
         OpaqueFunction(function=launch_stack),
     ])
