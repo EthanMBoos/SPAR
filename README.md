@@ -1,6 +1,6 @@
 # SPAR - Sim Portable Autonomy Runtime
 
-![Generated 40 by 40 meter utility depot](docs/assets/utility_depot_40_v2.png)
+https://github.com/user-attachments/assets/d33431ac-4db0-448b-80e7-903b282471d2
 
 *The default `utility_depot_40_v2` world, authored in Blender through
 BlenderMCP and exported for MuJoCo.*
