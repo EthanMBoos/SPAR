@@ -2,28 +2,8 @@
 
 https://github.com/user-attachments/assets/d33431ac-4db0-448b-80e7-903b282471d2
 
-*The default `utility_depot_40_v2` world, authored in Blender through
-BlenderMCP and exported for MuJoCo.*
-
-```text
-  description   "a gravel utility depot with racks, barrels, and a red drum"
-       |
-       v
-   author       BlenderMCP -> visual scene + physical assembly metadata
-       |
-       v
-    export      deterministic Blender -> OBJ/PNG + MJCF
-       |
-       v
-   world.xml    the site alone; robots compose on at load time
-       |
-       v
-      run       SPAR-GroundNav-v0   pure MuJoCo, PPO, no ROS
-                sim/spar_sim        Nav2 + BT (ground), PX4 + BT (air)
-       |
-       v
-  each failure becomes the next description
-```
+*The default `utility_depot_40_v2` world, authored with Claude Sonnet via BlenderMCP
+and exported for MuJoCo.*
 
 SPAR is a small robotics playground for learning ROS2, Nav2, behavior trees,
 PX4, and MuJoCo. It is also a testbed for generating many diverse worlds
@@ -50,6 +30,26 @@ SPAR and a shorter Linux equivalent. This README assumes Docker is running,
 `uv sync` has completed, and BlenderMCP is connected.
 
 ## Generate a world
+
+```text
+ WORLD (output identity) + SEED (repo-owned choices) + BRIEF (supported override)
+                                      |
+                                      v
+             recorded family recipe, stage seeds, and source hashes
+                                      |
+                                      v
+       16 LLM-to-BlenderMCP calls, one per stage, sharing one visible Blender scene
+          plan -> build -> detail/materials -> render -> ground/air routes
+                                      |
+                                      v
+                         deterministic export
+                                      |
+                                      v
+              MJCF + visual/collision meshes + route YAML
+                                      |
+                                      v
+                  MJCF, asset, route, and rollout validation
+```
 
 Choose a new world name and run the complete visible authoring, export, and
 validation pipeline:
