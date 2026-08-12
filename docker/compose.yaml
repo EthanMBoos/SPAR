@@ -1,0 +1,101 @@
+services:
+  # Infra only: the zenoh router (scripts/core.sh). It owns the network
+  # namespace and every published port; the robot and sim containers join
+  # it below.
+  core:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: spar:jazzy
+    container_name: spar-core
+    command: /ws/scripts/core.sh
+    # No logs mount on purpose: the entrypoint only claims a logs/runNNN
+    # dir when /ws/logs exists, and core has nothing worth a run dir.
+    volumes:
+      - ../scripts:/ws/scripts
+    # Every published port lives here; Docker forbids `ports:` on a service
+    # that joins another's network namespace.
+    ports:
+      - "127.0.0.1:9000:9000" # the sim's qpos stream for the host viewer
+                              # (sim/viewer.py) — loopback only, view only
+      - "127.0.0.1:6080:6080" # noVNC — loopback only, it's an unauthenticated
+                              # remote desktop (Xvnc -SecurityTypes None)
+      # No MAVLink HIL port: PX4's simulator_mavlink is the TCP client and
+      # dials the sim's listener on localhost:4560 inside this namespace.
+    init: true
+    stop_grace_period: 10s
+
+  # THE SIM: python + mujoco + rclpy, headless. Nothing robot-shaped
+  # launches automatically — the sim process itself is started explicitly
+  # by `make start_sim` (and stopped by `make stop_sim`).
+  sim:
+    image: spar:jazzy
+    container_name: spar-sim
+    command: sleep infinity
+    network_mode: "service:core"
+    depends_on: [core]
+    volumes:
+      - ../sim:/ws/sim
+      - ../third_party:/ws/third_party:ro # vendored robot meshes referenced by MJCF
+      - ../scripts:/ws/scripts
+      - ../logs:/ws/logs
+    init: true
+    stop_grace_period: 10s
+    tty: true
+
+  autonomy:
+    image: spar:jazzy
+    container_name: spar
+    # Nothing launches automatically, see docker/entrypoint.sh. The
+    # container just needs a long-lived foreground process to stay up for
+    # `make ros2_container`/`make shell` to exec into; sleep infinity is that process.
+    command: sleep infinity
+    # Joining core's network namespace makes the containers behave like
+    # processes on one machine: the router, the sim, and every node
+    # reach each other on localhost, and listeners started here (noVNC's
+    # 6080 from `make rviz`) are published by core.
+    network_mode: "service:core"
+    depends_on: [core]
+    # The workspace lives on the host; the image is just the environment.
+    # build/ + install/ are written by colcon in the container, run by hand
+    # (see README); logs/ gets one runNNN per launch.
+    volumes:
+      - ../ground/src/spar_ground:/ws/src/spar_ground
+      - ../common/src/spar_perception:/ws/src/spar_perception:ro
+      - ../scripts:/ws/scripts
+      - ../ground/build:/ws/build
+      - ../ground/install:/ws/install
+      - ../logs:/ws/logs
+    init: true # reaps zombies from `make rviz`'s Xvnc/rviz2/websockify trio;
+               # PID 1 here is `sleep infinity`, which never reaps on its own
+    stop_grace_period: 10s
+    tty: true
+
+  air:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.air
+    image: spar-air:jazzy
+    container_name: spar-air
+    # The profile keeps a bare `docker compose up` from ever building PX4:
+    # only `--profile air` (added by the Makefile when TRACK=air) starts it.
+    profiles: ["air"]
+    command: sleep infinity
+    network_mode: "service:core"
+    depends_on: [core]
+    environment:
+      - NS=/skydio  # scripts/env.sh default is the Husky; this is the drone
+    # Its own workspace mounts: the in-container workflow is the README
+    # workflow, and the ground container never sees px4_msgs. logs/air
+    # keeps run numbering from interleaving with the ground container's.
+    volumes:
+      - ../air/src/spar_air:/ws/src/spar_air
+      - ../common/src/spar_perception:/ws/src/spar_perception:ro
+      - ../common/src/spar_geodesy:/ws/src/spar_geodesy:ro
+      - ../scripts:/ws/scripts
+      - ../air/build:/ws/build
+      - ../air/install:/ws/install
+      - ../logs/air:/ws/logs
+    init: true
+    stop_grace_period: 10s
+    tty: true

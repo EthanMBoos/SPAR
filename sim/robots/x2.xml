@@ -1,0 +1,60 @@
+<!-- The Skydio X2, transcribed from third_party/skydio_x2/x2.xml (MuJoCo
+     Menagerie, meshes by Skydio, Apache 2.0), with upstream's motor
+     actuators deliberately left out: the rotors are a force module. The PX4
+     link (sim/spar_sim/px4_link.py) applies thrust and yaw drag torque at
+     the thrust1..4 sites each step via mj_applyFT, in PX4's rotor order and
+     with PX4's km signs; the site names are that wire contract. Mass lives
+     in the four rotor guards (0.25 each) and the central ellipsoid (0.325),
+     as upstream; the chassis boxes are massless collision shells
+     (density 0). -->
+<mujoco>
+  <asset>
+    <texture type="2d" name="x2_tex"
+             file="../../third_party/skydio_x2/assets/X2_lowpoly_texture_SpinningProps_1024.png"/>
+    <material name="x2_mat" texture="x2_tex"/>
+    <!-- The Menagerie OBJ is authored in centimeters. -->
+    <mesh name="x2_mesh" file="../../third_party/skydio_x2/assets/X2_lowpoly.obj"
+          scale="0.01 0.01 0.01"/>
+  </asset>
+
+  <worldbody>
+    <!-- Pose-neutral model: each world attaches this body and its landing pad
+         at the world-authored X2 spawn. -->
+    <body name="x2" pos="0 0 0.1">
+      <joint name="x2_free" type="free"/>
+      <!-- Visual shell only; the quat is upstream's mesh-to-body mapping.
+           density 0 or the mesh volume adds ~5 kg and the drone can't lift. -->
+      <geom name="x2_visual" type="mesh" mesh="x2_mesh" material="x2_mat"
+            quat="0 0 1 1" contype="0" conaffinity="0" group="2" density="0"/>
+      <geom name="x2_box0" type="box" size="0.06 0.027 0.02" pos="0.04 0 0.02"
+            group="3" density="0"/>
+      <geom name="x2_box1" type="box" size="0.06 0.027 0.02" pos="0.04 0 0.06"
+            group="3" density="0"/>
+      <geom name="x2_box2" type="box" size="0.05 0.027 0.02" pos="-0.07 0 0.065"
+            group="3" density="0"/>
+      <geom name="x2_box3" type="box" size="0.023 0.017 0.01" pos="-0.137 0.008 0.065"
+            quat="1 0 0 1" group="3" density="0"/>
+      <geom name="rotor1" type="ellipsoid" size="0.13 0.13 0.01" pos="-0.14 -0.18 0.05"
+            group="3" mass="0.25"/>
+      <geom name="rotor2" type="ellipsoid" size="0.13 0.13 0.01" pos="-0.14 0.18 0.05"
+            group="3" mass="0.25"/>
+      <geom name="rotor3" type="ellipsoid" size="0.13 0.13 0.01" pos="0.14 0.18 0.08"
+            group="3" mass="0.25"/>
+      <geom name="rotor4" type="ellipsoid" size="0.13 0.13 0.01" pos="0.14 -0.18 0.08"
+            group="3" mass="0.25"/>
+      <geom name="x2_core" type="ellipsoid" size="0.16 0.04 0.02" pos="0 0 0.02"
+            contype="0" conaffinity="0" group="2" mass="0.325"
+            rgba="0 0 0 0"/>
+      <site name="thrust1" pos="-0.14 -0.18 0.05" size="0.01" group="5"/>
+      <site name="thrust2" pos="-0.14 0.18 0.05" size="0.01" group="5"/>
+      <site name="thrust3" pos="0.14 0.18 0.08" size="0.01" group="5"/>
+      <site name="thrust4" pos="0.14 -0.18 0.08" size="0.01" group="5"/>
+      <!-- 45 deg down-forward so patrol legs sweep the ground ahead. The
+           container's tf_from_px4 publishes the matching TF mount and the
+           two must agree: camera_pitch_down_deg in
+           air/src/spar_air/config/autonomy.yaml. -->
+      <camera name="x2_camera" pos="0.1 0 0.05"
+              xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="58"/>
+    </body>
+  </worldbody>
+</mujoco>

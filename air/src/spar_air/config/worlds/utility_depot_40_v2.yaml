@@ -1,0 +1,16 @@
+/**/bt_executive:
+  ros__parameters:
+    cruise_alt_m: 4.1999998
+    orbit_alt_m: 4.1999998
+    datum_latitude_deg: 33.7756
+    datum_longitude_deg: -84.3963
+    datum_altitude_m: 300.0
+    home_x: -2.0
+    home_y: -1.0
+    home_z: 0.0
+    patrol_waypoints: [-3.6936102, 0.49105802, 4.1999998, 1.1136538, 0.0, 8.0, 4.1999998, -1.5707964, 0.0, 0.0, 4.1999998, 2.9441972, -10.0, 2.0, 4.1999998, 0.57637525, 10.0, 15.0, 4.1999998, -3.1415925, -10.0, 15.0, 4.1999998, -1.1071488, -2.0, -1.0, 4.1999998, -1.1071488]
+/**/tf_from_px4:
+  ros__parameters:
+    datum_latitude_deg: 33.7756
+    datum_longitude_deg: -84.3963
+    datum_altitude_m: 300.0

@@ -1,0 +1,114 @@
+<!-- Clearpath Husky A200 visual and sensor model.
+
+     Ground motion is intentionally kinematic: spar_sim advances base_link
+     directly from Nav2's cmd_vel and rotates all four visible wheel joints
+     consistently. This model does not claim to validate motors, tire contact,
+     traction, or skid-steer dynamics. The ROS sensor, localization,
+     navigation, and autonomy layers above that boundary remain active.
+
+     Clearpath dimensions and inertials come from clearpath_common's current
+     A200 description. The vendored BSD-3-Clause meshes preserve the real
+     four-wheel appearance while all Husky geoms remain non-contact visuals.
+
+     Robot-owned contracts consumed by spar_sim:
+       - a custom text entry names the navigation lidar site;
+       - four named wheel joints expose synthetic encoder measurements;
+       - one disabled footprint geom is enabled only for collision queries.
+-->
+<mujoco>
+  <custom>
+    <text name="husky.scan_site" data="lidar2d_0_laser"/>
+  </custom>
+
+  <asset>
+    <mesh name="husky_base_mesh"
+          file="../../third_party/clearpath_a200/assets/base_link.stl"/>
+    <mesh name="husky_top_mesh"
+          file="../../third_party/clearpath_a200/assets/top_chassis.stl"/>
+    <mesh name="husky_outdoor_wheel_mesh"
+          file="../../third_party/clearpath_a200/assets/outdoor_wheel.stl"/>
+    <material name="husky_dark" rgba="0.105 0.115 0.12 1"/>
+    <material name="husky_yellow" rgba="0.95 0.66 0.04 1"/>
+    <material name="husky_tire" rgba="0.10 0.105 0.11 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- base_link is the centre of the A200 bottom plate. Its world height
+         is wheel radius minus Clearpath's 0.03282 m wheel offset. -->
+    <body name="base_link" pos="0 0 0.13228">
+      <freejoint name="base_free"/>
+      <inertial pos="-0.00065 -0.085 0.062" mass="46.034"
+                fullinertia="0.6022 1.7386 2.0296 -0.02364 -0.1197 -0.001544"/>
+
+      <!-- Official visual geometry. -->
+      <geom name="husky_base_visual" type="mesh" mesh="husky_base_mesh"
+            material="husky_dark" contype="0" conaffinity="0" group="1"/>
+      <geom name="husky_top_visual" type="mesh" mesh="husky_top_mesh"
+            material="husky_yellow" contype="0" conaffinity="0" group="1"/>
+
+      <!-- MuJoCo must compile this box as contact-capable to include it in
+           broad-phase queries. KinematicDrive disables it at startup, briefly
+           enables it during mj_forward to reject an overlapping pose, then
+           disables it again before MuJoCo steps. -->
+      <geom name="husky_kinematic_footprint" type="box"
+            size="0.52 0.36 0.10" pos="0 0 0.10"
+            contype="1" conaffinity="1" group="5" rgba="0 0 0 0"/>
+
+      <!-- Simple bumper bars preserve the visual envelope without importing
+           an attachment configuration SPAR does not use. -->
+      <geom name="bumper_front" type="capsule" size="0.018"
+            fromto="0.49 -0.31 0.10 0.49 0.31 0.10"
+            material="husky_dark" contype="0" conaffinity="0" group="1"/>
+      <geom name="bumper_rear" type="capsule" size="0.018"
+            fromto="-0.49 -0.31 0.10 -0.49 0.31 0.10"
+            material="husky_dark" contype="0" conaffinity="0" group="1"/>
+
+      <!-- Existing SPAR payloads retained on the faithful A200 base. -->
+      <geom name="lidar_puck" type="cylinder" size="0.05 0.035"
+            pos="0.30 0 0.33" mass="0.5" rgba="0.2 0.2 0.25 1"
+            contype="0" conaffinity="0" group="1"/>
+      <geom name="camera_body" type="box" size="0.015 0.045 0.015"
+            pos="0.42 0 0.28" mass="0.1" rgba="0.2 0.2 0.25 1"
+            contype="0" conaffinity="0" group="1"/>
+      <site name="lidar2d_0_laser" pos="0.30 0 0.37" size="0.01"/>
+      <site name="camera_0_link" pos="0.44 0 0.28" size="0.01"/>
+      <site name="gps_link" pos="0 0 0.30" size="0.01"/>
+      <site name="imu_link" pos="0 0 0.16" size="0.01"/>
+      <camera name="camera_0" pos="0.44 0 0.28"
+              xyaxes="0 -1 0 0 0 1" fovy="58"/>
+
+      <body name="front_left_wheel_link" pos="0.256 0.2775 0.03282">
+        <joint name="front_left_wheel_joint" axis="0 1 0" damping="0.1"/>
+        <inertial pos="0 0 0" mass="2.637"
+                  diaginertia="0.02084076477 0.035939686185 0.02084076477"/>
+        <geom name="front_left_wheel_visual" type="mesh"
+              mesh="husky_outdoor_wheel_mesh" material="husky_tire"
+              contype="0" conaffinity="0" group="1"/>
+      </body>
+      <body name="front_right_wheel_link" pos="0.256 -0.2775 0.03282">
+        <joint name="front_right_wheel_joint" axis="0 1 0" damping="0.1"/>
+        <inertial pos="0 0 0" mass="2.637"
+                  diaginertia="0.02084076477 0.035939686185 0.02084076477"/>
+        <geom name="front_right_wheel_visual" type="mesh"
+              mesh="husky_outdoor_wheel_mesh" material="husky_tire"
+              contype="0" conaffinity="0" group="1"/>
+      </body>
+      <body name="rear_left_wheel_link" pos="-0.256 0.2775 0.03282">
+        <joint name="rear_left_wheel_joint" axis="0 1 0" damping="0.1"/>
+        <inertial pos="0 0 0" mass="2.637"
+                  diaginertia="0.02084076477 0.035939686185 0.02084076477"/>
+        <geom name="rear_left_wheel_visual" type="mesh"
+              mesh="husky_outdoor_wheel_mesh" material="husky_tire"
+              contype="0" conaffinity="0" group="1"/>
+      </body>
+      <body name="rear_right_wheel_link" pos="-0.256 -0.2775 0.03282">
+        <joint name="rear_right_wheel_joint" axis="0 1 0" damping="0.1"/>
+        <inertial pos="0 0 0" mass="2.637"
+                  diaginertia="0.02084076477 0.035939686185 0.02084076477"/>
+        <geom name="rear_right_wheel_visual" type="mesh"
+              mesh="husky_outdoor_wheel_mesh" material="husky_tire"
+              contype="0" conaffinity="0" group="1"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

@@ -1,0 +1,28 @@
+build/
+install/
+log/
+logs/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+
+# Generated scenes are local experiments. Force-add the rare world that is
+# deliberately promoted to a shared fixture; blank.xml remains a minimal test.
+/sim/worlds/*.xml
+!/sim/worlds/blank.xml
+!/sim/worlds/utility_depot_40_v2.xml
+/sim/worlds/assets/*
+!/sim/worlds/assets/utility_depot_40_v2/
+!/sim/worlds/assets/utility_depot_40_v2/**
+/ground/src/spar_ground/config/worlds/*.yaml
+!/ground/src/spar_ground/config/worlds/blank.yaml
+!/ground/src/spar_ground/config/worlds/utility_depot_40_v2.yaml
+/air/src/spar_air/config/worlds/*.yaml
+!/air/src/spar_air/config/worlds/blank.yaml
+!/air/src/spar_air/config/worlds/utility_depot_40_v2.yaml
+
+# BlenderMCP experiments are large local artifacts. The prompt and validator
+# stay tracked; promote a rare reusable scene deliberately if it earns that.
+/artifacts/worldgen/

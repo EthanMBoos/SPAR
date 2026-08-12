@@ -1,0 +1,1421 @@
+<mujoco model="utility_depot_40_v2">
+  <compiler angle="radian" assetdir="assets/utility_depot_40_v2" />
+  <custom>
+    <numeric name="spar.world_georeference" data="33.7756 -84.3963 300.0" />
+  </custom>
+  <default>
+    <default class="spar_world_visual">
+      <geom contype="0" conaffinity="0" group="2" />
+    </default>
+    <default class="spar_world_collision">
+      <geom contype="1" conaffinity="1" condim="3" group="3" friction="1 0.005 0.0001" rgba="0 0 0 0" />
+    </default>
+    <default class="spar_world_ground">
+      <geom contype="1" conaffinity="1" condim="3" group="4" friction="1 0.005 0.0001" />
+    </default>
+    <default class="spar_world_site">
+      <site size="0.05" group="5" rgba="0.2 0.8 1 0.6" />
+    </default>
+  </default>
+  <option timestep="0.002" integrator="implicitfast" magnetic="0 0 0" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <global azimuth="120" elevation="-20" offwidth="1280" offheight="720" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.55 0.65 0.75" rgb2="0.08 0.1 0.14" width="512" height="3072" />
+    <material name="mat_ground" rgba="0.3 0.25 0.19 1" reflectance="0.05" />
+    <mesh name="mesh_cable" file="mesh_cable.obj" />
+    <material name="mat_cable" rgba="0.07 0.07 0.08 1" />
+    <mesh name="mesh_cone_orange" file="mesh_cone_orange.obj" />
+    <material name="mat_cone_orange" rgba="0.82 0.24 0.02 1" />
+    <mesh name="mesh_galvanized_steel" file="mesh_galvanized_steel.obj" />
+    <material name="mat_galvanized_steel" rgba="0.6 0.62 0.65 1" />
+    <mesh name="mesh_ground_dirt" file="mesh_ground_dirt.obj" />
+    <material name="mat_ground_dirt" rgba="0.3 0.25 0.19 1" />
+    <mesh name="mesh_inspection_red" file="mesh_inspection_red.obj" />
+    <material name="mat_inspection_red" rgba="0.62 0.04 0.04 1" />
+    <mesh name="mesh_pipe" file="mesh_pipe.obj" />
+    <material name="mat_pipe" rgba="0.44 0.46 0.49 1" />
+    <mesh name="mesh_plastic" file="mesh_plastic.obj" />
+    <material name="mat_plastic" rgba="0.18 0.42 0.52 1" />
+    <mesh name="mesh_weathered_metal" file="mesh_weathered_metal.obj" />
+    <material name="mat_weathered_metal" rgba="0.33 0.34 0.36 1" />
+    <mesh name="mesh_wood" file="mesh_wood.obj" />
+    <material name="mat_wood" rgba="0.52 0.36 0.19 1" />
+    <mesh name="colmesh_asm_fence_east_post_0" file="colmesh_asm_fence_east_post_0.obj" />
+    <mesh name="colmesh_asm_fence_east_post_1" file="colmesh_asm_fence_east_post_1.obj" />
+    <mesh name="colmesh_asm_fence_east_rail_0" file="colmesh_asm_fence_east_rail_0.obj" />
+    <mesh name="colmesh_asm_fence_east_rail_1" file="colmesh_asm_fence_east_rail_1.obj" />
+    <mesh name="colmesh_asm_fence_north_post_0" file="colmesh_asm_fence_north_post_0.obj" />
+    <mesh name="colmesh_asm_fence_north_post_1" file="colmesh_asm_fence_north_post_1.obj" />
+    <mesh name="colmesh_asm_fence_north_rail_0" file="colmesh_asm_fence_north_rail_0.obj" />
+    <mesh name="colmesh_asm_fence_north_rail_1" file="colmesh_asm_fence_north_rail_1.obj" />
+    <mesh name="colmesh_asm_fence_south_after_post_0" file="colmesh_asm_fence_south_after_post_0.obj" />
+    <mesh name="colmesh_asm_fence_south_after_post_1" file="colmesh_asm_fence_south_after_post_1.obj" />
+    <mesh name="colmesh_asm_fence_south_after_rail_0" file="colmesh_asm_fence_south_after_rail_0.obj" />
+    <mesh name="colmesh_asm_fence_south_after_rail_1" file="colmesh_asm_fence_south_after_rail_1.obj" />
+    <mesh name="colmesh_asm_fence_south_before_post_0" file="colmesh_asm_fence_south_before_post_0.obj" />
+    <mesh name="colmesh_asm_fence_south_before_post_1" file="colmesh_asm_fence_south_before_post_1.obj" />
+    <mesh name="colmesh_asm_fence_south_before_rail_0" file="colmesh_asm_fence_south_before_rail_0.obj" />
+    <mesh name="colmesh_asm_fence_south_before_rail_1" file="colmesh_asm_fence_south_before_rail_1.obj" />
+    <mesh name="colmesh_asm_fence_west_post_0" file="colmesh_asm_fence_west_post_0.obj" />
+    <mesh name="colmesh_asm_fence_west_post_1" file="colmesh_asm_fence_west_post_1.obj" />
+    <mesh name="colmesh_asm_fence_west_rail_0" file="colmesh_asm_fence_west_rail_0.obj" />
+    <mesh name="colmesh_asm_fence_west_rail_1" file="colmesh_asm_fence_west_rail_1.obj" />
+    <mesh name="colmesh_asm_gate_south_endpost__1" file="colmesh_asm_gate_south_endpost__1.obj" />
+    <mesh name="colmesh_asm_gate_south_endpost_1" file="colmesh_asm_gate_south_endpost_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_01_bung_a" file="colmesh_asm_barrel_a_01_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_01_bung_b" file="colmesh_asm_barrel_a_01_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_01_rib_0" file="colmesh_asm_barrel_a_01_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_01_rib_1" file="colmesh_asm_barrel_a_01_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_01_rib_2" file="colmesh_asm_barrel_a_01_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_a_02_bung_a" file="colmesh_asm_barrel_a_02_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_02_bung_b" file="colmesh_asm_barrel_a_02_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_02_rib_0" file="colmesh_asm_barrel_a_02_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_02_rib_1" file="colmesh_asm_barrel_a_02_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_02_rib_2" file="colmesh_asm_barrel_a_02_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_a_03_bung_a" file="colmesh_asm_barrel_a_03_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_03_bung_b" file="colmesh_asm_barrel_a_03_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_03_rib_0" file="colmesh_asm_barrel_a_03_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_03_rib_1" file="colmesh_asm_barrel_a_03_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_03_rib_2" file="colmesh_asm_barrel_a_03_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_a_04_bung_a" file="colmesh_asm_barrel_a_04_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_04_bung_b" file="colmesh_asm_barrel_a_04_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_04_rib_0" file="colmesh_asm_barrel_a_04_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_04_rib_1" file="colmesh_asm_barrel_a_04_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_04_rib_2" file="colmesh_asm_barrel_a_04_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_a_05_bung_a" file="colmesh_asm_barrel_a_05_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_05_bung_b" file="colmesh_asm_barrel_a_05_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_05_rib_0" file="colmesh_asm_barrel_a_05_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_05_rib_1" file="colmesh_asm_barrel_a_05_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_05_rib_2" file="colmesh_asm_barrel_a_05_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_a_06_bung_a" file="colmesh_asm_barrel_a_06_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_a_06_bung_b" file="colmesh_asm_barrel_a_06_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_a_06_rib_0" file="colmesh_asm_barrel_a_06_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_a_06_rib_1" file="colmesh_asm_barrel_a_06_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_a_06_rib_2" file="colmesh_asm_barrel_a_06_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_01_bung_a" file="colmesh_asm_barrel_b_01_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_01_bung_b" file="colmesh_asm_barrel_b_01_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_01_rib_0" file="colmesh_asm_barrel_b_01_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_01_rib_1" file="colmesh_asm_barrel_b_01_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_01_rib_2" file="colmesh_asm_barrel_b_01_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_02_bung_a" file="colmesh_asm_barrel_b_02_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_02_bung_b" file="colmesh_asm_barrel_b_02_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_02_rib_0" file="colmesh_asm_barrel_b_02_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_02_rib_1" file="colmesh_asm_barrel_b_02_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_02_rib_2" file="colmesh_asm_barrel_b_02_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_03_bung_a" file="colmesh_asm_barrel_b_03_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_03_bung_b" file="colmesh_asm_barrel_b_03_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_03_rib_0" file="colmesh_asm_barrel_b_03_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_03_rib_1" file="colmesh_asm_barrel_b_03_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_03_rib_2" file="colmesh_asm_barrel_b_03_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_04_bung_a" file="colmesh_asm_barrel_b_04_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_04_bung_b" file="colmesh_asm_barrel_b_04_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_04_rib_0" file="colmesh_asm_barrel_b_04_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_04_rib_1" file="colmesh_asm_barrel_b_04_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_04_rib_2" file="colmesh_asm_barrel_b_04_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_05_bung_a" file="colmesh_asm_barrel_b_05_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_05_bung_b" file="colmesh_asm_barrel_b_05_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_05_rib_0" file="colmesh_asm_barrel_b_05_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_05_rib_1" file="colmesh_asm_barrel_b_05_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_05_rib_2" file="colmesh_asm_barrel_b_05_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_b_06_bung_a" file="colmesh_asm_barrel_b_06_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_b_06_bung_b" file="colmesh_asm_barrel_b_06_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_b_06_rib_0" file="colmesh_asm_barrel_b_06_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_b_06_rib_1" file="colmesh_asm_barrel_b_06_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_b_06_rib_2" file="colmesh_asm_barrel_b_06_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_c_01_bung_a" file="colmesh_asm_barrel_c_01_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_c_01_bung_b" file="colmesh_asm_barrel_c_01_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_c_01_rib_0" file="colmesh_asm_barrel_c_01_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_c_01_rib_1" file="colmesh_asm_barrel_c_01_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_c_01_rib_2" file="colmesh_asm_barrel_c_01_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_c_02_bung_a" file="colmesh_asm_barrel_c_02_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_c_02_bung_b" file="colmesh_asm_barrel_c_02_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_c_02_rib_0" file="colmesh_asm_barrel_c_02_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_c_02_rib_1" file="colmesh_asm_barrel_c_02_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_c_02_rib_2" file="colmesh_asm_barrel_c_02_rib_2.obj" />
+    <mesh name="colmesh_asm_barrel_c_03_bung_a" file="colmesh_asm_barrel_c_03_bung_a.obj" />
+    <mesh name="colmesh_asm_barrel_c_03_bung_b" file="colmesh_asm_barrel_c_03_bung_b.obj" />
+    <mesh name="colmesh_asm_barrel_c_03_rib_0" file="colmesh_asm_barrel_c_03_rib_0.obj" />
+    <mesh name="colmesh_asm_barrel_c_03_rib_1" file="colmesh_asm_barrel_c_03_rib_1.obj" />
+    <mesh name="colmesh_asm_barrel_c_03_rib_2" file="colmesh_asm_barrel_c_03_rib_2.obj" />
+    <mesh name="colmesh_asm_bollard_01_band_0" file="colmesh_asm_bollard_01_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_01_band_1" file="colmesh_asm_bollard_01_band_1.obj" />
+    <mesh name="colmesh_asm_bollard_02_band_0" file="colmesh_asm_bollard_02_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_02_band_1" file="colmesh_asm_bollard_02_band_1.obj" />
+    <mesh name="colmesh_asm_bollard_03_band_0" file="colmesh_asm_bollard_03_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_03_band_1" file="colmesh_asm_bollard_03_band_1.obj" />
+    <mesh name="colmesh_asm_bollard_04_band_0" file="colmesh_asm_bollard_04_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_04_band_1" file="colmesh_asm_bollard_04_band_1.obj" />
+    <mesh name="colmesh_asm_bollard_05_band_0" file="colmesh_asm_bollard_05_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_05_band_1" file="colmesh_asm_bollard_05_band_1.obj" />
+    <mesh name="colmesh_asm_bollard_06_band_0" file="colmesh_asm_bollard_06_band_0.obj" />
+    <mesh name="colmesh_asm_bollard_06_band_1" file="colmesh_asm_bollard_06_band_1.obj" />
+    <mesh name="colmesh_asm_cable_spool_01_wound" file="colmesh_asm_cable_spool_01_wound.obj" />
+    <mesh name="colmesh_asm_cable_spool_02_wound" file="colmesh_asm_cable_spool_02_wound.obj" />
+    <mesh name="colmesh_asm_cable_spool_03_wound" file="colmesh_asm_cable_spool_03_wound.obj" />
+    <mesh name="colmesh_asm_cable_spool_04_wound" file="colmesh_asm_cable_spool_04_wound.obj" />
+    <mesh name="colmesh_asm_crate_01_batten__1__1" file="colmesh_asm_crate_01_batten__1__1.obj" />
+    <mesh name="colmesh_asm_crate_01_batten__1_1" file="colmesh_asm_crate_01_batten__1_1.obj" />
+    <mesh name="colmesh_asm_crate_01_batten_1__1" file="colmesh_asm_crate_01_batten_1__1.obj" />
+    <mesh name="colmesh_asm_crate_01_batten_1_1" file="colmesh_asm_crate_01_batten_1_1.obj" />
+    <mesh name="colmesh_asm_crate_01_strap_x" file="colmesh_asm_crate_01_strap_x.obj" />
+    <mesh name="colmesh_asm_crate_01_strap_y" file="colmesh_asm_crate_01_strap_y.obj" />
+    <mesh name="colmesh_asm_crate_02_batten__1__1" file="colmesh_asm_crate_02_batten__1__1.obj" />
+    <mesh name="colmesh_asm_crate_02_batten__1_1" file="colmesh_asm_crate_02_batten__1_1.obj" />
+    <mesh name="colmesh_asm_crate_02_batten_1__1" file="colmesh_asm_crate_02_batten_1__1.obj" />
+    <mesh name="colmesh_asm_crate_02_batten_1_1" file="colmesh_asm_crate_02_batten_1_1.obj" />
+    <mesh name="colmesh_asm_crate_02_strap_x" file="colmesh_asm_crate_02_strap_x.obj" />
+    <mesh name="colmesh_asm_crate_02_strap_y" file="colmesh_asm_crate_02_strap_y.obj" />
+    <mesh name="colmesh_asm_crate_03_batten__1__1" file="colmesh_asm_crate_03_batten__1__1.obj" />
+    <mesh name="colmesh_asm_crate_03_batten__1_1" file="colmesh_asm_crate_03_batten__1_1.obj" />
+    <mesh name="colmesh_asm_crate_03_batten_1__1" file="colmesh_asm_crate_03_batten_1__1.obj" />
+    <mesh name="colmesh_asm_crate_03_batten_1_1" file="colmesh_asm_crate_03_batten_1_1.obj" />
+    <mesh name="colmesh_asm_crate_03_strap_x" file="colmesh_asm_crate_03_strap_x.obj" />
+    <mesh name="colmesh_asm_crate_03_strap_y" file="colmesh_asm_crate_03_strap_y.obj" />
+    <mesh name="colmesh_asm_crate_04_batten__1__1" file="colmesh_asm_crate_04_batten__1__1.obj" />
+    <mesh name="colmesh_asm_crate_04_batten__1_1" file="colmesh_asm_crate_04_batten__1_1.obj" />
+    <mesh name="colmesh_asm_crate_04_batten_1__1" file="colmesh_asm_crate_04_batten_1__1.obj" />
+    <mesh name="colmesh_asm_crate_04_batten_1_1" file="colmesh_asm_crate_04_batten_1_1.obj" />
+    <mesh name="colmesh_asm_crate_04_strap_x" file="colmesh_asm_crate_04_strap_x.obj" />
+    <mesh name="colmesh_asm_crate_04_strap_y" file="colmesh_asm_crate_04_strap_y.obj" />
+    <mesh name="colmesh_asm_crate_05_batten__1__1" file="colmesh_asm_crate_05_batten__1__1.obj" />
+    <mesh name="colmesh_asm_crate_05_batten__1_1" file="colmesh_asm_crate_05_batten__1_1.obj" />
+    <mesh name="colmesh_asm_crate_05_batten_1__1" file="colmesh_asm_crate_05_batten_1__1.obj" />
+    <mesh name="colmesh_asm_crate_05_batten_1_1" file="colmesh_asm_crate_05_batten_1_1.obj" />
+    <mesh name="colmesh_asm_crate_05_strap_x" file="colmesh_asm_crate_05_strap_x.obj" />
+    <mesh name="colmesh_asm_crate_05_strap_y" file="colmesh_asm_crate_05_strap_y.obj" />
+    <mesh name="colmesh_asm_inspection_target_bung_a" file="colmesh_asm_inspection_target_bung_a.obj" />
+    <mesh name="colmesh_asm_inspection_target_bung_b" file="colmesh_asm_inspection_target_bung_b.obj" />
+    <mesh name="colmesh_asm_inspection_target_rib_0" file="colmesh_asm_inspection_target_rib_0.obj" />
+    <mesh name="colmesh_asm_inspection_target_rib_1" file="colmesh_asm_inspection_target_rib_1.obj" />
+    <mesh name="colmesh_asm_inspection_target_rib_2" file="colmesh_asm_inspection_target_rib_2.obj" />
+    <mesh name="colmesh_asm_pallet_01_slat_0" file="colmesh_asm_pallet_01_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_01_slat_1" file="colmesh_asm_pallet_01_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_01_slat_2" file="colmesh_asm_pallet_01_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_01_slat_3" file="colmesh_asm_pallet_01_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_01_slat_4" file="colmesh_asm_pallet_01_slat_4.obj" />
+    <mesh name="colmesh_asm_pallet_02_slat_0" file="colmesh_asm_pallet_02_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_02_slat_1" file="colmesh_asm_pallet_02_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_02_slat_2" file="colmesh_asm_pallet_02_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_02_slat_3" file="colmesh_asm_pallet_02_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_02_slat_4" file="colmesh_asm_pallet_02_slat_4.obj" />
+    <mesh name="colmesh_asm_pallet_03_slat_0" file="colmesh_asm_pallet_03_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_03_slat_1" file="colmesh_asm_pallet_03_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_03_slat_2" file="colmesh_asm_pallet_03_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_03_slat_3" file="colmesh_asm_pallet_03_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_03_slat_4" file="colmesh_asm_pallet_03_slat_4.obj" />
+    <mesh name="colmesh_asm_pallet_04_slat_0" file="colmesh_asm_pallet_04_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_04_slat_1" file="colmesh_asm_pallet_04_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_04_slat_2" file="colmesh_asm_pallet_04_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_04_slat_3" file="colmesh_asm_pallet_04_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_04_slat_4" file="colmesh_asm_pallet_04_slat_4.obj" />
+    <mesh name="colmesh_asm_pallet_05_slat_0" file="colmesh_asm_pallet_05_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_05_slat_1" file="colmesh_asm_pallet_05_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_05_slat_2" file="colmesh_asm_pallet_05_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_05_slat_3" file="colmesh_asm_pallet_05_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_05_slat_4" file="colmesh_asm_pallet_05_slat_4.obj" />
+    <mesh name="colmesh_asm_pallet_06_slat_0" file="colmesh_asm_pallet_06_slat_0.obj" />
+    <mesh name="colmesh_asm_pallet_06_slat_1" file="colmesh_asm_pallet_06_slat_1.obj" />
+    <mesh name="colmesh_asm_pallet_06_slat_2" file="colmesh_asm_pallet_06_slat_2.obj" />
+    <mesh name="colmesh_asm_pallet_06_slat_3" file="colmesh_asm_pallet_06_slat_3.obj" />
+    <mesh name="colmesh_asm_pallet_06_slat_4" file="colmesh_asm_pallet_06_slat_4.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end__1_0" file="colmesh_asm_pipe_stack_01_end__1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end__1_1" file="colmesh_asm_pipe_stack_01_end__1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end__1_2" file="colmesh_asm_pipe_stack_01_end__1_2.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end_1_0" file="colmesh_asm_pipe_stack_01_end_1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end_1_1" file="colmesh_asm_pipe_stack_01_end_1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_01_end_1_2" file="colmesh_asm_pipe_stack_01_end_1_2.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end__1_0" file="colmesh_asm_pipe_stack_02_end__1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end__1_1" file="colmesh_asm_pipe_stack_02_end__1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end__1_2" file="colmesh_asm_pipe_stack_02_end__1_2.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end_1_0" file="colmesh_asm_pipe_stack_02_end_1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end_1_1" file="colmesh_asm_pipe_stack_02_end_1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_02_end_1_2" file="colmesh_asm_pipe_stack_02_end_1_2.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end__1_0" file="colmesh_asm_pipe_stack_03_end__1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end__1_1" file="colmesh_asm_pipe_stack_03_end__1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end__1_2" file="colmesh_asm_pipe_stack_03_end__1_2.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end_1_0" file="colmesh_asm_pipe_stack_03_end_1_0.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end_1_1" file="colmesh_asm_pipe_stack_03_end_1_1.obj" />
+    <mesh name="colmesh_asm_pipe_stack_03_end_1_2" file="colmesh_asm_pipe_stack_03_end_1_2.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_0_0" file="colmesh_asm_rack_east_01_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_0_1" file="colmesh_asm_rack_east_01_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_1_0" file="colmesh_asm_rack_east_01_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_1_1" file="colmesh_asm_rack_east_01_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_2_0" file="colmesh_asm_rack_east_01_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_east_01_load_2_1" file="colmesh_asm_rack_east_01_load_2_1.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_0_0" file="colmesh_asm_rack_east_02_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_0_1" file="colmesh_asm_rack_east_02_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_1_0" file="colmesh_asm_rack_east_02_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_1_1" file="colmesh_asm_rack_east_02_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_2_0" file="colmesh_asm_rack_east_02_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_east_02_load_2_1" file="colmesh_asm_rack_east_02_load_2_1.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_0_0" file="colmesh_asm_rack_east_03_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_0_1" file="colmesh_asm_rack_east_03_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_1_0" file="colmesh_asm_rack_east_03_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_1_1" file="colmesh_asm_rack_east_03_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_2_0" file="colmesh_asm_rack_east_03_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_east_03_load_2_1" file="colmesh_asm_rack_east_03_load_2_1.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_0_0" file="colmesh_asm_rack_west_01_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_0_1" file="colmesh_asm_rack_west_01_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_1_0" file="colmesh_asm_rack_west_01_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_1_1" file="colmesh_asm_rack_west_01_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_2_0" file="colmesh_asm_rack_west_01_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_west_01_load_2_1" file="colmesh_asm_rack_west_01_load_2_1.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_0_0" file="colmesh_asm_rack_west_02_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_0_1" file="colmesh_asm_rack_west_02_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_1_0" file="colmesh_asm_rack_west_02_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_1_1" file="colmesh_asm_rack_west_02_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_2_0" file="colmesh_asm_rack_west_02_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_west_02_load_2_1" file="colmesh_asm_rack_west_02_load_2_1.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_0_0" file="colmesh_asm_rack_west_03_load_0_0.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_0_1" file="colmesh_asm_rack_west_03_load_0_1.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_1_0" file="colmesh_asm_rack_west_03_load_1_0.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_1_1" file="colmesh_asm_rack_west_03_load_1_1.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_2_0" file="colmesh_asm_rack_west_03_load_2_0.obj" />
+    <mesh name="colmesh_asm_rack_west_03_load_2_1" file="colmesh_asm_rack_west_03_load_2_1.obj" />
+    <mesh name="colmesh_back_wall" file="colmesh_back_wall.obj" />
+    <mesh name="colmesh_band" file="colmesh_band.obj" />
+    <mesh name="colmesh_band_001" file="colmesh_band_001.obj" />
+    <mesh name="colmesh_band_002" file="colmesh_band_002.obj" />
+    <mesh name="colmesh_band_003" file="colmesh_band_003.obj" />
+    <mesh name="colmesh_band_004" file="colmesh_band_004.obj" />
+    <mesh name="colmesh_band_005" file="colmesh_band_005.obj" />
+    <mesh name="colmesh_base" file="colmesh_base.obj" />
+    <mesh name="colmesh_base_001" file="colmesh_base_001.obj" />
+    <mesh name="colmesh_base_002" file="colmesh_base_002.obj" />
+    <mesh name="colmesh_base_003" file="colmesh_base_003.obj" />
+    <mesh name="colmesh_beam_0_n" file="colmesh_beam_0_n.obj" />
+    <mesh name="colmesh_beam_0_n_001" file="colmesh_beam_0_n_001.obj" />
+    <mesh name="colmesh_beam_0_n_002" file="colmesh_beam_0_n_002.obj" />
+    <mesh name="colmesh_beam_0_n_003" file="colmesh_beam_0_n_003.obj" />
+    <mesh name="colmesh_beam_0_n_004" file="colmesh_beam_0_n_004.obj" />
+    <mesh name="colmesh_beam_0_n_005" file="colmesh_beam_0_n_005.obj" />
+    <mesh name="colmesh_beam_0_p" file="colmesh_beam_0_p.obj" />
+    <mesh name="colmesh_beam_0_p_001" file="colmesh_beam_0_p_001.obj" />
+    <mesh name="colmesh_beam_0_p_002" file="colmesh_beam_0_p_002.obj" />
+    <mesh name="colmesh_beam_0_p_003" file="colmesh_beam_0_p_003.obj" />
+    <mesh name="colmesh_beam_0_p_004" file="colmesh_beam_0_p_004.obj" />
+    <mesh name="colmesh_beam_0_p_005" file="colmesh_beam_0_p_005.obj" />
+    <mesh name="colmesh_beam_1_n" file="colmesh_beam_1_n.obj" />
+    <mesh name="colmesh_beam_1_n_001" file="colmesh_beam_1_n_001.obj" />
+    <mesh name="colmesh_beam_1_n_002" file="colmesh_beam_1_n_002.obj" />
+    <mesh name="colmesh_beam_1_n_003" file="colmesh_beam_1_n_003.obj" />
+    <mesh name="colmesh_beam_1_n_004" file="colmesh_beam_1_n_004.obj" />
+    <mesh name="colmesh_beam_1_n_005" file="colmesh_beam_1_n_005.obj" />
+    <mesh name="colmesh_beam_1_p" file="colmesh_beam_1_p.obj" />
+    <mesh name="colmesh_beam_1_p_001" file="colmesh_beam_1_p_001.obj" />
+    <mesh name="colmesh_beam_1_p_002" file="colmesh_beam_1_p_002.obj" />
+    <mesh name="colmesh_beam_1_p_003" file="colmesh_beam_1_p_003.obj" />
+    <mesh name="colmesh_beam_1_p_004" file="colmesh_beam_1_p_004.obj" />
+    <mesh name="colmesh_beam_1_p_005" file="colmesh_beam_1_p_005.obj" />
+    <mesh name="colmesh_beam_2_n" file="colmesh_beam_2_n.obj" />
+    <mesh name="colmesh_beam_2_n_001" file="colmesh_beam_2_n_001.obj" />
+    <mesh name="colmesh_beam_2_n_002" file="colmesh_beam_2_n_002.obj" />
+    <mesh name="colmesh_beam_2_n_003" file="colmesh_beam_2_n_003.obj" />
+    <mesh name="colmesh_beam_2_n_004" file="colmesh_beam_2_n_004.obj" />
+    <mesh name="colmesh_beam_2_n_005" file="colmesh_beam_2_n_005.obj" />
+    <mesh name="colmesh_beam_2_p" file="colmesh_beam_2_p.obj" />
+    <mesh name="colmesh_beam_2_p_001" file="colmesh_beam_2_p_001.obj" />
+    <mesh name="colmesh_beam_2_p_002" file="colmesh_beam_2_p_002.obj" />
+    <mesh name="colmesh_beam_2_p_003" file="colmesh_beam_2_p_003.obj" />
+    <mesh name="colmesh_beam_2_p_004" file="colmesh_beam_2_p_004.obj" />
+    <mesh name="colmesh_beam_2_p_005" file="colmesh_beam_2_p_005.obj" />
+    <mesh name="colmesh_block_0_0" file="colmesh_block_0_0.obj" />
+    <mesh name="colmesh_block_0_0_001" file="colmesh_block_0_0_001.obj" />
+    <mesh name="colmesh_block_0_0_002" file="colmesh_block_0_0_002.obj" />
+    <mesh name="colmesh_block_0_0_003" file="colmesh_block_0_0_003.obj" />
+    <mesh name="colmesh_block_0_0_004" file="colmesh_block_0_0_004.obj" />
+    <mesh name="colmesh_block_0_0_005" file="colmesh_block_0_0_005.obj" />
+    <mesh name="colmesh_block_0_1" file="colmesh_block_0_1.obj" />
+    <mesh name="colmesh_block_0_1_001" file="colmesh_block_0_1_001.obj" />
+    <mesh name="colmesh_block_0_1_002" file="colmesh_block_0_1_002.obj" />
+    <mesh name="colmesh_block_0_1_003" file="colmesh_block_0_1_003.obj" />
+    <mesh name="colmesh_block_0_1_004" file="colmesh_block_0_1_004.obj" />
+    <mesh name="colmesh_block_0_1_005" file="colmesh_block_0_1_005.obj" />
+    <mesh name="colmesh_block_0_2" file="colmesh_block_0_2.obj" />
+    <mesh name="colmesh_block_0_2_001" file="colmesh_block_0_2_001.obj" />
+    <mesh name="colmesh_block_0_2_002" file="colmesh_block_0_2_002.obj" />
+    <mesh name="colmesh_block_0_2_003" file="colmesh_block_0_2_003.obj" />
+    <mesh name="colmesh_block_0_2_004" file="colmesh_block_0_2_004.obj" />
+    <mesh name="colmesh_block_0_2_005" file="colmesh_block_0_2_005.obj" />
+    <mesh name="colmesh_block_1_0" file="colmesh_block_1_0.obj" />
+    <mesh name="colmesh_block_1_0_001" file="colmesh_block_1_0_001.obj" />
+    <mesh name="colmesh_block_1_0_002" file="colmesh_block_1_0_002.obj" />
+    <mesh name="colmesh_block_1_0_003" file="colmesh_block_1_0_003.obj" />
+    <mesh name="colmesh_block_1_0_004" file="colmesh_block_1_0_004.obj" />
+    <mesh name="colmesh_block_1_0_005" file="colmesh_block_1_0_005.obj" />
+    <mesh name="colmesh_block_1_1" file="colmesh_block_1_1.obj" />
+    <mesh name="colmesh_block_1_1_001" file="colmesh_block_1_1_001.obj" />
+    <mesh name="colmesh_block_1_1_002" file="colmesh_block_1_1_002.obj" />
+    <mesh name="colmesh_block_1_1_003" file="colmesh_block_1_1_003.obj" />
+    <mesh name="colmesh_block_1_1_004" file="colmesh_block_1_1_004.obj" />
+    <mesh name="colmesh_block_1_1_005" file="colmesh_block_1_1_005.obj" />
+    <mesh name="colmesh_block_1_2" file="colmesh_block_1_2.obj" />
+    <mesh name="colmesh_block_1_2_001" file="colmesh_block_1_2_001.obj" />
+    <mesh name="colmesh_block_1_2_002" file="colmesh_block_1_2_002.obj" />
+    <mesh name="colmesh_block_1_2_003" file="colmesh_block_1_2_003.obj" />
+    <mesh name="colmesh_block_1_2_004" file="colmesh_block_1_2_004.obj" />
+    <mesh name="colmesh_block_1_2_005" file="colmesh_block_1_2_005.obj" />
+    <mesh name="colmesh_block_2_0" file="colmesh_block_2_0.obj" />
+    <mesh name="colmesh_block_2_0_001" file="colmesh_block_2_0_001.obj" />
+    <mesh name="colmesh_block_2_0_002" file="colmesh_block_2_0_002.obj" />
+    <mesh name="colmesh_block_2_0_003" file="colmesh_block_2_0_003.obj" />
+    <mesh name="colmesh_block_2_0_004" file="colmesh_block_2_0_004.obj" />
+    <mesh name="colmesh_block_2_0_005" file="colmesh_block_2_0_005.obj" />
+    <mesh name="colmesh_block_2_1" file="colmesh_block_2_1.obj" />
+    <mesh name="colmesh_block_2_1_001" file="colmesh_block_2_1_001.obj" />
+    <mesh name="colmesh_block_2_1_002" file="colmesh_block_2_1_002.obj" />
+    <mesh name="colmesh_block_2_1_003" file="colmesh_block_2_1_003.obj" />
+    <mesh name="colmesh_block_2_1_004" file="colmesh_block_2_1_004.obj" />
+    <mesh name="colmesh_block_2_1_005" file="colmesh_block_2_1_005.obj" />
+    <mesh name="colmesh_block_2_2" file="colmesh_block_2_2.obj" />
+    <mesh name="colmesh_block_2_2_001" file="colmesh_block_2_2_001.obj" />
+    <mesh name="colmesh_block_2_2_002" file="colmesh_block_2_2_002.obj" />
+    <mesh name="colmesh_block_2_2_003" file="colmesh_block_2_2_003.obj" />
+    <mesh name="colmesh_block_2_2_004" file="colmesh_block_2_2_004.obj" />
+    <mesh name="colmesh_block_2_2_005" file="colmesh_block_2_2_005.obj" />
+    <mesh name="colmesh_body" file="colmesh_body.obj" />
+    <mesh name="colmesh_body_001" file="colmesh_body_001.obj" />
+    <mesh name="colmesh_body_002" file="colmesh_body_002.obj" />
+    <mesh name="colmesh_body_003" file="colmesh_body_003.obj" />
+    <mesh name="colmesh_body_004" file="colmesh_body_004.obj" />
+    <mesh name="colmesh_body_005" file="colmesh_body_005.obj" />
+    <mesh name="colmesh_body_006" file="colmesh_body_006.obj" />
+    <mesh name="colmesh_body_007" file="colmesh_body_007.obj" />
+    <mesh name="colmesh_body_008" file="colmesh_body_008.obj" />
+    <mesh name="colmesh_body_009" file="colmesh_body_009.obj" />
+    <mesh name="colmesh_body_010" file="colmesh_body_010.obj" />
+    <mesh name="colmesh_body_011" file="colmesh_body_011.obj" />
+    <mesh name="colmesh_body_012" file="colmesh_body_012.obj" />
+    <mesh name="colmesh_body_013" file="colmesh_body_013.obj" />
+    <mesh name="colmesh_body_014" file="colmesh_body_014.obj" />
+    <mesh name="colmesh_body_015" file="colmesh_body_015.obj" />
+    <mesh name="colmesh_body_016" file="colmesh_body_016.obj" />
+    <mesh name="colmesh_body_017" file="colmesh_body_017.obj" />
+    <mesh name="colmesh_body_018" file="colmesh_body_018.obj" />
+    <mesh name="colmesh_body_019" file="colmesh_body_019.obj" />
+    <mesh name="colmesh_body_020" file="colmesh_body_020.obj" />
+    <mesh name="colmesh_body_021" file="colmesh_body_021.obj" />
+    <mesh name="colmesh_body_022" file="colmesh_body_022.obj" />
+    <mesh name="colmesh_body_023" file="colmesh_body_023.obj" />
+    <mesh name="colmesh_body_024" file="colmesh_body_024.obj" />
+    <mesh name="colmesh_body_025" file="colmesh_body_025.obj" />
+    <mesh name="colmesh_body_026" file="colmesh_body_026.obj" />
+    <mesh name="colmesh_body_027" file="colmesh_body_027.obj" />
+    <mesh name="colmesh_box_0a" file="colmesh_box_0a.obj" />
+    <mesh name="colmesh_box_0a_001" file="colmesh_box_0a_001.obj" />
+    <mesh name="colmesh_box_0a_002" file="colmesh_box_0a_002.obj" />
+    <mesh name="colmesh_box_0b" file="colmesh_box_0b.obj" />
+    <mesh name="colmesh_box_0b_001" file="colmesh_box_0b_001.obj" />
+    <mesh name="colmesh_box_0b_002" file="colmesh_box_0b_002.obj" />
+    <mesh name="colmesh_box_1a" file="colmesh_box_1a.obj" />
+    <mesh name="colmesh_box_1a_001" file="colmesh_box_1a_001.obj" />
+    <mesh name="colmesh_box_1a_002" file="colmesh_box_1a_002.obj" />
+    <mesh name="colmesh_box_1b" file="colmesh_box_1b.obj" />
+    <mesh name="colmesh_box_1b_001" file="colmesh_box_1b_001.obj" />
+    <mesh name="colmesh_box_1b_002" file="colmesh_box_1b_002.obj" />
+    <mesh name="colmesh_cable" file="colmesh_cable.obj" />
+    <mesh name="colmesh_cable_001" file="colmesh_cable_001.obj" />
+    <mesh name="colmesh_cable_002" file="colmesh_cable_002.obj" />
+    <mesh name="colmesh_cable_003" file="colmesh_cable_003.obj" />
+    <mesh name="colmesh_door" file="colmesh_door.obj" />
+    <mesh name="colmesh_door_001" file="colmesh_door_001.obj" />
+    <mesh name="colmesh_door_002" file="colmesh_door_002.obj" />
+    <mesh name="colmesh_flange_bottom" file="colmesh_flange_bottom.obj" />
+    <mesh name="colmesh_flange_bottom_001" file="colmesh_flange_bottom_001.obj" />
+    <mesh name="colmesh_flange_bottom_002" file="colmesh_flange_bottom_002.obj" />
+    <mesh name="colmesh_flange_bottom_003" file="colmesh_flange_bottom_003.obj" />
+    <mesh name="colmesh_flange_top" file="colmesh_flange_top.obj" />
+    <mesh name="colmesh_flange_top_001" file="colmesh_flange_top_001.obj" />
+    <mesh name="colmesh_flange_top_002" file="colmesh_flange_top_002.obj" />
+    <mesh name="colmesh_flange_top_003" file="colmesh_flange_top_003.obj" />
+    <mesh name="colmesh_hub" file="colmesh_hub.obj" />
+    <mesh name="colmesh_hub_001" file="colmesh_hub_001.obj" />
+    <mesh name="colmesh_hub_002" file="colmesh_hub_002.obj" />
+    <mesh name="colmesh_hub_003" file="colmesh_hub_003.obj" />
+    <mesh name="colmesh_pad" file="colmesh_pad.obj" />
+    <mesh name="colmesh_pallet_0" file="colmesh_pallet_0.obj" />
+    <mesh name="colmesh_pallet_0_001" file="colmesh_pallet_0_001.obj" />
+    <mesh name="colmesh_pallet_0_002" file="colmesh_pallet_0_002.obj" />
+    <mesh name="colmesh_pallet_0b" file="colmesh_pallet_0b.obj" />
+    <mesh name="colmesh_pallet_0b_001" file="colmesh_pallet_0b_001.obj" />
+    <mesh name="colmesh_pallet_0b_002" file="colmesh_pallet_0b_002.obj" />
+    <mesh name="colmesh_pallet_1" file="colmesh_pallet_1.obj" />
+    <mesh name="colmesh_pallet_1_001" file="colmesh_pallet_1_001.obj" />
+    <mesh name="colmesh_pallet_1_002" file="colmesh_pallet_1_002.obj" />
+    <mesh name="colmesh_pallet_1b" file="colmesh_pallet_1b.obj" />
+    <mesh name="colmesh_pallet_1b_001" file="colmesh_pallet_1b_001.obj" />
+    <mesh name="colmesh_pallet_1b_002" file="colmesh_pallet_1b_002.obj" />
+    <mesh name="colmesh_pipe_0_0" file="colmesh_pipe_0_0.obj" />
+    <mesh name="colmesh_pipe_0_0_001" file="colmesh_pipe_0_0_001.obj" />
+    <mesh name="colmesh_pipe_0_0_002" file="colmesh_pipe_0_0_002.obj" />
+    <mesh name="colmesh_pipe_0_1" file="colmesh_pipe_0_1.obj" />
+    <mesh name="colmesh_pipe_0_1_001" file="colmesh_pipe_0_1_001.obj" />
+    <mesh name="colmesh_pipe_0_1_002" file="colmesh_pipe_0_1_002.obj" />
+    <mesh name="colmesh_pipe_0_2" file="colmesh_pipe_0_2.obj" />
+    <mesh name="colmesh_pipe_0_2_001" file="colmesh_pipe_0_2_001.obj" />
+    <mesh name="colmesh_pipe_0_2_002" file="colmesh_pipe_0_2_002.obj" />
+    <mesh name="colmesh_pipe_1" file="colmesh_pipe_1.obj" />
+    <mesh name="colmesh_pipe_1_001" file="colmesh_pipe_1_001.obj" />
+    <mesh name="colmesh_pipe_1_002" file="colmesh_pipe_1_002.obj" />
+    <mesh name="colmesh_pipe_1_0" file="colmesh_pipe_1_0.obj" />
+    <mesh name="colmesh_pipe_1_0_001" file="colmesh_pipe_1_0_001.obj" />
+    <mesh name="colmesh_pipe_1_0_002" file="colmesh_pipe_1_0_002.obj" />
+    <mesh name="colmesh_pipe_1_1" file="colmesh_pipe_1_1.obj" />
+    <mesh name="colmesh_pipe_1_1_001" file="colmesh_pipe_1_1_001.obj" />
+    <mesh name="colmesh_pipe_1_1_002" file="colmesh_pipe_1_1_002.obj" />
+    <mesh name="colmesh_pipe_1_2" file="colmesh_pipe_1_2.obj" />
+    <mesh name="colmesh_pipe_1_2_001" file="colmesh_pipe_1_2_001.obj" />
+    <mesh name="colmesh_pipe_1_2_002" file="colmesh_pipe_1_2_002.obj" />
+    <mesh name="colmesh_pipe_2" file="colmesh_pipe_2.obj" />
+    <mesh name="colmesh_pipe_2_001" file="colmesh_pipe_2_001.obj" />
+    <mesh name="colmesh_pipe_2_002" file="colmesh_pipe_2_002.obj" />
+    <mesh name="colmesh_pipe_3" file="colmesh_pipe_3.obj" />
+    <mesh name="colmesh_pipe_3_001" file="colmesh_pipe_3_001.obj" />
+    <mesh name="colmesh_pipe_3_002" file="colmesh_pipe_3_002.obj" />
+    <mesh name="colmesh_pipe_4" file="colmesh_pipe_4.obj" />
+    <mesh name="colmesh_pipe_4_001" file="colmesh_pipe_4_001.obj" />
+    <mesh name="colmesh_pipe_4_002" file="colmesh_pipe_4_002.obj" />
+    <mesh name="colmesh_pipe_5" file="colmesh_pipe_5.obj" />
+    <mesh name="colmesh_pipe_5_001" file="colmesh_pipe_5_001.obj" />
+    <mesh name="colmesh_pipe_5_002" file="colmesh_pipe_5_002.obj" />
+    <mesh name="colmesh_post" file="colmesh_post.obj" />
+    <mesh name="colmesh_post_001" file="colmesh_post_001.obj" />
+    <mesh name="colmesh_post_002" file="colmesh_post_002.obj" />
+    <mesh name="colmesh_post_003" file="colmesh_post_003.obj" />
+    <mesh name="colmesh_post_004" file="colmesh_post_004.obj" />
+    <mesh name="colmesh_post_005" file="colmesh_post_005.obj" />
+    <mesh name="colmesh_post__1__1" file="colmesh_post__1__1.obj" />
+    <mesh name="colmesh_post__1__1_001" file="colmesh_post__1__1_001.obj" />
+    <mesh name="colmesh_post__1__1_002" file="colmesh_post__1__1_002.obj" />
+    <mesh name="colmesh_post__1__1_003" file="colmesh_post__1__1_003.obj" />
+    <mesh name="colmesh_post__1__1_004" file="colmesh_post__1__1_004.obj" />
+    <mesh name="colmesh_post__1_1" file="colmesh_post__1_1.obj" />
+    <mesh name="colmesh_post__1_1_001" file="colmesh_post__1_1_001.obj" />
+    <mesh name="colmesh_post__1_1_002" file="colmesh_post__1_1_002.obj" />
+    <mesh name="colmesh_post__1_1_003" file="colmesh_post__1_1_003.obj" />
+    <mesh name="colmesh_post__1_1_004" file="colmesh_post__1_1_004.obj" />
+    <mesh name="colmesh_post_0" file="colmesh_post_0.obj" />
+    <mesh name="colmesh_post_00" file="colmesh_post_00.obj" />
+    <mesh name="colmesh_post_00_001" file="colmesh_post_00_001.obj" />
+    <mesh name="colmesh_post_00_002" file="colmesh_post_00_002.obj" />
+    <mesh name="colmesh_post_00_003" file="colmesh_post_00_003.obj" />
+    <mesh name="colmesh_post_00_004" file="colmesh_post_00_004.obj" />
+    <mesh name="colmesh_post_01" file="colmesh_post_01.obj" />
+    <mesh name="colmesh_post_01_001" file="colmesh_post_01_001.obj" />
+    <mesh name="colmesh_post_01_002" file="colmesh_post_01_002.obj" />
+    <mesh name="colmesh_post_01_003" file="colmesh_post_01_003.obj" />
+    <mesh name="colmesh_post_01_004" file="colmesh_post_01_004.obj" />
+    <mesh name="colmesh_post_02" file="colmesh_post_02.obj" />
+    <mesh name="colmesh_post_02_001" file="colmesh_post_02_001.obj" />
+    <mesh name="colmesh_post_02_002" file="colmesh_post_02_002.obj" />
+    <mesh name="colmesh_post_02_003" file="colmesh_post_02_003.obj" />
+    <mesh name="colmesh_post_03" file="colmesh_post_03.obj" />
+    <mesh name="colmesh_post_03_001" file="colmesh_post_03_001.obj" />
+    <mesh name="colmesh_post_03_002" file="colmesh_post_03_002.obj" />
+    <mesh name="colmesh_post_03_003" file="colmesh_post_03_003.obj" />
+    <mesh name="colmesh_post_04" file="colmesh_post_04.obj" />
+    <mesh name="colmesh_post_04_001" file="colmesh_post_04_001.obj" />
+    <mesh name="colmesh_post_04_002" file="colmesh_post_04_002.obj" />
+    <mesh name="colmesh_post_04_003" file="colmesh_post_04_003.obj" />
+    <mesh name="colmesh_post_05" file="colmesh_post_05.obj" />
+    <mesh name="colmesh_post_05_001" file="colmesh_post_05_001.obj" />
+    <mesh name="colmesh_post_05_002" file="colmesh_post_05_002.obj" />
+    <mesh name="colmesh_post_05_003" file="colmesh_post_05_003.obj" />
+    <mesh name="colmesh_post_06" file="colmesh_post_06.obj" />
+    <mesh name="colmesh_post_06_001" file="colmesh_post_06_001.obj" />
+    <mesh name="colmesh_post_06_002" file="colmesh_post_06_002.obj" />
+    <mesh name="colmesh_post_07" file="colmesh_post_07.obj" />
+    <mesh name="colmesh_post_07_001" file="colmesh_post_07_001.obj" />
+    <mesh name="colmesh_post_07_002" file="colmesh_post_07_002.obj" />
+    <mesh name="colmesh_post_08" file="colmesh_post_08.obj" />
+    <mesh name="colmesh_post_08_001" file="colmesh_post_08_001.obj" />
+    <mesh name="colmesh_post_08_002" file="colmesh_post_08_002.obj" />
+    <mesh name="colmesh_post_1" file="colmesh_post_1.obj" />
+    <mesh name="colmesh_post_1__1" file="colmesh_post_1__1.obj" />
+    <mesh name="colmesh_post_1__1_001" file="colmesh_post_1__1_001.obj" />
+    <mesh name="colmesh_post_1__1_002" file="colmesh_post_1__1_002.obj" />
+    <mesh name="colmesh_post_1__1_003" file="colmesh_post_1__1_003.obj" />
+    <mesh name="colmesh_post_1__1_004" file="colmesh_post_1__1_004.obj" />
+    <mesh name="colmesh_post_1_1" file="colmesh_post_1_1.obj" />
+    <mesh name="colmesh_post_1_1_001" file="colmesh_post_1_1_001.obj" />
+    <mesh name="colmesh_post_1_1_002" file="colmesh_post_1_1_002.obj" />
+    <mesh name="colmesh_post_1_1_003" file="colmesh_post_1_1_003.obj" />
+    <mesh name="colmesh_post_1_1_004" file="colmesh_post_1_1_004.obj" />
+    <mesh name="colmesh_post_2" file="colmesh_post_2.obj" />
+    <mesh name="colmesh_post_3" file="colmesh_post_3.obj" />
+    <mesh name="colmesh_post_left" file="colmesh_post_left.obj" />
+    <mesh name="colmesh_post_right" file="colmesh_post_right.obj" />
+    <mesh name="colmesh_rail_high" file="colmesh_rail_high.obj" />
+    <mesh name="colmesh_rail_high_001" file="colmesh_rail_high_001.obj" />
+    <mesh name="colmesh_rail_high_002" file="colmesh_rail_high_002.obj" />
+    <mesh name="colmesh_rail_high_003" file="colmesh_rail_high_003.obj" />
+    <mesh name="colmesh_rail_high_004" file="colmesh_rail_high_004.obj" />
+    <mesh name="colmesh_rail_low" file="colmesh_rail_low.obj" />
+    <mesh name="colmesh_rail_low_001" file="colmesh_rail_low_001.obj" />
+    <mesh name="colmesh_rail_low_002" file="colmesh_rail_low_002.obj" />
+    <mesh name="colmesh_rail_low_003" file="colmesh_rail_low_003.obj" />
+    <mesh name="colmesh_rail_low_004" file="colmesh_rail_low_004.obj" />
+    <mesh name="colmesh_rail_x2_50" file="colmesh_rail_x2_50.obj" />
+    <mesh name="colmesh_rail_x2_50_001" file="colmesh_rail_x2_50_001.obj" />
+    <mesh name="colmesh_rail_x2_50_002" file="colmesh_rail_x2_50_002.obj" />
+    <mesh name="colmesh_rail_x2_50_003" file="colmesh_rail_x2_50_003.obj" />
+    <mesh name="colmesh_rail_x2_50_004" file="colmesh_rail_x2_50_004.obj" />
+    <mesh name="colmesh_rail_x2_649" file="colmesh_rail_x2_649.obj" />
+    <mesh name="colmesh_rail_x2_649_001" file="colmesh_rail_x2_649_001.obj" />
+    <mesh name="colmesh_rail_x2_649_002" file="colmesh_rail_x2_649_002.obj" />
+    <mesh name="colmesh_rail_x2_649_003" file="colmesh_rail_x2_649_003.obj" />
+    <mesh name="colmesh_rail_x2_649_004" file="colmesh_rail_x2_649_004.obj" />
+    <mesh name="colmesh_rail_x_50" file="colmesh_rail_x_50.obj" />
+    <mesh name="colmesh_rail_x_50_001" file="colmesh_rail_x_50_001.obj" />
+    <mesh name="colmesh_rail_x_50_002" file="colmesh_rail_x_50_002.obj" />
+    <mesh name="colmesh_rail_x_50_003" file="colmesh_rail_x_50_003.obj" />
+    <mesh name="colmesh_rail_x_50_004" file="colmesh_rail_x_50_004.obj" />
+    <mesh name="colmesh_rail_x_649" file="colmesh_rail_x_649.obj" />
+    <mesh name="colmesh_rail_x_649_001" file="colmesh_rail_x_649_001.obj" />
+    <mesh name="colmesh_rail_x_649_002" file="colmesh_rail_x_649_002.obj" />
+    <mesh name="colmesh_rail_x_649_003" file="colmesh_rail_x_649_003.obj" />
+    <mesh name="colmesh_rail_x_649_004" file="colmesh_rail_x_649_004.obj" />
+    <mesh name="colmesh_rail_y2_50" file="colmesh_rail_y2_50.obj" />
+    <mesh name="colmesh_rail_y2_50_001" file="colmesh_rail_y2_50_001.obj" />
+    <mesh name="colmesh_rail_y2_50_002" file="colmesh_rail_y2_50_002.obj" />
+    <mesh name="colmesh_rail_y2_50_003" file="colmesh_rail_y2_50_003.obj" />
+    <mesh name="colmesh_rail_y2_50_004" file="colmesh_rail_y2_50_004.obj" />
+    <mesh name="colmesh_rail_y2_649" file="colmesh_rail_y2_649.obj" />
+    <mesh name="colmesh_rail_y2_649_001" file="colmesh_rail_y2_649_001.obj" />
+    <mesh name="colmesh_rail_y2_649_002" file="colmesh_rail_y2_649_002.obj" />
+    <mesh name="colmesh_rail_y2_649_003" file="colmesh_rail_y2_649_003.obj" />
+    <mesh name="colmesh_rail_y2_649_004" file="colmesh_rail_y2_649_004.obj" />
+    <mesh name="colmesh_rail_y_50" file="colmesh_rail_y_50.obj" />
+    <mesh name="colmesh_rail_y_50_001" file="colmesh_rail_y_50_001.obj" />
+    <mesh name="colmesh_rail_y_50_002" file="colmesh_rail_y_50_002.obj" />
+    <mesh name="colmesh_rail_y_50_003" file="colmesh_rail_y_50_003.obj" />
+    <mesh name="colmesh_rail_y_50_004" file="colmesh_rail_y_50_004.obj" />
+    <mesh name="colmesh_rail_y_649" file="colmesh_rail_y_649.obj" />
+    <mesh name="colmesh_rail_y_649_001" file="colmesh_rail_y_649_001.obj" />
+    <mesh name="colmesh_rail_y_649_002" file="colmesh_rail_y_649_002.obj" />
+    <mesh name="colmesh_rail_y_649_003" file="colmesh_rail_y_649_003.obj" />
+    <mesh name="colmesh_rail_y_649_004" file="colmesh_rail_y_649_004.obj" />
+    <mesh name="colmesh_ring_lower" file="colmesh_ring_lower.obj" />
+    <mesh name="colmesh_ring_lower_001" file="colmesh_ring_lower_001.obj" />
+    <mesh name="colmesh_ring_lower_002" file="colmesh_ring_lower_002.obj" />
+    <mesh name="colmesh_ring_lower_003" file="colmesh_ring_lower_003.obj" />
+    <mesh name="colmesh_ring_lower_004" file="colmesh_ring_lower_004.obj" />
+    <mesh name="colmesh_ring_lower_005" file="colmesh_ring_lower_005.obj" />
+    <mesh name="colmesh_ring_lower_006" file="colmesh_ring_lower_006.obj" />
+    <mesh name="colmesh_ring_lower_007" file="colmesh_ring_lower_007.obj" />
+    <mesh name="colmesh_ring_lower_008" file="colmesh_ring_lower_008.obj" />
+    <mesh name="colmesh_ring_lower_009" file="colmesh_ring_lower_009.obj" />
+    <mesh name="colmesh_ring_lower_010" file="colmesh_ring_lower_010.obj" />
+    <mesh name="colmesh_ring_lower_011" file="colmesh_ring_lower_011.obj" />
+    <mesh name="colmesh_ring_lower_012" file="colmesh_ring_lower_012.obj" />
+    <mesh name="colmesh_ring_lower_013" file="colmesh_ring_lower_013.obj" />
+    <mesh name="colmesh_ring_lower_014" file="colmesh_ring_lower_014.obj" />
+    <mesh name="colmesh_ring_lower_015" file="colmesh_ring_lower_015.obj" />
+    <mesh name="colmesh_ring_top" file="colmesh_ring_top.obj" />
+    <mesh name="colmesh_ring_top_001" file="colmesh_ring_top_001.obj" />
+    <mesh name="colmesh_ring_top_002" file="colmesh_ring_top_002.obj" />
+    <mesh name="colmesh_ring_top_003" file="colmesh_ring_top_003.obj" />
+    <mesh name="colmesh_ring_top_004" file="colmesh_ring_top_004.obj" />
+    <mesh name="colmesh_ring_top_005" file="colmesh_ring_top_005.obj" />
+    <mesh name="colmesh_ring_top_006" file="colmesh_ring_top_006.obj" />
+    <mesh name="colmesh_ring_top_007" file="colmesh_ring_top_007.obj" />
+    <mesh name="colmesh_ring_top_008" file="colmesh_ring_top_008.obj" />
+    <mesh name="colmesh_ring_top_009" file="colmesh_ring_top_009.obj" />
+    <mesh name="colmesh_ring_top_010" file="colmesh_ring_top_010.obj" />
+    <mesh name="colmesh_ring_top_011" file="colmesh_ring_top_011.obj" />
+    <mesh name="colmesh_ring_top_012" file="colmesh_ring_top_012.obj" />
+    <mesh name="colmesh_ring_top_013" file="colmesh_ring_top_013.obj" />
+    <mesh name="colmesh_ring_top_014" file="colmesh_ring_top_014.obj" />
+    <mesh name="colmesh_ring_top_015" file="colmesh_ring_top_015.obj" />
+    <mesh name="colmesh_roof" file="colmesh_roof.obj" />
+    <mesh name="colmesh_shelf_0" file="colmesh_shelf_0.obj" />
+    <mesh name="colmesh_shelf_0_001" file="colmesh_shelf_0_001.obj" />
+    <mesh name="colmesh_shelf_0_002" file="colmesh_shelf_0_002.obj" />
+    <mesh name="colmesh_shelf_0_003" file="colmesh_shelf_0_003.obj" />
+    <mesh name="colmesh_shelf_0_004" file="colmesh_shelf_0_004.obj" />
+    <mesh name="colmesh_shelf_0_005" file="colmesh_shelf_0_005.obj" />
+    <mesh name="colmesh_shelf_1" file="colmesh_shelf_1.obj" />
+    <mesh name="colmesh_shelf_1_001" file="colmesh_shelf_1_001.obj" />
+    <mesh name="colmesh_shelf_1_002" file="colmesh_shelf_1_002.obj" />
+    <mesh name="colmesh_shelf_1_003" file="colmesh_shelf_1_003.obj" />
+    <mesh name="colmesh_shelf_1_004" file="colmesh_shelf_1_004.obj" />
+    <mesh name="colmesh_shelf_1_005" file="colmesh_shelf_1_005.obj" />
+    <mesh name="colmesh_shelf_2" file="colmesh_shelf_2.obj" />
+    <mesh name="colmesh_shelf_2_001" file="colmesh_shelf_2_001.obj" />
+    <mesh name="colmesh_shelf_2_002" file="colmesh_shelf_2_002.obj" />
+    <mesh name="colmesh_shelf_2_003" file="colmesh_shelf_2_003.obj" />
+    <mesh name="colmesh_shelf_2_004" file="colmesh_shelf_2_004.obj" />
+    <mesh name="colmesh_shelf_2_005" file="colmesh_shelf_2_005.obj" />
+    <mesh name="colmesh_slat_0" file="colmesh_slat_0.obj" />
+    <mesh name="colmesh_slat_0_001" file="colmesh_slat_0_001.obj" />
+    <mesh name="colmesh_slat_0_002" file="colmesh_slat_0_002.obj" />
+    <mesh name="colmesh_slat_0_003" file="colmesh_slat_0_003.obj" />
+    <mesh name="colmesh_slat_0_004" file="colmesh_slat_0_004.obj" />
+    <mesh name="colmesh_slat_0_005" file="colmesh_slat_0_005.obj" />
+    <mesh name="colmesh_slat_1" file="colmesh_slat_1.obj" />
+    <mesh name="colmesh_slat_1_001" file="colmesh_slat_1_001.obj" />
+    <mesh name="colmesh_slat_1_002" file="colmesh_slat_1_002.obj" />
+    <mesh name="colmesh_slat_1_003" file="colmesh_slat_1_003.obj" />
+    <mesh name="colmesh_slat_1_004" file="colmesh_slat_1_004.obj" />
+    <mesh name="colmesh_slat_1_005" file="colmesh_slat_1_005.obj" />
+    <mesh name="colmesh_slat_2" file="colmesh_slat_2.obj" />
+    <mesh name="colmesh_slat_2_001" file="colmesh_slat_2_001.obj" />
+    <mesh name="colmesh_slat_2_002" file="colmesh_slat_2_002.obj" />
+    <mesh name="colmesh_slat_2_003" file="colmesh_slat_2_003.obj" />
+    <mesh name="colmesh_slat_2_004" file="colmesh_slat_2_004.obj" />
+    <mesh name="colmesh_slat_2_005" file="colmesh_slat_2_005.obj" />
+    <mesh name="colmesh_slat_3" file="colmesh_slat_3.obj" />
+    <mesh name="colmesh_slat_3_001" file="colmesh_slat_3_001.obj" />
+    <mesh name="colmesh_slat_3_002" file="colmesh_slat_3_002.obj" />
+    <mesh name="colmesh_slat_3_003" file="colmesh_slat_3_003.obj" />
+    <mesh name="colmesh_slat_3_004" file="colmesh_slat_3_004.obj" />
+    <mesh name="colmesh_slat_3_005" file="colmesh_slat_3_005.obj" />
+    <mesh name="colmesh_slat_4" file="colmesh_slat_4.obj" />
+    <mesh name="colmesh_slat_4_001" file="colmesh_slat_4_001.obj" />
+    <mesh name="colmesh_slat_4_002" file="colmesh_slat_4_002.obj" />
+    <mesh name="colmesh_slat_4_003" file="colmesh_slat_4_003.obj" />
+    <mesh name="colmesh_slat_4_004" file="colmesh_slat_4_004.obj" />
+    <mesh name="colmesh_slat_4_005" file="colmesh_slat_4_005.obj" />
+    <mesh name="colmesh_support_1" file="colmesh_support_1.obj" />
+    <mesh name="colmesh_support_1_001" file="colmesh_support_1_001.obj" />
+    <mesh name="colmesh_support_1_002" file="colmesh_support_1_002.obj" />
+    <mesh name="colmesh_support_2" file="colmesh_support_2.obj" />
+    <mesh name="colmesh_support_2_001" file="colmesh_support_2_001.obj" />
+    <mesh name="colmesh_support_2_002" file="colmesh_support_2_002.obj" />
+    <mesh name="colmesh_upright_nn" file="colmesh_upright_nn.obj" />
+    <mesh name="colmesh_upright_nn_001" file="colmesh_upright_nn_001.obj" />
+    <mesh name="colmesh_upright_nn_002" file="colmesh_upright_nn_002.obj" />
+    <mesh name="colmesh_upright_nn_003" file="colmesh_upright_nn_003.obj" />
+    <mesh name="colmesh_upright_nn_004" file="colmesh_upright_nn_004.obj" />
+    <mesh name="colmesh_upright_nn_005" file="colmesh_upright_nn_005.obj" />
+    <mesh name="colmesh_upright_np" file="colmesh_upright_np.obj" />
+    <mesh name="colmesh_upright_np_001" file="colmesh_upright_np_001.obj" />
+    <mesh name="colmesh_upright_np_002" file="colmesh_upright_np_002.obj" />
+    <mesh name="colmesh_upright_np_003" file="colmesh_upright_np_003.obj" />
+    <mesh name="colmesh_upright_np_004" file="colmesh_upright_np_004.obj" />
+    <mesh name="colmesh_upright_np_005" file="colmesh_upright_np_005.obj" />
+    <mesh name="colmesh_upright_pn" file="colmesh_upright_pn.obj" />
+    <mesh name="colmesh_upright_pn_001" file="colmesh_upright_pn_001.obj" />
+    <mesh name="colmesh_upright_pn_002" file="colmesh_upright_pn_002.obj" />
+    <mesh name="colmesh_upright_pn_003" file="colmesh_upright_pn_003.obj" />
+    <mesh name="colmesh_upright_pn_004" file="colmesh_upright_pn_004.obj" />
+    <mesh name="colmesh_upright_pn_005" file="colmesh_upright_pn_005.obj" />
+    <mesh name="colmesh_upright_pp" file="colmesh_upright_pp.obj" />
+    <mesh name="colmesh_upright_pp_001" file="colmesh_upright_pp_001.obj" />
+    <mesh name="colmesh_upright_pp_002" file="colmesh_upright_pp_002.obj" />
+    <mesh name="colmesh_upright_pp_003" file="colmesh_upright_pp_003.obj" />
+    <mesh name="colmesh_upright_pp_004" file="colmesh_upright_pp_004.obj" />
+    <mesh name="colmesh_upright_pp_005" file="colmesh_upright_pp_005.obj" />
+    <mesh name="colmesh_workbench" file="colmesh_workbench.obj" />
+    <model name="husky_model" file="../robots/husky.xml" />
+    <model name="x2_model" file="../robots/x2.xml" />
+  </asset>
+  <worldbody>
+    <light name="sun" directional="true" pos="-4 -6 12" dir="0.25 0.35 -1" diffuse="0.9 0.88 0.82" />
+    <camera name="overview" pos="34 -34 30" quat="0.80448091 0.4542731 0.18816611 0.33322689" fovy="41.1121" />
+    <geom name="floor" type="plane" size="20 20 1" pos="0 0 0" material="mat_ground" class="spar_world_ground" />
+    <geom name="vis_cable" type="mesh" mesh="mesh_cable" material="mat_cable" class="spar_world_visual" />
+    <geom name="vis_cone_orange" type="mesh" mesh="mesh_cone_orange" material="mat_cone_orange" class="spar_world_visual" />
+    <geom name="vis_galvanized_steel" type="mesh" mesh="mesh_galvanized_steel" material="mat_galvanized_steel" class="spar_world_visual" />
+    <geom name="vis_ground_dirt" type="mesh" mesh="mesh_ground_dirt" material="mat_ground_dirt" class="spar_world_visual" />
+    <geom name="vis_inspection_red" type="mesh" mesh="mesh_inspection_red" material="mat_inspection_red" class="spar_world_visual" />
+    <geom name="vis_pipe" type="mesh" mesh="mesh_pipe" material="mat_pipe" class="spar_world_visual" />
+    <geom name="vis_plastic" type="mesh" mesh="mesh_plastic" material="mat_plastic" class="spar_world_visual" />
+    <geom name="vis_weathered_metal" type="mesh" mesh="mesh_weathered_metal" material="mat_weathered_metal" class="spar_world_visual" />
+    <geom name="vis_wood" type="mesh" mesh="mesh_wood" material="mat_wood" class="spar_world_visual" />
+    <geom name="col_auto_asm_fence_east_post_0" type="mesh" mesh="colmesh_asm_fence_east_post_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_east_post_1" type="mesh" mesh="colmesh_asm_fence_east_post_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_east_rail_0" type="mesh" mesh="colmesh_asm_fence_east_rail_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_east_rail_1" type="mesh" mesh="colmesh_asm_fence_east_rail_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_north_post_0" type="mesh" mesh="colmesh_asm_fence_north_post_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_north_post_1" type="mesh" mesh="colmesh_asm_fence_north_post_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_north_rail_0" type="mesh" mesh="colmesh_asm_fence_north_rail_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_north_rail_1" type="mesh" mesh="colmesh_asm_fence_north_rail_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_after_post_0" type="mesh" mesh="colmesh_asm_fence_south_after_post_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_after_post_1" type="mesh" mesh="colmesh_asm_fence_south_after_post_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_after_rail_0" type="mesh" mesh="colmesh_asm_fence_south_after_rail_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_after_rail_1" type="mesh" mesh="colmesh_asm_fence_south_after_rail_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_before_post_0" type="mesh" mesh="colmesh_asm_fence_south_before_post_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_before_post_1" type="mesh" mesh="colmesh_asm_fence_south_before_post_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_before_rail_0" type="mesh" mesh="colmesh_asm_fence_south_before_rail_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_south_before_rail_1" type="mesh" mesh="colmesh_asm_fence_south_before_rail_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_west_post_0" type="mesh" mesh="colmesh_asm_fence_west_post_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_west_post_1" type="mesh" mesh="colmesh_asm_fence_west_post_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_west_rail_0" type="mesh" mesh="colmesh_asm_fence_west_rail_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_fence_west_rail_1" type="mesh" mesh="colmesh_asm_fence_west_rail_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_gate_south_endpost__1" type="mesh" mesh="colmesh_asm_gate_south_endpost__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_gate_south_endpost_1" type="mesh" mesh="colmesh_asm_gate_south_endpost_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_01_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_01_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_01_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_01_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_01_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_01_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_01_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_01_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_01_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_01_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_02_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_02_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_02_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_02_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_02_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_02_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_02_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_02_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_02_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_02_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_03_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_03_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_03_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_03_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_03_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_03_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_03_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_03_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_03_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_03_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_04_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_04_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_04_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_04_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_04_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_04_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_04_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_04_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_04_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_04_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_05_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_05_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_05_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_05_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_05_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_05_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_05_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_05_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_05_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_05_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_06_bung_a" type="mesh" mesh="colmesh_asm_barrel_a_06_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_06_bung_b" type="mesh" mesh="colmesh_asm_barrel_a_06_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_06_rib_0" type="mesh" mesh="colmesh_asm_barrel_a_06_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_06_rib_1" type="mesh" mesh="colmesh_asm_barrel_a_06_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_a_06_rib_2" type="mesh" mesh="colmesh_asm_barrel_a_06_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_01_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_01_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_01_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_01_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_01_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_01_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_01_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_01_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_01_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_01_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_02_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_02_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_02_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_02_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_02_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_02_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_02_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_02_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_02_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_02_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_03_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_03_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_03_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_03_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_03_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_03_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_03_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_03_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_03_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_03_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_04_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_04_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_04_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_04_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_04_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_04_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_04_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_04_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_04_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_04_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_05_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_05_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_05_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_05_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_05_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_05_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_05_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_05_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_05_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_05_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_06_bung_a" type="mesh" mesh="colmesh_asm_barrel_b_06_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_06_bung_b" type="mesh" mesh="colmesh_asm_barrel_b_06_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_06_rib_0" type="mesh" mesh="colmesh_asm_barrel_b_06_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_06_rib_1" type="mesh" mesh="colmesh_asm_barrel_b_06_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_b_06_rib_2" type="mesh" mesh="colmesh_asm_barrel_b_06_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_01_bung_a" type="mesh" mesh="colmesh_asm_barrel_c_01_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_01_bung_b" type="mesh" mesh="colmesh_asm_barrel_c_01_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_01_rib_0" type="mesh" mesh="colmesh_asm_barrel_c_01_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_01_rib_1" type="mesh" mesh="colmesh_asm_barrel_c_01_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_01_rib_2" type="mesh" mesh="colmesh_asm_barrel_c_01_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_02_bung_a" type="mesh" mesh="colmesh_asm_barrel_c_02_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_02_bung_b" type="mesh" mesh="colmesh_asm_barrel_c_02_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_02_rib_0" type="mesh" mesh="colmesh_asm_barrel_c_02_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_02_rib_1" type="mesh" mesh="colmesh_asm_barrel_c_02_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_02_rib_2" type="mesh" mesh="colmesh_asm_barrel_c_02_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_03_bung_a" type="mesh" mesh="colmesh_asm_barrel_c_03_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_03_bung_b" type="mesh" mesh="colmesh_asm_barrel_c_03_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_03_rib_0" type="mesh" mesh="colmesh_asm_barrel_c_03_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_03_rib_1" type="mesh" mesh="colmesh_asm_barrel_c_03_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_barrel_c_03_rib_2" type="mesh" mesh="colmesh_asm_barrel_c_03_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_01_band_0" type="mesh" mesh="colmesh_asm_bollard_01_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_01_band_1" type="mesh" mesh="colmesh_asm_bollard_01_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_02_band_0" type="mesh" mesh="colmesh_asm_bollard_02_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_02_band_1" type="mesh" mesh="colmesh_asm_bollard_02_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_03_band_0" type="mesh" mesh="colmesh_asm_bollard_03_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_03_band_1" type="mesh" mesh="colmesh_asm_bollard_03_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_04_band_0" type="mesh" mesh="colmesh_asm_bollard_04_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_04_band_1" type="mesh" mesh="colmesh_asm_bollard_04_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_05_band_0" type="mesh" mesh="colmesh_asm_bollard_05_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_05_band_1" type="mesh" mesh="colmesh_asm_bollard_05_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_06_band_0" type="mesh" mesh="colmesh_asm_bollard_06_band_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_bollard_06_band_1" type="mesh" mesh="colmesh_asm_bollard_06_band_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_cable_spool_01_wound" type="mesh" mesh="colmesh_asm_cable_spool_01_wound" class="spar_world_collision" />
+    <geom name="col_auto_asm_cable_spool_02_wound" type="mesh" mesh="colmesh_asm_cable_spool_02_wound" class="spar_world_collision" />
+    <geom name="col_auto_asm_cable_spool_03_wound" type="mesh" mesh="colmesh_asm_cable_spool_03_wound" class="spar_world_collision" />
+    <geom name="col_auto_asm_cable_spool_04_wound" type="mesh" mesh="colmesh_asm_cable_spool_04_wound" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_batten__1__1" type="mesh" mesh="colmesh_asm_crate_01_batten__1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_batten__1_1" type="mesh" mesh="colmesh_asm_crate_01_batten__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_batten_1__1" type="mesh" mesh="colmesh_asm_crate_01_batten_1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_batten_1_1" type="mesh" mesh="colmesh_asm_crate_01_batten_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_strap_x" type="mesh" mesh="colmesh_asm_crate_01_strap_x" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_01_strap_y" type="mesh" mesh="colmesh_asm_crate_01_strap_y" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_batten__1__1" type="mesh" mesh="colmesh_asm_crate_02_batten__1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_batten__1_1" type="mesh" mesh="colmesh_asm_crate_02_batten__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_batten_1__1" type="mesh" mesh="colmesh_asm_crate_02_batten_1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_batten_1_1" type="mesh" mesh="colmesh_asm_crate_02_batten_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_strap_x" type="mesh" mesh="colmesh_asm_crate_02_strap_x" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_02_strap_y" type="mesh" mesh="colmesh_asm_crate_02_strap_y" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_batten__1__1" type="mesh" mesh="colmesh_asm_crate_03_batten__1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_batten__1_1" type="mesh" mesh="colmesh_asm_crate_03_batten__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_batten_1__1" type="mesh" mesh="colmesh_asm_crate_03_batten_1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_batten_1_1" type="mesh" mesh="colmesh_asm_crate_03_batten_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_strap_x" type="mesh" mesh="colmesh_asm_crate_03_strap_x" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_03_strap_y" type="mesh" mesh="colmesh_asm_crate_03_strap_y" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_batten__1__1" type="mesh" mesh="colmesh_asm_crate_04_batten__1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_batten__1_1" type="mesh" mesh="colmesh_asm_crate_04_batten__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_batten_1__1" type="mesh" mesh="colmesh_asm_crate_04_batten_1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_batten_1_1" type="mesh" mesh="colmesh_asm_crate_04_batten_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_strap_x" type="mesh" mesh="colmesh_asm_crate_04_strap_x" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_04_strap_y" type="mesh" mesh="colmesh_asm_crate_04_strap_y" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_batten__1__1" type="mesh" mesh="colmesh_asm_crate_05_batten__1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_batten__1_1" type="mesh" mesh="colmesh_asm_crate_05_batten__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_batten_1__1" type="mesh" mesh="colmesh_asm_crate_05_batten_1__1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_batten_1_1" type="mesh" mesh="colmesh_asm_crate_05_batten_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_strap_x" type="mesh" mesh="colmesh_asm_crate_05_strap_x" class="spar_world_collision" />
+    <geom name="col_auto_asm_crate_05_strap_y" type="mesh" mesh="colmesh_asm_crate_05_strap_y" class="spar_world_collision" />
+    <geom name="col_auto_asm_inspection_target_bung_a" type="mesh" mesh="colmesh_asm_inspection_target_bung_a" class="spar_world_collision" />
+    <geom name="col_auto_asm_inspection_target_bung_b" type="mesh" mesh="colmesh_asm_inspection_target_bung_b" class="spar_world_collision" />
+    <geom name="col_auto_asm_inspection_target_rib_0" type="mesh" mesh="colmesh_asm_inspection_target_rib_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_inspection_target_rib_1" type="mesh" mesh="colmesh_asm_inspection_target_rib_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_inspection_target_rib_2" type="mesh" mesh="colmesh_asm_inspection_target_rib_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_01_slat_0" type="mesh" mesh="colmesh_asm_pallet_01_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_01_slat_1" type="mesh" mesh="colmesh_asm_pallet_01_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_01_slat_2" type="mesh" mesh="colmesh_asm_pallet_01_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_01_slat_3" type="mesh" mesh="colmesh_asm_pallet_01_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_01_slat_4" type="mesh" mesh="colmesh_asm_pallet_01_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_02_slat_0" type="mesh" mesh="colmesh_asm_pallet_02_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_02_slat_1" type="mesh" mesh="colmesh_asm_pallet_02_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_02_slat_2" type="mesh" mesh="colmesh_asm_pallet_02_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_02_slat_3" type="mesh" mesh="colmesh_asm_pallet_02_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_02_slat_4" type="mesh" mesh="colmesh_asm_pallet_02_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_03_slat_0" type="mesh" mesh="colmesh_asm_pallet_03_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_03_slat_1" type="mesh" mesh="colmesh_asm_pallet_03_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_03_slat_2" type="mesh" mesh="colmesh_asm_pallet_03_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_03_slat_3" type="mesh" mesh="colmesh_asm_pallet_03_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_03_slat_4" type="mesh" mesh="colmesh_asm_pallet_03_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_04_slat_0" type="mesh" mesh="colmesh_asm_pallet_04_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_04_slat_1" type="mesh" mesh="colmesh_asm_pallet_04_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_04_slat_2" type="mesh" mesh="colmesh_asm_pallet_04_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_04_slat_3" type="mesh" mesh="colmesh_asm_pallet_04_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_04_slat_4" type="mesh" mesh="colmesh_asm_pallet_04_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_05_slat_0" type="mesh" mesh="colmesh_asm_pallet_05_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_05_slat_1" type="mesh" mesh="colmesh_asm_pallet_05_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_05_slat_2" type="mesh" mesh="colmesh_asm_pallet_05_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_05_slat_3" type="mesh" mesh="colmesh_asm_pallet_05_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_05_slat_4" type="mesh" mesh="colmesh_asm_pallet_05_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_06_slat_0" type="mesh" mesh="colmesh_asm_pallet_06_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_06_slat_1" type="mesh" mesh="colmesh_asm_pallet_06_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_06_slat_2" type="mesh" mesh="colmesh_asm_pallet_06_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_06_slat_3" type="mesh" mesh="colmesh_asm_pallet_06_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_asm_pallet_06_slat_4" type="mesh" mesh="colmesh_asm_pallet_06_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end__1_0" type="mesh" mesh="colmesh_asm_pipe_stack_01_end__1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end__1_1" type="mesh" mesh="colmesh_asm_pipe_stack_01_end__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end__1_2" type="mesh" mesh="colmesh_asm_pipe_stack_01_end__1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end_1_0" type="mesh" mesh="colmesh_asm_pipe_stack_01_end_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end_1_1" type="mesh" mesh="colmesh_asm_pipe_stack_01_end_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_01_end_1_2" type="mesh" mesh="colmesh_asm_pipe_stack_01_end_1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end__1_0" type="mesh" mesh="colmesh_asm_pipe_stack_02_end__1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end__1_1" type="mesh" mesh="colmesh_asm_pipe_stack_02_end__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end__1_2" type="mesh" mesh="colmesh_asm_pipe_stack_02_end__1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end_1_0" type="mesh" mesh="colmesh_asm_pipe_stack_02_end_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end_1_1" type="mesh" mesh="colmesh_asm_pipe_stack_02_end_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_02_end_1_2" type="mesh" mesh="colmesh_asm_pipe_stack_02_end_1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end__1_0" type="mesh" mesh="colmesh_asm_pipe_stack_03_end__1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end__1_1" type="mesh" mesh="colmesh_asm_pipe_stack_03_end__1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end__1_2" type="mesh" mesh="colmesh_asm_pipe_stack_03_end__1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end_1_0" type="mesh" mesh="colmesh_asm_pipe_stack_03_end_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end_1_1" type="mesh" mesh="colmesh_asm_pipe_stack_03_end_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_pipe_stack_03_end_1_2" type="mesh" mesh="colmesh_asm_pipe_stack_03_end_1_2" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_0_0" type="mesh" mesh="colmesh_asm_rack_east_01_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_0_1" type="mesh" mesh="colmesh_asm_rack_east_01_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_1_0" type="mesh" mesh="colmesh_asm_rack_east_01_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_1_1" type="mesh" mesh="colmesh_asm_rack_east_01_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_2_0" type="mesh" mesh="colmesh_asm_rack_east_01_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_01_load_2_1" type="mesh" mesh="colmesh_asm_rack_east_01_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_0_0" type="mesh" mesh="colmesh_asm_rack_east_02_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_0_1" type="mesh" mesh="colmesh_asm_rack_east_02_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_1_0" type="mesh" mesh="colmesh_asm_rack_east_02_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_1_1" type="mesh" mesh="colmesh_asm_rack_east_02_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_2_0" type="mesh" mesh="colmesh_asm_rack_east_02_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_02_load_2_1" type="mesh" mesh="colmesh_asm_rack_east_02_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_0_0" type="mesh" mesh="colmesh_asm_rack_east_03_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_0_1" type="mesh" mesh="colmesh_asm_rack_east_03_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_1_0" type="mesh" mesh="colmesh_asm_rack_east_03_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_1_1" type="mesh" mesh="colmesh_asm_rack_east_03_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_2_0" type="mesh" mesh="colmesh_asm_rack_east_03_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_east_03_load_2_1" type="mesh" mesh="colmesh_asm_rack_east_03_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_0_0" type="mesh" mesh="colmesh_asm_rack_west_01_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_0_1" type="mesh" mesh="colmesh_asm_rack_west_01_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_1_0" type="mesh" mesh="colmesh_asm_rack_west_01_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_1_1" type="mesh" mesh="colmesh_asm_rack_west_01_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_2_0" type="mesh" mesh="colmesh_asm_rack_west_01_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_01_load_2_1" type="mesh" mesh="colmesh_asm_rack_west_01_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_0_0" type="mesh" mesh="colmesh_asm_rack_west_02_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_0_1" type="mesh" mesh="colmesh_asm_rack_west_02_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_1_0" type="mesh" mesh="colmesh_asm_rack_west_02_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_1_1" type="mesh" mesh="colmesh_asm_rack_west_02_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_2_0" type="mesh" mesh="colmesh_asm_rack_west_02_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_02_load_2_1" type="mesh" mesh="colmesh_asm_rack_west_02_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_0_0" type="mesh" mesh="colmesh_asm_rack_west_03_load_0_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_0_1" type="mesh" mesh="colmesh_asm_rack_west_03_load_0_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_1_0" type="mesh" mesh="colmesh_asm_rack_west_03_load_1_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_1_1" type="mesh" mesh="colmesh_asm_rack_west_03_load_1_1" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_2_0" type="mesh" mesh="colmesh_asm_rack_west_03_load_2_0" class="spar_world_collision" />
+    <geom name="col_auto_asm_rack_west_03_load_2_1" type="mesh" mesh="colmesh_asm_rack_west_03_load_2_1" class="spar_world_collision" />
+    <geom name="col_auto_back_wall" type="mesh" mesh="colmesh_back_wall" class="spar_world_collision" />
+    <geom name="col_auto_band" type="mesh" mesh="colmesh_band" class="spar_world_collision" />
+    <geom name="col_auto_band_001" type="mesh" mesh="colmesh_band_001" class="spar_world_collision" />
+    <geom name="col_auto_band_002" type="mesh" mesh="colmesh_band_002" class="spar_world_collision" />
+    <geom name="col_auto_band_003" type="mesh" mesh="colmesh_band_003" class="spar_world_collision" />
+    <geom name="col_auto_band_004" type="mesh" mesh="colmesh_band_004" class="spar_world_collision" />
+    <geom name="col_auto_band_005" type="mesh" mesh="colmesh_band_005" class="spar_world_collision" />
+    <geom name="col_auto_base" type="mesh" mesh="colmesh_base" class="spar_world_collision" />
+    <geom name="col_auto_base_001" type="mesh" mesh="colmesh_base_001" class="spar_world_collision" />
+    <geom name="col_auto_base_002" type="mesh" mesh="colmesh_base_002" class="spar_world_collision" />
+    <geom name="col_auto_base_003" type="mesh" mesh="colmesh_base_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n" type="mesh" mesh="colmesh_beam_0_n" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n_001" type="mesh" mesh="colmesh_beam_0_n_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n_002" type="mesh" mesh="colmesh_beam_0_n_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n_003" type="mesh" mesh="colmesh_beam_0_n_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n_004" type="mesh" mesh="colmesh_beam_0_n_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_n_005" type="mesh" mesh="colmesh_beam_0_n_005" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p" type="mesh" mesh="colmesh_beam_0_p" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p_001" type="mesh" mesh="colmesh_beam_0_p_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p_002" type="mesh" mesh="colmesh_beam_0_p_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p_003" type="mesh" mesh="colmesh_beam_0_p_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p_004" type="mesh" mesh="colmesh_beam_0_p_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_0_p_005" type="mesh" mesh="colmesh_beam_0_p_005" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n" type="mesh" mesh="colmesh_beam_1_n" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n_001" type="mesh" mesh="colmesh_beam_1_n_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n_002" type="mesh" mesh="colmesh_beam_1_n_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n_003" type="mesh" mesh="colmesh_beam_1_n_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n_004" type="mesh" mesh="colmesh_beam_1_n_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_n_005" type="mesh" mesh="colmesh_beam_1_n_005" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p" type="mesh" mesh="colmesh_beam_1_p" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p_001" type="mesh" mesh="colmesh_beam_1_p_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p_002" type="mesh" mesh="colmesh_beam_1_p_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p_003" type="mesh" mesh="colmesh_beam_1_p_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p_004" type="mesh" mesh="colmesh_beam_1_p_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_1_p_005" type="mesh" mesh="colmesh_beam_1_p_005" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n" type="mesh" mesh="colmesh_beam_2_n" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n_001" type="mesh" mesh="colmesh_beam_2_n_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n_002" type="mesh" mesh="colmesh_beam_2_n_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n_003" type="mesh" mesh="colmesh_beam_2_n_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n_004" type="mesh" mesh="colmesh_beam_2_n_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_n_005" type="mesh" mesh="colmesh_beam_2_n_005" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p" type="mesh" mesh="colmesh_beam_2_p" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p_001" type="mesh" mesh="colmesh_beam_2_p_001" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p_002" type="mesh" mesh="colmesh_beam_2_p_002" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p_003" type="mesh" mesh="colmesh_beam_2_p_003" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p_004" type="mesh" mesh="colmesh_beam_2_p_004" class="spar_world_collision" />
+    <geom name="col_auto_beam_2_p_005" type="mesh" mesh="colmesh_beam_2_p_005" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0" type="mesh" mesh="colmesh_block_0_0" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0_001" type="mesh" mesh="colmesh_block_0_0_001" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0_002" type="mesh" mesh="colmesh_block_0_0_002" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0_003" type="mesh" mesh="colmesh_block_0_0_003" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0_004" type="mesh" mesh="colmesh_block_0_0_004" class="spar_world_collision" />
+    <geom name="col_auto_block_0_0_005" type="mesh" mesh="colmesh_block_0_0_005" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1" type="mesh" mesh="colmesh_block_0_1" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1_001" type="mesh" mesh="colmesh_block_0_1_001" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1_002" type="mesh" mesh="colmesh_block_0_1_002" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1_003" type="mesh" mesh="colmesh_block_0_1_003" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1_004" type="mesh" mesh="colmesh_block_0_1_004" class="spar_world_collision" />
+    <geom name="col_auto_block_0_1_005" type="mesh" mesh="colmesh_block_0_1_005" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2" type="mesh" mesh="colmesh_block_0_2" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2_001" type="mesh" mesh="colmesh_block_0_2_001" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2_002" type="mesh" mesh="colmesh_block_0_2_002" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2_003" type="mesh" mesh="colmesh_block_0_2_003" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2_004" type="mesh" mesh="colmesh_block_0_2_004" class="spar_world_collision" />
+    <geom name="col_auto_block_0_2_005" type="mesh" mesh="colmesh_block_0_2_005" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0" type="mesh" mesh="colmesh_block_1_0" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0_001" type="mesh" mesh="colmesh_block_1_0_001" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0_002" type="mesh" mesh="colmesh_block_1_0_002" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0_003" type="mesh" mesh="colmesh_block_1_0_003" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0_004" type="mesh" mesh="colmesh_block_1_0_004" class="spar_world_collision" />
+    <geom name="col_auto_block_1_0_005" type="mesh" mesh="colmesh_block_1_0_005" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1" type="mesh" mesh="colmesh_block_1_1" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1_001" type="mesh" mesh="colmesh_block_1_1_001" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1_002" type="mesh" mesh="colmesh_block_1_1_002" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1_003" type="mesh" mesh="colmesh_block_1_1_003" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1_004" type="mesh" mesh="colmesh_block_1_1_004" class="spar_world_collision" />
+    <geom name="col_auto_block_1_1_005" type="mesh" mesh="colmesh_block_1_1_005" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2" type="mesh" mesh="colmesh_block_1_2" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2_001" type="mesh" mesh="colmesh_block_1_2_001" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2_002" type="mesh" mesh="colmesh_block_1_2_002" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2_003" type="mesh" mesh="colmesh_block_1_2_003" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2_004" type="mesh" mesh="colmesh_block_1_2_004" class="spar_world_collision" />
+    <geom name="col_auto_block_1_2_005" type="mesh" mesh="colmesh_block_1_2_005" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0" type="mesh" mesh="colmesh_block_2_0" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0_001" type="mesh" mesh="colmesh_block_2_0_001" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0_002" type="mesh" mesh="colmesh_block_2_0_002" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0_003" type="mesh" mesh="colmesh_block_2_0_003" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0_004" type="mesh" mesh="colmesh_block_2_0_004" class="spar_world_collision" />
+    <geom name="col_auto_block_2_0_005" type="mesh" mesh="colmesh_block_2_0_005" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1" type="mesh" mesh="colmesh_block_2_1" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1_001" type="mesh" mesh="colmesh_block_2_1_001" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1_002" type="mesh" mesh="colmesh_block_2_1_002" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1_003" type="mesh" mesh="colmesh_block_2_1_003" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1_004" type="mesh" mesh="colmesh_block_2_1_004" class="spar_world_collision" />
+    <geom name="col_auto_block_2_1_005" type="mesh" mesh="colmesh_block_2_1_005" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2" type="mesh" mesh="colmesh_block_2_2" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2_001" type="mesh" mesh="colmesh_block_2_2_001" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2_002" type="mesh" mesh="colmesh_block_2_2_002" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2_003" type="mesh" mesh="colmesh_block_2_2_003" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2_004" type="mesh" mesh="colmesh_block_2_2_004" class="spar_world_collision" />
+    <geom name="col_auto_block_2_2_005" type="mesh" mesh="colmesh_block_2_2_005" class="spar_world_collision" />
+    <geom name="col_auto_body" type="mesh" mesh="colmesh_body" class="spar_world_collision" />
+    <geom name="col_auto_body_001" type="mesh" mesh="colmesh_body_001" class="spar_world_collision" />
+    <geom name="col_auto_body_002" type="mesh" mesh="colmesh_body_002" class="spar_world_collision" />
+    <geom name="col_auto_body_003" type="mesh" mesh="colmesh_body_003" class="spar_world_collision" />
+    <geom name="col_auto_body_004" type="mesh" mesh="colmesh_body_004" class="spar_world_collision" />
+    <geom name="col_auto_body_005" type="mesh" mesh="colmesh_body_005" class="spar_world_collision" />
+    <geom name="col_auto_body_006" type="mesh" mesh="colmesh_body_006" class="spar_world_collision" />
+    <geom name="col_auto_body_007" type="mesh" mesh="colmesh_body_007" class="spar_world_collision" />
+    <geom name="col_auto_body_008" type="mesh" mesh="colmesh_body_008" class="spar_world_collision" />
+    <geom name="col_auto_body_009" type="mesh" mesh="colmesh_body_009" class="spar_world_collision" />
+    <geom name="col_auto_body_010" type="mesh" mesh="colmesh_body_010" class="spar_world_collision" />
+    <geom name="col_auto_body_011" type="mesh" mesh="colmesh_body_011" class="spar_world_collision" />
+    <geom name="col_auto_body_012" type="mesh" mesh="colmesh_body_012" class="spar_world_collision" />
+    <geom name="col_auto_body_013" type="mesh" mesh="colmesh_body_013" class="spar_world_collision" />
+    <geom name="col_auto_body_014" type="mesh" mesh="colmesh_body_014" class="spar_world_collision" />
+    <geom name="col_auto_body_015" type="mesh" mesh="colmesh_body_015" class="spar_world_collision" />
+    <geom name="col_auto_body_016" type="mesh" mesh="colmesh_body_016" class="spar_world_collision" />
+    <geom name="col_auto_body_017" type="mesh" mesh="colmesh_body_017" class="spar_world_collision" />
+    <geom name="col_auto_body_018" type="mesh" mesh="colmesh_body_018" class="spar_world_collision" />
+    <geom name="col_auto_body_019" type="mesh" mesh="colmesh_body_019" class="spar_world_collision" />
+    <geom name="col_auto_body_020" type="mesh" mesh="colmesh_body_020" class="spar_world_collision" />
+    <geom name="col_auto_body_021" type="mesh" mesh="colmesh_body_021" class="spar_world_collision" />
+    <geom name="col_auto_body_022" type="mesh" mesh="colmesh_body_022" class="spar_world_collision" />
+    <geom name="col_auto_body_023" type="mesh" mesh="colmesh_body_023" class="spar_world_collision" />
+    <geom name="col_auto_body_024" type="mesh" mesh="colmesh_body_024" class="spar_world_collision" />
+    <geom name="col_auto_body_025" type="mesh" mesh="colmesh_body_025" class="spar_world_collision" />
+    <geom name="col_auto_body_026" type="mesh" mesh="colmesh_body_026" class="spar_world_collision" />
+    <geom name="col_auto_body_027" type="mesh" mesh="colmesh_body_027" class="spar_world_collision" />
+    <geom name="col_auto_box_0a" type="mesh" mesh="colmesh_box_0a" class="spar_world_collision" />
+    <geom name="col_auto_box_0a_001" type="mesh" mesh="colmesh_box_0a_001" class="spar_world_collision" />
+    <geom name="col_auto_box_0a_002" type="mesh" mesh="colmesh_box_0a_002" class="spar_world_collision" />
+    <geom name="col_auto_box_0b" type="mesh" mesh="colmesh_box_0b" class="spar_world_collision" />
+    <geom name="col_auto_box_0b_001" type="mesh" mesh="colmesh_box_0b_001" class="spar_world_collision" />
+    <geom name="col_auto_box_0b_002" type="mesh" mesh="colmesh_box_0b_002" class="spar_world_collision" />
+    <geom name="col_auto_box_1a" type="mesh" mesh="colmesh_box_1a" class="spar_world_collision" />
+    <geom name="col_auto_box_1a_001" type="mesh" mesh="colmesh_box_1a_001" class="spar_world_collision" />
+    <geom name="col_auto_box_1a_002" type="mesh" mesh="colmesh_box_1a_002" class="spar_world_collision" />
+    <geom name="col_auto_box_1b" type="mesh" mesh="colmesh_box_1b" class="spar_world_collision" />
+    <geom name="col_auto_box_1b_001" type="mesh" mesh="colmesh_box_1b_001" class="spar_world_collision" />
+    <geom name="col_auto_box_1b_002" type="mesh" mesh="colmesh_box_1b_002" class="spar_world_collision" />
+    <geom name="col_auto_cable" type="mesh" mesh="colmesh_cable" class="spar_world_collision" />
+    <geom name="col_auto_cable_001" type="mesh" mesh="colmesh_cable_001" class="spar_world_collision" />
+    <geom name="col_auto_cable_002" type="mesh" mesh="colmesh_cable_002" class="spar_world_collision" />
+    <geom name="col_auto_cable_003" type="mesh" mesh="colmesh_cable_003" class="spar_world_collision" />
+    <geom name="col_auto_door" type="mesh" mesh="colmesh_door" class="spar_world_collision" />
+    <geom name="col_auto_door_001" type="mesh" mesh="colmesh_door_001" class="spar_world_collision" />
+    <geom name="col_auto_door_002" type="mesh" mesh="colmesh_door_002" class="spar_world_collision" />
+    <geom name="col_auto_flange_bottom" type="mesh" mesh="colmesh_flange_bottom" class="spar_world_collision" />
+    <geom name="col_auto_flange_bottom_001" type="mesh" mesh="colmesh_flange_bottom_001" class="spar_world_collision" />
+    <geom name="col_auto_flange_bottom_002" type="mesh" mesh="colmesh_flange_bottom_002" class="spar_world_collision" />
+    <geom name="col_auto_flange_bottom_003" type="mesh" mesh="colmesh_flange_bottom_003" class="spar_world_collision" />
+    <geom name="col_auto_flange_top" type="mesh" mesh="colmesh_flange_top" class="spar_world_collision" />
+    <geom name="col_auto_flange_top_001" type="mesh" mesh="colmesh_flange_top_001" class="spar_world_collision" />
+    <geom name="col_auto_flange_top_002" type="mesh" mesh="colmesh_flange_top_002" class="spar_world_collision" />
+    <geom name="col_auto_flange_top_003" type="mesh" mesh="colmesh_flange_top_003" class="spar_world_collision" />
+    <geom name="col_auto_hub" type="mesh" mesh="colmesh_hub" class="spar_world_collision" />
+    <geom name="col_auto_hub_001" type="mesh" mesh="colmesh_hub_001" class="spar_world_collision" />
+    <geom name="col_auto_hub_002" type="mesh" mesh="colmesh_hub_002" class="spar_world_collision" />
+    <geom name="col_auto_hub_003" type="mesh" mesh="colmesh_hub_003" class="spar_world_collision" />
+    <geom name="col_auto_pad" type="mesh" mesh="colmesh_pad" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0" type="mesh" mesh="colmesh_pallet_0" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0_001" type="mesh" mesh="colmesh_pallet_0_001" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0_002" type="mesh" mesh="colmesh_pallet_0_002" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0b" type="mesh" mesh="colmesh_pallet_0b" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0b_001" type="mesh" mesh="colmesh_pallet_0b_001" class="spar_world_collision" />
+    <geom name="col_auto_pallet_0b_002" type="mesh" mesh="colmesh_pallet_0b_002" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1" type="mesh" mesh="colmesh_pallet_1" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1_001" type="mesh" mesh="colmesh_pallet_1_001" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1_002" type="mesh" mesh="colmesh_pallet_1_002" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1b" type="mesh" mesh="colmesh_pallet_1b" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1b_001" type="mesh" mesh="colmesh_pallet_1b_001" class="spar_world_collision" />
+    <geom name="col_auto_pallet_1b_002" type="mesh" mesh="colmesh_pallet_1b_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_0" type="mesh" mesh="colmesh_pipe_0_0" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_0_001" type="mesh" mesh="colmesh_pipe_0_0_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_0_002" type="mesh" mesh="colmesh_pipe_0_0_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_1" type="mesh" mesh="colmesh_pipe_0_1" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_1_001" type="mesh" mesh="colmesh_pipe_0_1_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_1_002" type="mesh" mesh="colmesh_pipe_0_1_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_2" type="mesh" mesh="colmesh_pipe_0_2" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_2_001" type="mesh" mesh="colmesh_pipe_0_2_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_0_2_002" type="mesh" mesh="colmesh_pipe_0_2_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1" type="mesh" mesh="colmesh_pipe_1" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_001" type="mesh" mesh="colmesh_pipe_1_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_002" type="mesh" mesh="colmesh_pipe_1_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_0" type="mesh" mesh="colmesh_pipe_1_0" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_0_001" type="mesh" mesh="colmesh_pipe_1_0_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_0_002" type="mesh" mesh="colmesh_pipe_1_0_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_1" type="mesh" mesh="colmesh_pipe_1_1" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_1_001" type="mesh" mesh="colmesh_pipe_1_1_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_1_002" type="mesh" mesh="colmesh_pipe_1_1_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_2" type="mesh" mesh="colmesh_pipe_1_2" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_2_001" type="mesh" mesh="colmesh_pipe_1_2_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_1_2_002" type="mesh" mesh="colmesh_pipe_1_2_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_2" type="mesh" mesh="colmesh_pipe_2" class="spar_world_collision" />
+    <geom name="col_auto_pipe_2_001" type="mesh" mesh="colmesh_pipe_2_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_2_002" type="mesh" mesh="colmesh_pipe_2_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_3" type="mesh" mesh="colmesh_pipe_3" class="spar_world_collision" />
+    <geom name="col_auto_pipe_3_001" type="mesh" mesh="colmesh_pipe_3_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_3_002" type="mesh" mesh="colmesh_pipe_3_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_4" type="mesh" mesh="colmesh_pipe_4" class="spar_world_collision" />
+    <geom name="col_auto_pipe_4_001" type="mesh" mesh="colmesh_pipe_4_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_4_002" type="mesh" mesh="colmesh_pipe_4_002" class="spar_world_collision" />
+    <geom name="col_auto_pipe_5" type="mesh" mesh="colmesh_pipe_5" class="spar_world_collision" />
+    <geom name="col_auto_pipe_5_001" type="mesh" mesh="colmesh_pipe_5_001" class="spar_world_collision" />
+    <geom name="col_auto_pipe_5_002" type="mesh" mesh="colmesh_pipe_5_002" class="spar_world_collision" />
+    <geom name="col_auto_post" type="mesh" mesh="colmesh_post" class="spar_world_collision" />
+    <geom name="col_auto_post_001" type="mesh" mesh="colmesh_post_001" class="spar_world_collision" />
+    <geom name="col_auto_post_002" type="mesh" mesh="colmesh_post_002" class="spar_world_collision" />
+    <geom name="col_auto_post_003" type="mesh" mesh="colmesh_post_003" class="spar_world_collision" />
+    <geom name="col_auto_post_004" type="mesh" mesh="colmesh_post_004" class="spar_world_collision" />
+    <geom name="col_auto_post_005" type="mesh" mesh="colmesh_post_005" class="spar_world_collision" />
+    <geom name="col_auto_post__1__1" type="mesh" mesh="colmesh_post__1__1" class="spar_world_collision" />
+    <geom name="col_auto_post__1__1_001" type="mesh" mesh="colmesh_post__1__1_001" class="spar_world_collision" />
+    <geom name="col_auto_post__1__1_002" type="mesh" mesh="colmesh_post__1__1_002" class="spar_world_collision" />
+    <geom name="col_auto_post__1__1_003" type="mesh" mesh="colmesh_post__1__1_003" class="spar_world_collision" />
+    <geom name="col_auto_post__1__1_004" type="mesh" mesh="colmesh_post__1__1_004" class="spar_world_collision" />
+    <geom name="col_auto_post__1_1" type="mesh" mesh="colmesh_post__1_1" class="spar_world_collision" />
+    <geom name="col_auto_post__1_1_001" type="mesh" mesh="colmesh_post__1_1_001" class="spar_world_collision" />
+    <geom name="col_auto_post__1_1_002" type="mesh" mesh="colmesh_post__1_1_002" class="spar_world_collision" />
+    <geom name="col_auto_post__1_1_003" type="mesh" mesh="colmesh_post__1_1_003" class="spar_world_collision" />
+    <geom name="col_auto_post__1_1_004" type="mesh" mesh="colmesh_post__1_1_004" class="spar_world_collision" />
+    <geom name="col_auto_post_0" type="mesh" mesh="colmesh_post_0" class="spar_world_collision" />
+    <geom name="col_auto_post_00" type="mesh" mesh="colmesh_post_00" class="spar_world_collision" />
+    <geom name="col_auto_post_00_001" type="mesh" mesh="colmesh_post_00_001" class="spar_world_collision" />
+    <geom name="col_auto_post_00_002" type="mesh" mesh="colmesh_post_00_002" class="spar_world_collision" />
+    <geom name="col_auto_post_00_003" type="mesh" mesh="colmesh_post_00_003" class="spar_world_collision" />
+    <geom name="col_auto_post_00_004" type="mesh" mesh="colmesh_post_00_004" class="spar_world_collision" />
+    <geom name="col_auto_post_01" type="mesh" mesh="colmesh_post_01" class="spar_world_collision" />
+    <geom name="col_auto_post_01_001" type="mesh" mesh="colmesh_post_01_001" class="spar_world_collision" />
+    <geom name="col_auto_post_01_002" type="mesh" mesh="colmesh_post_01_002" class="spar_world_collision" />
+    <geom name="col_auto_post_01_003" type="mesh" mesh="colmesh_post_01_003" class="spar_world_collision" />
+    <geom name="col_auto_post_01_004" type="mesh" mesh="colmesh_post_01_004" class="spar_world_collision" />
+    <geom name="col_auto_post_02" type="mesh" mesh="colmesh_post_02" class="spar_world_collision" />
+    <geom name="col_auto_post_02_001" type="mesh" mesh="colmesh_post_02_001" class="spar_world_collision" />
+    <geom name="col_auto_post_02_002" type="mesh" mesh="colmesh_post_02_002" class="spar_world_collision" />
+    <geom name="col_auto_post_02_003" type="mesh" mesh="colmesh_post_02_003" class="spar_world_collision" />
+    <geom name="col_auto_post_03" type="mesh" mesh="colmesh_post_03" class="spar_world_collision" />
+    <geom name="col_auto_post_03_001" type="mesh" mesh="colmesh_post_03_001" class="spar_world_collision" />
+    <geom name="col_auto_post_03_002" type="mesh" mesh="colmesh_post_03_002" class="spar_world_collision" />
+    <geom name="col_auto_post_03_003" type="mesh" mesh="colmesh_post_03_003" class="spar_world_collision" />
+    <geom name="col_auto_post_04" type="mesh" mesh="colmesh_post_04" class="spar_world_collision" />
+    <geom name="col_auto_post_04_001" type="mesh" mesh="colmesh_post_04_001" class="spar_world_collision" />
+    <geom name="col_auto_post_04_002" type="mesh" mesh="colmesh_post_04_002" class="spar_world_collision" />
+    <geom name="col_auto_post_04_003" type="mesh" mesh="colmesh_post_04_003" class="spar_world_collision" />
+    <geom name="col_auto_post_05" type="mesh" mesh="colmesh_post_05" class="spar_world_collision" />
+    <geom name="col_auto_post_05_001" type="mesh" mesh="colmesh_post_05_001" class="spar_world_collision" />
+    <geom name="col_auto_post_05_002" type="mesh" mesh="colmesh_post_05_002" class="spar_world_collision" />
+    <geom name="col_auto_post_05_003" type="mesh" mesh="colmesh_post_05_003" class="spar_world_collision" />
+    <geom name="col_auto_post_06" type="mesh" mesh="colmesh_post_06" class="spar_world_collision" />
+    <geom name="col_auto_post_06_001" type="mesh" mesh="colmesh_post_06_001" class="spar_world_collision" />
+    <geom name="col_auto_post_06_002" type="mesh" mesh="colmesh_post_06_002" class="spar_world_collision" />
+    <geom name="col_auto_post_07" type="mesh" mesh="colmesh_post_07" class="spar_world_collision" />
+    <geom name="col_auto_post_07_001" type="mesh" mesh="colmesh_post_07_001" class="spar_world_collision" />
+    <geom name="col_auto_post_07_002" type="mesh" mesh="colmesh_post_07_002" class="spar_world_collision" />
+    <geom name="col_auto_post_08" type="mesh" mesh="colmesh_post_08" class="spar_world_collision" />
+    <geom name="col_auto_post_08_001" type="mesh" mesh="colmesh_post_08_001" class="spar_world_collision" />
+    <geom name="col_auto_post_08_002" type="mesh" mesh="colmesh_post_08_002" class="spar_world_collision" />
+    <geom name="col_auto_post_1" type="mesh" mesh="colmesh_post_1" class="spar_world_collision" />
+    <geom name="col_auto_post_1__1" type="mesh" mesh="colmesh_post_1__1" class="spar_world_collision" />
+    <geom name="col_auto_post_1__1_001" type="mesh" mesh="colmesh_post_1__1_001" class="spar_world_collision" />
+    <geom name="col_auto_post_1__1_002" type="mesh" mesh="colmesh_post_1__1_002" class="spar_world_collision" />
+    <geom name="col_auto_post_1__1_003" type="mesh" mesh="colmesh_post_1__1_003" class="spar_world_collision" />
+    <geom name="col_auto_post_1__1_004" type="mesh" mesh="colmesh_post_1__1_004" class="spar_world_collision" />
+    <geom name="col_auto_post_1_1" type="mesh" mesh="colmesh_post_1_1" class="spar_world_collision" />
+    <geom name="col_auto_post_1_1_001" type="mesh" mesh="colmesh_post_1_1_001" class="spar_world_collision" />
+    <geom name="col_auto_post_1_1_002" type="mesh" mesh="colmesh_post_1_1_002" class="spar_world_collision" />
+    <geom name="col_auto_post_1_1_003" type="mesh" mesh="colmesh_post_1_1_003" class="spar_world_collision" />
+    <geom name="col_auto_post_1_1_004" type="mesh" mesh="colmesh_post_1_1_004" class="spar_world_collision" />
+    <geom name="col_auto_post_2" type="mesh" mesh="colmesh_post_2" class="spar_world_collision" />
+    <geom name="col_auto_post_3" type="mesh" mesh="colmesh_post_3" class="spar_world_collision" />
+    <geom name="col_auto_post_left" type="mesh" mesh="colmesh_post_left" class="spar_world_collision" />
+    <geom name="col_auto_post_right" type="mesh" mesh="colmesh_post_right" class="spar_world_collision" />
+    <geom name="col_auto_rail_high" type="mesh" mesh="colmesh_rail_high" class="spar_world_collision" />
+    <geom name="col_auto_rail_high_001" type="mesh" mesh="colmesh_rail_high_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_high_002" type="mesh" mesh="colmesh_rail_high_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_high_003" type="mesh" mesh="colmesh_rail_high_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_high_004" type="mesh" mesh="colmesh_rail_high_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_low" type="mesh" mesh="colmesh_rail_low" class="spar_world_collision" />
+    <geom name="col_auto_rail_low_001" type="mesh" mesh="colmesh_rail_low_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_low_002" type="mesh" mesh="colmesh_rail_low_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_low_003" type="mesh" mesh="colmesh_rail_low_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_low_004" type="mesh" mesh="colmesh_rail_low_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_50" type="mesh" mesh="colmesh_rail_x2_50" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_50_001" type="mesh" mesh="colmesh_rail_x2_50_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_50_002" type="mesh" mesh="colmesh_rail_x2_50_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_50_003" type="mesh" mesh="colmesh_rail_x2_50_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_50_004" type="mesh" mesh="colmesh_rail_x2_50_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_649" type="mesh" mesh="colmesh_rail_x2_649" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_649_001" type="mesh" mesh="colmesh_rail_x2_649_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_649_002" type="mesh" mesh="colmesh_rail_x2_649_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_649_003" type="mesh" mesh="colmesh_rail_x2_649_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_x2_649_004" type="mesh" mesh="colmesh_rail_x2_649_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_50" type="mesh" mesh="colmesh_rail_x_50" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_50_001" type="mesh" mesh="colmesh_rail_x_50_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_50_002" type="mesh" mesh="colmesh_rail_x_50_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_50_003" type="mesh" mesh="colmesh_rail_x_50_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_50_004" type="mesh" mesh="colmesh_rail_x_50_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_649" type="mesh" mesh="colmesh_rail_x_649" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_649_001" type="mesh" mesh="colmesh_rail_x_649_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_649_002" type="mesh" mesh="colmesh_rail_x_649_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_649_003" type="mesh" mesh="colmesh_rail_x_649_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_x_649_004" type="mesh" mesh="colmesh_rail_x_649_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_50" type="mesh" mesh="colmesh_rail_y2_50" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_50_001" type="mesh" mesh="colmesh_rail_y2_50_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_50_002" type="mesh" mesh="colmesh_rail_y2_50_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_50_003" type="mesh" mesh="colmesh_rail_y2_50_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_50_004" type="mesh" mesh="colmesh_rail_y2_50_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_649" type="mesh" mesh="colmesh_rail_y2_649" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_649_001" type="mesh" mesh="colmesh_rail_y2_649_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_649_002" type="mesh" mesh="colmesh_rail_y2_649_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_649_003" type="mesh" mesh="colmesh_rail_y2_649_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_y2_649_004" type="mesh" mesh="colmesh_rail_y2_649_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_50" type="mesh" mesh="colmesh_rail_y_50" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_50_001" type="mesh" mesh="colmesh_rail_y_50_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_50_002" type="mesh" mesh="colmesh_rail_y_50_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_50_003" type="mesh" mesh="colmesh_rail_y_50_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_50_004" type="mesh" mesh="colmesh_rail_y_50_004" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_649" type="mesh" mesh="colmesh_rail_y_649" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_649_001" type="mesh" mesh="colmesh_rail_y_649_001" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_649_002" type="mesh" mesh="colmesh_rail_y_649_002" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_649_003" type="mesh" mesh="colmesh_rail_y_649_003" class="spar_world_collision" />
+    <geom name="col_auto_rail_y_649_004" type="mesh" mesh="colmesh_rail_y_649_004" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower" type="mesh" mesh="colmesh_ring_lower" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_001" type="mesh" mesh="colmesh_ring_lower_001" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_002" type="mesh" mesh="colmesh_ring_lower_002" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_003" type="mesh" mesh="colmesh_ring_lower_003" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_004" type="mesh" mesh="colmesh_ring_lower_004" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_005" type="mesh" mesh="colmesh_ring_lower_005" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_006" type="mesh" mesh="colmesh_ring_lower_006" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_007" type="mesh" mesh="colmesh_ring_lower_007" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_008" type="mesh" mesh="colmesh_ring_lower_008" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_009" type="mesh" mesh="colmesh_ring_lower_009" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_010" type="mesh" mesh="colmesh_ring_lower_010" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_011" type="mesh" mesh="colmesh_ring_lower_011" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_012" type="mesh" mesh="colmesh_ring_lower_012" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_013" type="mesh" mesh="colmesh_ring_lower_013" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_014" type="mesh" mesh="colmesh_ring_lower_014" class="spar_world_collision" />
+    <geom name="col_auto_ring_lower_015" type="mesh" mesh="colmesh_ring_lower_015" class="spar_world_collision" />
+    <geom name="col_auto_ring_top" type="mesh" mesh="colmesh_ring_top" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_001" type="mesh" mesh="colmesh_ring_top_001" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_002" type="mesh" mesh="colmesh_ring_top_002" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_003" type="mesh" mesh="colmesh_ring_top_003" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_004" type="mesh" mesh="colmesh_ring_top_004" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_005" type="mesh" mesh="colmesh_ring_top_005" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_006" type="mesh" mesh="colmesh_ring_top_006" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_007" type="mesh" mesh="colmesh_ring_top_007" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_008" type="mesh" mesh="colmesh_ring_top_008" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_009" type="mesh" mesh="colmesh_ring_top_009" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_010" type="mesh" mesh="colmesh_ring_top_010" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_011" type="mesh" mesh="colmesh_ring_top_011" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_012" type="mesh" mesh="colmesh_ring_top_012" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_013" type="mesh" mesh="colmesh_ring_top_013" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_014" type="mesh" mesh="colmesh_ring_top_014" class="spar_world_collision" />
+    <geom name="col_auto_ring_top_015" type="mesh" mesh="colmesh_ring_top_015" class="spar_world_collision" />
+    <geom name="col_auto_roof" type="mesh" mesh="colmesh_roof" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0" type="mesh" mesh="colmesh_shelf_0" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0_001" type="mesh" mesh="colmesh_shelf_0_001" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0_002" type="mesh" mesh="colmesh_shelf_0_002" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0_003" type="mesh" mesh="colmesh_shelf_0_003" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0_004" type="mesh" mesh="colmesh_shelf_0_004" class="spar_world_collision" />
+    <geom name="col_auto_shelf_0_005" type="mesh" mesh="colmesh_shelf_0_005" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1" type="mesh" mesh="colmesh_shelf_1" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1_001" type="mesh" mesh="colmesh_shelf_1_001" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1_002" type="mesh" mesh="colmesh_shelf_1_002" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1_003" type="mesh" mesh="colmesh_shelf_1_003" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1_004" type="mesh" mesh="colmesh_shelf_1_004" class="spar_world_collision" />
+    <geom name="col_auto_shelf_1_005" type="mesh" mesh="colmesh_shelf_1_005" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2" type="mesh" mesh="colmesh_shelf_2" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2_001" type="mesh" mesh="colmesh_shelf_2_001" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2_002" type="mesh" mesh="colmesh_shelf_2_002" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2_003" type="mesh" mesh="colmesh_shelf_2_003" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2_004" type="mesh" mesh="colmesh_shelf_2_004" class="spar_world_collision" />
+    <geom name="col_auto_shelf_2_005" type="mesh" mesh="colmesh_shelf_2_005" class="spar_world_collision" />
+    <geom name="col_auto_slat_0" type="mesh" mesh="colmesh_slat_0" class="spar_world_collision" />
+    <geom name="col_auto_slat_0_001" type="mesh" mesh="colmesh_slat_0_001" class="spar_world_collision" />
+    <geom name="col_auto_slat_0_002" type="mesh" mesh="colmesh_slat_0_002" class="spar_world_collision" />
+    <geom name="col_auto_slat_0_003" type="mesh" mesh="colmesh_slat_0_003" class="spar_world_collision" />
+    <geom name="col_auto_slat_0_004" type="mesh" mesh="colmesh_slat_0_004" class="spar_world_collision" />
+    <geom name="col_auto_slat_0_005" type="mesh" mesh="colmesh_slat_0_005" class="spar_world_collision" />
+    <geom name="col_auto_slat_1" type="mesh" mesh="colmesh_slat_1" class="spar_world_collision" />
+    <geom name="col_auto_slat_1_001" type="mesh" mesh="colmesh_slat_1_001" class="spar_world_collision" />
+    <geom name="col_auto_slat_1_002" type="mesh" mesh="colmesh_slat_1_002" class="spar_world_collision" />
+    <geom name="col_auto_slat_1_003" type="mesh" mesh="colmesh_slat_1_003" class="spar_world_collision" />
+    <geom name="col_auto_slat_1_004" type="mesh" mesh="colmesh_slat_1_004" class="spar_world_collision" />
+    <geom name="col_auto_slat_1_005" type="mesh" mesh="colmesh_slat_1_005" class="spar_world_collision" />
+    <geom name="col_auto_slat_2" type="mesh" mesh="colmesh_slat_2" class="spar_world_collision" />
+    <geom name="col_auto_slat_2_001" type="mesh" mesh="colmesh_slat_2_001" class="spar_world_collision" />
+    <geom name="col_auto_slat_2_002" type="mesh" mesh="colmesh_slat_2_002" class="spar_world_collision" />
+    <geom name="col_auto_slat_2_003" type="mesh" mesh="colmesh_slat_2_003" class="spar_world_collision" />
+    <geom name="col_auto_slat_2_004" type="mesh" mesh="colmesh_slat_2_004" class="spar_world_collision" />
+    <geom name="col_auto_slat_2_005" type="mesh" mesh="colmesh_slat_2_005" class="spar_world_collision" />
+    <geom name="col_auto_slat_3" type="mesh" mesh="colmesh_slat_3" class="spar_world_collision" />
+    <geom name="col_auto_slat_3_001" type="mesh" mesh="colmesh_slat_3_001" class="spar_world_collision" />
+    <geom name="col_auto_slat_3_002" type="mesh" mesh="colmesh_slat_3_002" class="spar_world_collision" />
+    <geom name="col_auto_slat_3_003" type="mesh" mesh="colmesh_slat_3_003" class="spar_world_collision" />
+    <geom name="col_auto_slat_3_004" type="mesh" mesh="colmesh_slat_3_004" class="spar_world_collision" />
+    <geom name="col_auto_slat_3_005" type="mesh" mesh="colmesh_slat_3_005" class="spar_world_collision" />
+    <geom name="col_auto_slat_4" type="mesh" mesh="colmesh_slat_4" class="spar_world_collision" />
+    <geom name="col_auto_slat_4_001" type="mesh" mesh="colmesh_slat_4_001" class="spar_world_collision" />
+    <geom name="col_auto_slat_4_002" type="mesh" mesh="colmesh_slat_4_002" class="spar_world_collision" />
+    <geom name="col_auto_slat_4_003" type="mesh" mesh="colmesh_slat_4_003" class="spar_world_collision" />
+    <geom name="col_auto_slat_4_004" type="mesh" mesh="colmesh_slat_4_004" class="spar_world_collision" />
+    <geom name="col_auto_slat_4_005" type="mesh" mesh="colmesh_slat_4_005" class="spar_world_collision" />
+    <geom name="col_auto_support_1" type="mesh" mesh="colmesh_support_1" class="spar_world_collision" />
+    <geom name="col_auto_support_1_001" type="mesh" mesh="colmesh_support_1_001" class="spar_world_collision" />
+    <geom name="col_auto_support_1_002" type="mesh" mesh="colmesh_support_1_002" class="spar_world_collision" />
+    <geom name="col_auto_support_2" type="mesh" mesh="colmesh_support_2" class="spar_world_collision" />
+    <geom name="col_auto_support_2_001" type="mesh" mesh="colmesh_support_2_001" class="spar_world_collision" />
+    <geom name="col_auto_support_2_002" type="mesh" mesh="colmesh_support_2_002" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn" type="mesh" mesh="colmesh_upright_nn" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn_001" type="mesh" mesh="colmesh_upright_nn_001" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn_002" type="mesh" mesh="colmesh_upright_nn_002" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn_003" type="mesh" mesh="colmesh_upright_nn_003" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn_004" type="mesh" mesh="colmesh_upright_nn_004" class="spar_world_collision" />
+    <geom name="col_auto_upright_nn_005" type="mesh" mesh="colmesh_upright_nn_005" class="spar_world_collision" />
+    <geom name="col_auto_upright_np" type="mesh" mesh="colmesh_upright_np" class="spar_world_collision" />
+    <geom name="col_auto_upright_np_001" type="mesh" mesh="colmesh_upright_np_001" class="spar_world_collision" />
+    <geom name="col_auto_upright_np_002" type="mesh" mesh="colmesh_upright_np_002" class="spar_world_collision" />
+    <geom name="col_auto_upright_np_003" type="mesh" mesh="colmesh_upright_np_003" class="spar_world_collision" />
+    <geom name="col_auto_upright_np_004" type="mesh" mesh="colmesh_upright_np_004" class="spar_world_collision" />
+    <geom name="col_auto_upright_np_005" type="mesh" mesh="colmesh_upright_np_005" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn" type="mesh" mesh="colmesh_upright_pn" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn_001" type="mesh" mesh="colmesh_upright_pn_001" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn_002" type="mesh" mesh="colmesh_upright_pn_002" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn_003" type="mesh" mesh="colmesh_upright_pn_003" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn_004" type="mesh" mesh="colmesh_upright_pn_004" class="spar_world_collision" />
+    <geom name="col_auto_upright_pn_005" type="mesh" mesh="colmesh_upright_pn_005" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp" type="mesh" mesh="colmesh_upright_pp" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp_001" type="mesh" mesh="colmesh_upright_pp_001" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp_002" type="mesh" mesh="colmesh_upright_pp_002" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp_003" type="mesh" mesh="colmesh_upright_pp_003" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp_004" type="mesh" mesh="colmesh_upright_pp_004" class="spar_world_collision" />
+    <geom name="col_auto_upright_pp_005" type="mesh" mesh="colmesh_upright_pp_005" class="spar_world_collision" />
+    <geom name="col_auto_workbench" type="mesh" mesh="colmesh_workbench" class="spar_world_collision" />
+    <site name="site_airpatrol_01" pos="-3.6936102 0.49105802 4.1999998" quat="0.84893638 0 0 0.52849507" class="spar_world_site" />
+    <site name="site_airpatrol_02" pos="0 8 4.1999998" quat="0.70710683 -0 -0 -0.70710683" class="spar_world_site" />
+    <site name="site_airpatrol_03" pos="0 0 4.1999998" quat="0.098537579 0 0 0.99513334" class="spar_world_site" />
+    <site name="site_airpatrol_04" pos="-10 2 4.1999998" quat="0.95876056 0 0 0.28421509" class="spar_world_site" />
+    <site name="site_airpatrol_05" pos="10 15 4.1999998" quat="4.3711388e-08 -0 -0 -1" class="spar_world_site" />
+    <site name="site_airpatrol_06" pos="-10 15 4.1999998" quat="0.85065079 0 0 -0.52573115" class="spar_world_site" />
+    <site name="site_airpatrol_07" pos="-2 -1 4.1999998" quat="0.85065079 0 0 -0.52573115" class="spar_world_site" />
+    <site name="site_dock" pos="-4 -14 0" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_huskyspawn" pos="0 0 0" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_patrol_01" pos="-1.75 1.15 0.050000001" quat="4.3711388e-08 -0 -0 -1" class="spar_world_site" />
+    <site name="site_patrol_02" pos="-10 8 0.050000001" quat="0.33958313 0 0 0.94057608" class="spar_world_site" />
+    <site name="site_patrol_03" pos="0 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_patrol_04" pos="10 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_patrol_05" pos="0 0 0.050000001" quat="0.33100697 -0 -0 -0.94362831" class="spar_world_site" />
+    <site name="site_patrol_06" pos="0 -10 0.050000001" quat="0.70710683 -0 -0 -0.70710683" class="spar_world_site" />
+    <site name="site_x2spawn" pos="-2 -1 0" quat="1 0 0 0" class="spar_world_site" />
+    <frame pos="0.0 0.0 0.0" quat="1.0 0 0 0.0">
+      <attach model="husky_model" body="base_link" prefix="" />
+    </frame>
+    <frame pos="-2.0 -1.0 0.0" quat="1.0 0 0 0.0">
+      <attach model="x2_model" body="x2" prefix="" />
+    </frame>
+    <geom name="dock_pad" type="box" size="0.9 0.9 0.005" pos="-4.0 -14.0 0.005" contype="0" conaffinity="0" group="1" rgba="0.2 0.4 0.8 1" />
+    <geom name="landing_pad" type="cylinder" size="0.5 0.005" pos="-2.0 -1.0 0.005" contype="0" conaffinity="0" group="1" rgba="0.25 0.3 0.4 1" />
+  </worldbody>
+</mujoco>

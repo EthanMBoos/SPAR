@@ -1,0 +1,76 @@
+<!-- The blank world. This file IS the world: the sim and host viewer load it
+     directly. Obstacle sizes and poses are parity constants transcribed from
+     the retired Unity scene, not layout suggestions.
+
+     The world owns each robot's spawn/home pose as well as its geometry. -->
+<mujoco model="blank">
+  <compiler angle="radian"/>
+
+  <custom>
+    <numeric name="spar.world_georeference" data="33.7756 -84.3963 300"/>
+  </custom>
+
+  <!-- The timestep is authoritative here (500 Hz). Training and deployment
+       read the same file, so physics parity is by construction, not by two
+       defaults agreeing. -->
+  <option timestep="0.002" integrator="implicitfast" magnetic="0 0 0"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+             width="512" height="3072"/>
+    <texture type="2d" name="grid" builtin="checker" mark="edge"
+             rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+             width="300" height="300"/>
+    <material name="grid" texture="grid" texuniform="true" texrepeat="5 5"
+              reflectance="0.2"/>
+    <model name="husky_model" file="../robots/husky.xml"/>
+    <model name="x2_model" file="../robots/x2.xml"/>
+  </asset>
+
+  <worldbody>
+    <light name="sun" directional="true" pos="0 0 15" dir="0 0 -1"/>
+    <!-- The viewer's home view: framing the whole site from the south. -->
+    <camera name="overview" pos="0 -14 10" xyaxes="1 0 0 0 0.6 0.8"/>
+
+    <!-- Finite size keeps the rendered site and physical operating area
+         explicit even though the navigation costmaps are rolling. -->
+    <geom name="floor" type="plane" size="20 20 1" material="grid" group="4"/>
+
+    <!-- Obstacles. Solids cross the Husky's declared scan plane so its lidar
+         can detect them. -->
+    <geom name="rack_a" type="box" size="0.8 0.3 0.6" pos="4 1.5 0.6"
+          rgba="0.5 0.52 0.55 1" group="3"/>
+    <geom name="rack_b" type="box" size="0.8 0.3 0.6" pos="-4 -1.2 0.6"
+          rgba="0.5 0.52 0.55 1" group="3"/>
+    <geom name="rack_c" type="box" size="0.8 0.3 0.6" pos="0 -3.9 0.6"
+          rgba="0.5 0.52 0.55 1" group="3"/>
+    <!-- The anomaly. Pure red on purpose: the HSV detector's red bands
+         (hue 0-4 / 176-180, sat >= 150, anomaly_detector.cpp) must catch
+         MuJoCo's shading of this rgba. Adjust the rgba if lighting changes,
+         never the detector's bands. -->
+    <geom name="anomaly_drum" type="cylinder" size="0.3 0.45" pos="5.6 0.3 0.45"
+          rgba="1 0 0 1" group="3"/>
+
+    <site name="site_dock" pos="0 0 0" size="0.05" group="5"/>
+    <site name="site_huskyspawn" pos="0 0 0" size="0.05" group="5"/>
+    <site name="site_x2spawn" pos="-2 -1 0" size="0.05" group="5"/>
+    <geom name="dock_pad" type="box" size="0.9 0.9 0.005"
+          pos="0 0 0.005" contype="0" conaffinity="0" group="1"
+          rgba="0.2 0.4 0.8 1"/>
+    <geom name="landing_pad" type="cylinder" size="0.5 0.005"
+          pos="-2 -1 0.005" contype="0" conaffinity="0" group="1"
+          rgba="0.25 0.3 0.4 1"/>
+    <frame pos="0 0 0" quat="1 0 0 0">
+      <attach model="husky_model" body="base_link" prefix=""/>
+    </frame>
+    <frame pos="-2 -1 0" quat="1 0 0 0">
+      <attach model="x2_model" body="x2" prefix=""/>
+    </frame>
+
+  </worldbody>
+</mujoco>
