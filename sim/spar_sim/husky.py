@@ -53,10 +53,10 @@ def yaw_from_quaternion(quaternion):
 
 
 class KinematicDrive:
-    """Advance the Husky directly from ``cmd_vel`` while MuJoCo steps the X2.
+    """Advance the Husky directly from ``cmd_vel`` while MuJoCo steps the world.
 
     The free body and four wheel joints remain in MjData so the viewer,
-    cameras, lidar, GPS, IMU, and encoder publishers all observe one coherent
+    lidar, GPS, IMU, encoder publishers, and viewers all observe one coherent
     state. Husky contacts, motors, tire forces, and drivetrain dynamics are
     deliberately outside this student autonomy demonstration.
     """

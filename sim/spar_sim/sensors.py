@@ -1,4 +1,4 @@
-"""Sensor message builders: wheel encoders, IMU, GPS, lidar, and camera.
+"""Sensor message builders: wheel encoders, IMU, GPS, lidar, and RGB-D.
 
 Everything reads MjData directly. MuJoCo world coordinates are ROS
 coordinates (right-handed ENU, Z-up). The simulator publishes measurements;
@@ -254,15 +254,7 @@ class Lidar:
 
 
 class Camera:
-    """Renders color + metric depth from an MJCF camera and publishes the
-    three topics the pixel detector consumes: rgb8 color, 32FC1 eye-depth
-    (meters), and camera_info with K = [fy 0 cx / 0 fy cy / 0 0 1].
-
-    The header frame is the optical frame and is deliberately absent from
-    TF; the detector's camera_frame parameter handles that (documented in
-    anomaly_detector.cpp and the yaml). One Renderer is shared by every
-    camera: creation is the expensive part, update_scene is not.
-    """
+    """Render aligned RGB and metric depth from the Husky camera."""
 
     WIDTH, HEIGHT, FOVY_DEG = 320, 240, 58.0
 
@@ -271,17 +263,14 @@ class Camera:
 
     @classmethod
     def _shared_renderer(cls, model):
-        if Camera._renderer is None:
-            Camera._renderer = mujoco.Renderer(model, height=cls.HEIGHT,
-                                               width=cls.WIDTH)
-            Camera._vis = mujoco.MjvOption()
-            # Generated collision meshes and blank-world obstacles share group
-            # 3. The generated meshes remain invisible through alpha=0, while
-            # blank's visible obstacles need the group enabled. Ground is group
-            # 4 so lidar can exclude it. MuJoCo hides both groups by default.
-            Camera._vis.geomgroup[3] = 1
-            Camera._vis.geomgroup[4] = 1
-        return Camera._renderer, Camera._vis
+        if cls._renderer is None:
+            cls._renderer = mujoco.Renderer(
+                model, height=cls.HEIGHT, width=cls.WIDTH)
+            cls._vis = mujoco.MjvOption()
+            # Render generated visuals, blank-world obstacles, and ground.
+            cls._vis.geomgroup[3] = 1
+            cls._vis.geomgroup[4] = 1
+        return cls._renderer, cls._vis
 
     def __init__(self, model, node, camera_name, topic_prefix):
         self._name = camera_name
@@ -293,20 +282,23 @@ class Camera:
         self._info_pub = node.create_publisher(
             CameraInfo, f"{topic_prefix}/color/camera_info", 10)
 
-        fy = (self.HEIGHT / 2.0) / math.tan(math.radians(self.FOVY_DEG) / 2.0)
+        focal = ((self.HEIGHT / 2.0) /
+                 math.tan(math.radians(self.FOVY_DEG) / 2.0))
         self._info = CameraInfo()
         self._info.height = self.HEIGHT
         self._info.width = self.WIDTH
-        self._info.k = [fy, 0.0, self.WIDTH / 2.0,
-                        0.0, fy, self.HEIGHT / 2.0,
-                        0.0, 0.0, 1.0]
+        self._info.k = [
+            focal, 0.0, self.WIDTH / 2.0,
+            0.0, focal, self.HEIGHT / 2.0,
+            0.0, 0.0, 1.0,
+        ]
 
     def publish(self, data, t):
-        header_stamp = stamp_of(t)
+        stamp = stamp_of(t)
 
         def image(encoding, step, payload):
             msg = Image()
-            msg.header.stamp = header_stamp
+            msg.header.stamp = stamp
             msg.header.frame_id = "camera_0_color_optical_frame"
             msg.height = self.HEIGHT
             msg.width = self.WIDTH
@@ -315,18 +307,21 @@ class Camera:
             msg.data = payload
             return msg
 
-        r = self._renderer
-        r.update_scene(data, camera=self._name, scene_option=self._visopt)
-        rgb = r.render()  # HxWx3 uint8, top row first: publish as is
-        self._color_pub.publish(image("rgb8", self.WIDTH * 3, rgb.tobytes()))
+        renderer = self._renderer
+        renderer.update_scene(
+            data, camera=self._name, scene_option=self._visopt)
+        rgb = renderer.render()
+        self._color_pub.publish(
+            image("rgb8", self.WIDTH * 3, rgb.tobytes()))
 
-        r.enable_depth_rendering()
-        depth = r.render()  # metric meters along the camera axis
-        r.disable_depth_rendering()
-        self._depth_pub.publish(
-            image("32FC1", self.WIDTH * 4,
-                  depth.astype(np.float32).tobytes()))
+        renderer.enable_depth_rendering()
+        depth = renderer.render()
+        renderer.disable_depth_rendering()
+        self._depth_pub.publish(image(
+            "32FC1", self.WIDTH * 4,
+            depth.astype(np.float32).tobytes(),
+        ))
 
-        self._info.header.stamp = header_stamp
+        self._info.header.stamp = stamp
         self._info.header.frame_id = "camera_0_color_optical_frame"
         self._info_pub.publish(self._info)

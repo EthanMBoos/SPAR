@@ -22,7 +22,7 @@ shed. Arrange racks as ordered rows across `PLAN_Zone_RacksWest` and
 `PLAN_Zone_RacksEast`, facing usable aisles; prefer
 `spar.add_plan_anchor_row`.
 
-Keep the dock, both spawn sites, and the main and cross aisles unobstructed.
+Keep the dock, Husky spawn, and the main and cross aisles unobstructed.
 Favor clear relationships—rows, service clusters, and entrances—over uniformly
 scattered placement. Use the recorded stage seed for discretionary placement
 the brief leaves open. Every anchor in this stage must use the shared

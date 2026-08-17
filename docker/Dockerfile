@@ -29,7 +29,7 @@ ENV ZENOH_ROUTER_CHECK_ATTEMPTS=10
 # The simulator lives in here too: the sim service (compose.yaml) runs
 # sim/spar_sim on this image, headless. MUJOCO_GL=egl renders on the CPU
 # through Mesa's surfaceless EGL path (llvmpipe) -- no GPU in Docker on
-# macOS, and none needed for a 320x240 camera. The version is pinned to
+# macOS, and none needed for the Husky's 320x240 camera. The version is pinned to
 # match the host venv (the viewer loads the same MJCF; version skew is the
 # new editor-version drift).
 RUN pip install --no-cache-dir --break-system-packages mujoco==3.10.0
@@ -42,8 +42,7 @@ WORKDIR /ws
 # rosdep to install dependencies. The actual colcon build is run by hand,
 # in the container, and lands in ./build on the host (see README), so code
 # edits need an incremental rebuild, never an image rebuild.
-COPY ground/src/spar_ground/package.xml src/spar_ground/
-COPY common/src/spar_perception/package.xml src/spar_perception/
+COPY ros/src/spar/package.xml src/spar/
 RUN . /opt/ros/jazzy/setup.sh \
  && apt-get update && rosdep update --rosdistro jazzy \
  && rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \

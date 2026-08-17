@@ -1,132 +1,62 @@
 # World generation
 
-Generate, export, and validate a world from the repository root:
+Worldgen turns one environment family, seed, and short brief into a reviewed
+Blender scene, MuJoCo assets, a Husky spawn, and collision-checked Nav2 goals.
+The authoring stages are narrow and stateless; accepted scene state carries
+decisions forward.
+
+## Run the pipeline
 
 ```bash
-make worldgen WORLD=utility_depot_trial_01 SEED=42 \
-  BRIEF='Denser west-side storage and a more weathered shed.'
+uv run python -m worldgen utility_depot_40_v3 \
+  --seed 42 --brief "dense west storage, broad central aisle"
 ```
-
-The run owns one clean visible Blender process, executes each family prompt in
-a fresh Sonnet-medium session, then exports and validates MJCF, assets, and
-routes. It refuses to overwrite `artifacts/worldgen/<world>`; pass `--fresh`
-only for an intentional replacement.
-
-`WORLD` is identity, not entropy. `SEED` is optional deterministic entropy for
-repo-owned choices; exact sampled spawn/home defaults are recorded before the
-LLM runs, though the seed cannot make Claude's authored scene identical.
-`BRIEF` is an optional supported instance override and may place a robot or
-dock approximately or request explicit coordinates. The topology LLM
-interprets coordinate requests; export verifies safety and internal
-consistency, but deterministic code does not yet enforce coordinate equality.
-Safety and family constraints still win. The resolved recipe, rendered
-prompts, and raw stage traces are saved under `artifacts/worldgen/<world>/`.
-World names are normalized to lowercase; letters, digits, and underscores are
-the portable identifier set.
-
-For comparisons, hold the brief and vary seeds to sample a family; hold the
-seed and vary the brief to isolate a requested semantic change.
-
-## Debug a family
-
-Run stages individually against one Blender window:
-
-```bash
-export WORLD=utility_depot_family_check_01
-uv run python -m worldgen.stage "$WORLD" --clean
-uv run python worldgen/start_blender.py
-uv run python -m worldgen.stage --list --family utility_depot
-uv run python -m worldgen.stage "$WORLD" <stage> --family utility_depot \
-  --seed 42 --brief 'Denser west-side storage'
-```
-
-The first stage records the recipe. Later manual stages reload it; omit the
-seed and brief unless verifying that they match. Resume rejects changed inputs,
-prompts, or generator source; start a fresh world after tuning them.
 
 Useful controls:
 
 ```bash
-uv run python -m worldgen.stage "$WORLD" <stage> --dry-run
-uv run python -m worldgen "$WORLD" --stop-after <stage>
-uv run python -m worldgen "$WORLD" --start-at <stage> --reuse-blender
-uv run python -m worldgen "$WORLD" --dry-run
+uv run python -m worldgen.stage --list
+uv run python -m worldgen.stage utility_depot_40_v3 05_build_structures
+uv run python -m worldgen utility_depot_40_v3 --dry-run
+uv run python -m worldgen utility_depot_40_v3 --start-at 11_detail_infrastructure
 ```
 
-`--reuse-blender` uses the scene currently open; it never selects a checkpoint.
-A failed run leaves Blender open at the last valid stage.
+The utility-depot family ends with `15_navigation_goals`. It authors at least
+three ordered `navigation_goal_*` sites on connected, clear ground and saves
+`artifacts/worldgen/<world>/waypoints.blend`.
 
-| Stage | Inspect |
-| --- | --- |
-| `01_plan_topology` | Boundary, gate, aisles, and seeded/brief-overridden spawn sites |
-| `02_plan_infrastructure` | Continuous fence, setbacks, grounded anchors |
-| `03_plan_storage` | Traversable density, cluster variation, anomaly placement |
-| `04_build_site_shell` | Ground size, gate opening, spawn sites |
-| `05_build_structures` | Anchor fit, openings, separate physical elements |
-| `06_build_racks` | Local transforms, shelf/load fit, clear aisles |
-| `07_build_drums` | Grounding, grouping, one identifiable red target |
-| `08_build_pallets_crates` | Grounding, parenting, route clearance |
-| `09_build_utility_props` | Anchor fit, plausible assemblies |
-| `10_finish_blockout` | Complete composition, circulation, no plan guides |
-| `11_detail_infrastructure` | Recognition improved without footprint changes |
-| `12_detail_props` | Shape detail without hierarchy/collision regressions |
-| `13_materials_lighting` | Full material coverage, neutral light, visible target |
-| `14_render_final` | Coherent review renders and `scene_manifest.json` |
-| `15_ground_waypoints` | Authored route; waypoint clearance plus early target LOS, range, and yaw |
-| `16_air_waypoints` | Collision clearance, target view, return over spawn |
-
-Export an accepted waypoint scene directly:
+## Export and validate
 
 ```bash
-/Applications/Blender.app/Contents/MacOS/Blender --background \
+open -n -W -a Blender --args --background \
   "$PWD/artifacts/worldgen/$WORLD/waypoints.blend" \
   --python-exit-code 1 --python "$PWD/worldgen/export.py" -- \
-  --world "$WORLD" --world-waypoints
+  --world "$WORLD" --navigation-goals
+
 uv run python worldgen/check_export.py "$WORLD"
 ```
 
-Use the installed `blender` executable on Linux. After shared-helper changes:
+Export produces:
 
-```bash
-/Applications/Blender.app/Contents/MacOS/Blender --background \
-  --factory-startup --python worldgen/check_blender_helpers.py
-```
+- `sim/worlds/<world>.xml` and `sim/worlds/assets/<world>/`;
+- `ros/src/spar/config/worlds/<world>.yaml` with `navsat_datum`, the authored dock pose,
+  and ordered `{name, x, y, yaw}` navigation goals;
+- an export manifest recording meshes, colliders, sites, and goal clearance.
 
-## Change the right layer
+Validation requires exactly one Husky spawn, a ground-only MJCF attachment,
+matching datum/config/manifest data, finite and in-bounds goals, collision-free
+Husky footprints across sampled headings, valid generated OBJ files, a clean
+MuJoCo compile, and a finite passive rollout.
 
-| Failure | Owner |
-| --- | --- |
-| One unattractive permutation or one stage overreaches | Stage prompt |
-| Repeated asset/layout arithmetic within one context | `families/<family>/helpers.py` |
-| Transforms, parenting, sites, or mechanics fail across families | `blender_helpers.py` |
-| MJCF, collision, asset, or route contract fails | `export.py` / `check_export.py` |
-| BlenderMCP is absent, stale, or attached to the wrong window | `start_blender.py` / `mcp.json` |
+## Family contract
 
-Do not prompt around deterministic failures. Do not encode subjective visual
-taste as an export gate.
+Family prompts own creative layout and appearance. Shared helpers own repeated
+Blender mechanics. Export code owns file formats and objective checks. Add new
+families as ordered prompts first; add family-specific Python only for truly
+deterministic logic that prompts should not repeat.
 
-## Extend
-
-The shared Blender helpers and SPAR exporter are the generic kernel. A family
-owns domain vocabulary, valid topology, recurring assets, appearance, and task
-intent. Its variation contract separates invariants from overridable defaults.
-A world is one recipe and its generated artifacts.
-
-For a new family, add ordered, narrowly scoped prompts under
-`families/<family>/prompts/`. Add family Python only after deterministic logic
-repeats. Reuse the exporter unless the simulator contract itself changes.
-Qualify several visible variants, export validation, and both robot smoke tests
-before treating the family as automatic.
-
-Editable checkpoints live in `artifacts/worldgen/<world>/`; runnable MJCF,
-assets, and route YAML remain under their simulator, ground, and air consumers.
-The exporter attaches pose-neutral robot models at the authored sites, writes
-the shared world datum and mission homes into ground and air configuration,
-and keeps both routes in MuJoCo/world-aligned ENU coordinates. Spawn poses
-physically live in MJCF and are not duplicated as localization origins. The
-autonomy launch always loads the selected world configuration; autonomy does
-not choose the physical spawn.
-
-The utility-depot family intentionally omits ground imagery, HDRIs, and
-photographic backgrounds until texture scale and Blender/MuJoCo parity receive
-a dedicated realism pass.
+The utility-depot family retains the distinctive red inspection barrel used by
+the ground perception and mission smoke test. Its first navigation goal must
+provide an early, target-facing view of that barrel. Generated goals feed the
+mission's rounds branch, and the authored ground dock feeds ReturnToDock and
+charging.

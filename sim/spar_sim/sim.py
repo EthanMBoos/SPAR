@@ -1,6 +1,5 @@
-"""The sim: steps MuJoCo, publishes the robot's ROS topics, consumes
-cmd_vel, and runs the PX4 lockstep link. Run it headless in the sim
-container:
+"""The sim: step MuJoCo, publish Husky ROS topics, and consume cmd_vel.
+Run it headless in the sim container:
 
     MUJOCO_GL=egl WORLD=utility_depot_40_v2 python3 -m spar_sim.sim
 
@@ -31,12 +30,11 @@ from spar_sim.husky import (
     KinematicDrive,
     WHEEL_NAMES,
 )
-from spar_sim.px4_link import Px4Link
 from spar_sim.robot_config import scan_site
 
 CLOCK_RATE = 50.0
 SCAN_RATE = sensors.SCAN_RATE
-CAM_RATE = 5.0
+CAMERA_RATE = 5.0
 GPS_RATE = sensors.GPS_RATE
 ENCODER_RATE = sensors.ENCODER_RATE
 IMU_RATE = sensors.IMU_RATE
@@ -65,12 +63,14 @@ def resolve_ids(model):
         "base_free": mujoco.mj_name2id(model, obj.mjOBJ_JOINT, "base_free"),
         "lidar": lidar_id,
         "lidar_frame": lidar_frame,
-        "camera_link": mujoco.mj_name2id(model, obj.mjOBJ_SITE, "camera_0_link"),
+        "camera_link": mujoco.mj_name2id(
+            model, obj.mjOBJ_SITE, "camera_0_link"),
+        "camera": mujoco.mj_name2id(
+            model, obj.mjOBJ_CAMERA, "camera_0"),
         "gps": mujoco.mj_name2id(model, obj.mjOBJ_SITE, "gps_link"),
         "imu": mujoco.mj_name2id(model, obj.mjOBJ_SITE, "imu_link"),
         "footprint": mujoco.mj_name2id(
             model, obj.mjOBJ_GEOM, "husky_kinematic_footprint"),
-        "camera_0": mujoco.mj_name2id(model, obj.mjOBJ_CAMERA, "camera_0"),
     }
     for position in WHEEL_NAMES:
         ids[f"{position}_joint"] = mujoco.mj_name2id(
@@ -158,10 +158,8 @@ def main():
     static_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
     tf_static_pub = node.create_publisher(TFMessage, "tf_static", static_qos)
 
-    husky_cam = sensors.Camera(model, node, "camera_0", "sensors/camera_0")
-    drone_cam = sensors.Camera(model, node, "x2_camera", "/skydio/sensors/camera_0")
-    print("[spar] camera sensor mounted", flush=True)
-
+    camera = sensors.Camera(model, node, "camera_0", "sensors/camera_0")
+    print("[spar] Husky RGB-D camera mounted", flush=True)
     lidar = sensors.Lidar()
     gps = sensors.Gps(georeference)
     wheel_encoders = sensors.WheelEncoders([
@@ -176,7 +174,6 @@ def main():
         ids["footprint"],
     )
     ground_imu = sensors.GroundImu(model.jnt_dofadr[ids["base_free"]])
-    px4 = Px4Link(model, georeference)
     viewer = ViewerStream(model)
 
     # cmd_vel state (written by the ROS thread, read in the physics loop).
@@ -202,7 +199,7 @@ def main():
     ]))
 
     next_clock = next_encoder = next_imu = 0.0
-    next_scan = next_gps = next_cam = next_view = 0.0
+    next_scan = next_gps = next_camera = next_view = 0.0
     # Wall-clock pacing anchors: RTF 1.
     wall0, sim0 = time.monotonic(), data.time
 
@@ -212,7 +209,6 @@ def main():
         # stale command is no command
         if stamp < 0.0 or data.time - stamp > CMD_TIMEOUT_SEC:
             v = w = 0.0
-        px4.step(model, data)
         mujoco.mj_step(model, data)
         ground_drive.advance(model, data, v, w, model.opt.timestep)
         t = data.time
@@ -242,10 +238,9 @@ def main():
         if t >= next_gps:
             next_gps = t + 1.0 / GPS_RATE
             gps_pub.publish(gps.fix(data, ids["gps"], t))
-        if t >= next_cam:
-            next_cam = t + 1.0 / CAM_RATE
-            husky_cam.publish(data, t)
-            drone_cam.publish(data, t)
+        if t >= next_camera:
+            next_camera = t + 1.0 / CAMERA_RATE
+            camera.publish(data, t)
         if t >= next_view:
             next_view = t + 1.0 / VIEWER_RATE
             viewer.send(data)

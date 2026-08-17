@@ -48,7 +48,7 @@ assert root["spar_type"] == "rack"
 
 bad_anchor = spar.add_plan_anchor(
     "Anchor_Type_Test", "inspection_target", "test", (0.0, 0.0, 0.0),
-    (1.0, 1.0, 1.0), role="anomaly",
+    (1.0, 1.0, 1.0), role="featured",
 )
 try:
     spar.semantic_root(bad_anchor, spar_type="barrel")
@@ -98,14 +98,14 @@ sites = spar.add_ordered_sites(
     "SITE_Test", "test", [(0.0, 0.0, 1.0), (2.0, 0.0, 1.0)], face="next"
 )
 assert [obj.name for obj in sites] == ["SITE_Test_01", "SITE_Test_02"]
-assert [obj["spar_patrol_order"] for obj in sites] == [0, 1]
+assert [obj["spar_order"] for obj in sites] == [0, 1]
 assert spar.guide("PLAN_SiteBoundary") == boundary
 assert spar.site("SITE_Test_01") == sites[0]
 assert spar.route_headings([(0, 0, 0), (0, 2, 0)]) == [math.pi / 2, math.pi / 2]
 assert spar.yaw_toward((0, 0, 0), (-1, 0, 0)) == math.pi
 target_anchor = spar.add_plan_anchor(
     "Target_Test", "inspection_target", "test", (5.0, 0.0, 0.0),
-    (1.0, 1.0, 1.0), role="anomaly",
+    (1.0, 1.0, 1.0), role="featured",
 )
 target_root = spar.semantic_root(target_anchor)
 spar.add_box_local(target_root, "target_body", (0.0, 0.0, 0.5), (1.0, 1.0, 1.0))

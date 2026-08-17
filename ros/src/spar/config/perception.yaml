@@ -1,0 +1,14 @@
+/**/red_barrel_detector:
+  ros__parameters:
+    color_topic: sensors/camera_0/color/image
+    depth_topic: sensors/camera_0/depth/image
+    info_topic: sensors/camera_0/color/camera_info
+    output_topic: perception/red_barrel
+    map_frame: map
+    camera_frame: camera_0_link
+    min_blob_area_px: 120
+    max_range_m: 8.0
+    hsv_low_1: [0, 150, 80]
+    hsv_high_1: [4, 255, 255]
+    hsv_low_2: [176, 150, 80]
+    hsv_high_2: [180, 255, 255]

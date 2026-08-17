@@ -16,12 +16,9 @@ __pycache__/
 /sim/worlds/assets/*
 !/sim/worlds/assets/utility_depot_40_v2/
 !/sim/worlds/assets/utility_depot_40_v2/**
-/ground/src/spar_ground/config/worlds/*.yaml
-!/ground/src/spar_ground/config/worlds/blank.yaml
-!/ground/src/spar_ground/config/worlds/utility_depot_40_v2.yaml
-/air/src/spar_air/config/worlds/*.yaml
-!/air/src/spar_air/config/worlds/blank.yaml
-!/air/src/spar_air/config/worlds/utility_depot_40_v2.yaml
+/ros/src/spar/config/worlds/*.yaml
+!/ros/src/spar/config/worlds/blank.yaml
+!/ros/src/spar/config/worlds/utility_depot_40_v2.yaml
 
 # BlenderMCP experiments are large local artifacts. The prompt and validator
 # stay tracked; promote a rare reusable scene deliberately if it earns that.

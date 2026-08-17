@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Compile a Blender world export and report objective scene statistics."""
+"""Validate one ground-only Blender world export and its Nav2 goal contract."""
 
 import argparse
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -15,21 +14,17 @@ import yaml
 
 try:
     from worldgen.georeference import valid_georeference
-except ModuleNotFoundError:  # direct `python worldgen/check_export.py`
+except ModuleNotFoundError:
     from georeference import valid_georeference
 
 
 REPO = Path(__file__).resolve().parents[1]
-
 SITE_SIZE_M = 40.0
 SITE_SIZE_TOLERANCE_M = 0.01
-HUSKY_WHEELS = ("front_left", "front_right", "rear_left", "rear_right")
 HUSKY_INITIAL_ROOT_HEIGHT_M = 0.13228
-X2_INITIAL_ROOT_HEIGHT_M = 0.1
-GROUND_SPAWN_CLEARANCE_M = 0.8
-AIR_SPAWN_CLEARANCE_M = 0.6
-ROBOT_SPAWN_SEPARATION_M = 1.5
-GROUND_WAYPOINT_YAW_SAMPLES = 32
+HUSKY_WHEELS = ("front_left", "front_right", "rear_left", "rear_right")
+SPAWN_CLEARANCE_M = 0.8
+GOAL_YAW_SAMPLES = 32
 
 
 def numeric_lists_close(actual, expected, tolerance=1e-6):
@@ -46,190 +41,91 @@ def numeric_lists_close(actual, expected, tolerance=1e-6):
     )
 
 
-def configured_datum(parameters):
-    return [
-        parameters.get("datum_latitude_deg"),
-        parameters.get("datum_longitude_deg"),
-        parameters.get("datum_altitude_m"),
-    ]
-
-
 def manifest_datum(manifest):
-    georeference = manifest.get("georeference", {})
+    reference = manifest.get("georeference", {})
     return [
-        georeference.get("latitude_deg"),
-        georeference.get("longitude_deg"),
-        georeference.get("altitude_m"),
+        reference.get("latitude_deg"),
+        reference.get("longitude_deg"),
+        reference.get("altitude_m"),
     ]
 
 
-def configured_navsat_datum(parameters):
-    datum = parameters.get("datum")
-    if not isinstance(datum, list) or len(datum) != 3:
-        return None
-    return datum
-
-
-def inspect_obj_assets(assets_dir, filenames, failures):
-    totals = {"vertices": 0, "normals": 0, "faces": 0}
-    for filename in filenames:
-        if not filename.startswith("mesh_") or not filename.endswith(".obj"):
-            failures.append(f"visual mesh does not use mesh_* naming: {filename}")
-            continue
-        path = assets_dir / filename
-        if not path.is_file():
-            continue
-        counts = {"vertices": 0, "normals": 0, "faces": 0}
-        with path.open(encoding="utf-8") as stream:
-            for line in stream:
-                if line.startswith("v "):
-                    counts["vertices"] += 1
-                elif line.startswith("vn "):
-                    counts["normals"] += 1
-                elif line.startswith("f "):
-                    counts["faces"] += 1
-                    if any(token.count("/") != 2 for token in line.split()[1:]):
-                        failures.append(f"OBJ face lacks position/UV/normal indices: {filename}")
-                        break
-        if counts["faces"] and not counts["normals"]:
-            failures.append(f"OBJ has no authored normals: {filename}")
-        for key, value in counts.items():
-            totals[key] += value
-    if totals["faces"] and totals["vertices"] >= totals["faces"] * 3:
-        failures.append("visual OBJ meshes do not share indexed vertices")
-    return totals
-
-
-def inspect_collision_obj_assets(assets_dir, filenames, failures):
+def inspect_obj_assets(assets_dir, filenames, prefix, failures):
     totals = {"vertices": 0, "faces": 0}
     for filename in filenames:
-        if not filename.startswith("colmesh_") or not filename.endswith(".obj"):
-            failures.append(f"collision mesh does not use colmesh_* naming: {filename}")
+        if not filename.startswith(prefix) or not filename.endswith(".obj"):
+            failures.append(f"invalid generated OBJ name: {filename}")
             continue
         path = assets_dir / filename
         if not path.is_file():
-            failures.append(f"missing collision mesh: {filename}")
+            failures.append(f"missing generated OBJ: {filename}")
             continue
-        vertices = 0
-        faces = 0
         with path.open(encoding="utf-8") as stream:
             for line in stream:
                 if line.startswith("v "):
-                    vertices += 1
+                    totals["vertices"] += 1
                 elif line.startswith("f "):
-                    faces += 1
-                    if any("/" in token for token in line.split()[1:]):
-                        failures.append(
-                            f"collision OBJ unnecessarily contains split indices: {filename}")
-                        break
-        if vertices < 4 or faces < 4:
-            failures.append(f"collision OBJ is not volumetric: {filename}")
-        totals["vertices"] += vertices
-        totals["faces"] += faces
+                    totals["faces"] += 1
     return totals
 
 
 def inspect_mjcf_structure(world_path, manifest, failures):
     try:
         root = ET.parse(world_path).getroot()
-    except (OSError, ET.ParseError) as exc:
-        failures.append(f"invalid MJCF XML: {exc}")
+    except ET.ParseError as exc:
+        failures.append(f"MJCF XML is invalid: {exc}")
         return
 
     compiler = root.find("compiler")
     expected_assetdir = f"assets/{world_path.stem}"
     if compiler is None or compiler.get("assetdir") != expected_assetdir:
         failures.append("MJCF compiler must use the world assetdir")
-    elif compiler.get("meshdir") or compiler.get("texturedir"):
-        failures.append("MJCF compiler redundantly sets meshdir or texturedir")
-
-    classes = {
-        element.get("class")
-        for element in root.findall("./default/default")
-    }
-    required_classes = {
-        "spar_world_visual",
-        "spar_world_collision",
-        "spar_world_ground",
-        "spar_world_site",
-    }
-    missing_classes = required_classes - classes
-    if missing_classes:
-        failures.append(
-            "MJCF is missing defaults classes: " + ", ".join(sorted(missing_classes)))
-
-    for mesh in root.findall("./asset/mesh"):
-        if mesh.get("name", "").startswith("mesh_"):
-            if mesh.get("inertia") or mesh.get("smoothnormal"):
-                failures.append(
-                    f"visual mesh has redundant inferred properties: {mesh.get('name')}")
     model_assets = {model.get("name") for model in root.findall("./asset/model")}
-    if not {"husky_model", "x2_model"}.issubset(model_assets):
-        failures.append("MJCF must declare the Husky and X2 model assets")
+    if model_assets != {"husky_model"}:
+        failures.append("MJCF must declare only the Husky model asset")
     if root.findall("include"):
-        failures.append("robot models must be attached at world spawn sites, not included")
+        failures.append("the Husky must be attached at its authored spawn")
 
     worldbody = root.find("worldbody")
     if worldbody is None:
         failures.append("MJCF has no worldbody")
         return
+    attachments = {
+        attach.get("body") for attach in worldbody.findall("./frame/attach")
+    }
+    if attachments != {"base_link"}:
+        failures.append("MJCF must attach only the Husky root")
     floor = worldbody.find("geom[@name='floor']")
     if floor is None or floor.get("class") != "spar_world_ground":
         failures.append("floor does not use spar_world_ground")
-    ground_default = root.find("./default/default[@class='spar_world_ground']/geom")
-    if ground_default is None or ground_default.get("group") != "4":
-        failures.append("spar_world_ground must use lidar-excluded geom group 4")
-    for geom in worldbody.findall("geom"):
-        name = geom.get("name", "")
-        if name.startswith("vis_") and geom.get("class") != "spar_world_visual":
-            failures.append(f"visual geom has wrong defaults class: {name}")
-        if name.startswith("col_"):
-            if not name.startswith("col_auto_"):
-                failures.append(f"world contains a non-v1 collider geom: {name}")
-            if geom.get("class") != "spar_world_collision":
-                failures.append(f"collision geom has wrong defaults class: {name}")
-            if geom.get("rgba") is not None or geom.get("group") is not None:
-                failures.append(f"collision geom overrides shared visibility: {name}")
-            mesh_name = geom.get("mesh", "")
-            if geom.get("type") != "mesh" or not mesh_name.startswith("colmesh_"):
-                failures.append(
-                    f"automatic collider does not use a per-element mesh: {name}")
-    for site in worldbody.findall("site"):
-        if site.get("name", "").startswith("site_"):
-            if site.get("class") != "spar_world_site":
-                failures.append(f"site has wrong defaults class: {site.get('name')}")
-    attachments = {
-        attach.get("body")
-        for attach in worldbody.findall("./frame/attach")
+    if worldbody.find("geom[@name='dock_pad']") is None:
+        failures.append("MJCF has no ground dock pad")
+
+    expected_sites = {
+        site["name"].lower() for site in manifest.get("sites", [])
     }
-    if attachments != {"base_link", "x2"}:
-        failures.append("MJCF must attach both robot roots at authored spawn frames")
-    for pad in ("dock_pad", "landing_pad"):
-        if worldbody.find(f"geom[@name='{pad}']") is None:
-            failures.append(f"MJCF is missing world-owned {pad}")
+    actual_sites = {
+        site.get("name") for site in worldbody.findall("site")
+    }
+    if expected_sites != actual_sites:
+        failures.append("MJCF sites differ from the export manifest")
 
 
-def warning_counts(data):
-    return [int(warning.number) for warning in data.warning]
-
-
-def inspect_ground_waypoint_contacts(model, data, ground_sites, failures):
-    """Reject authored goals that place the Husky probe inside world geometry."""
+def inspect_goal_contacts(model, data, goal_sites, failures):
     base_joint = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_JOINT, "base_free")
     footprint = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_GEOM, "husky_kinematic_footprint")
     if base_joint < 0 or footprint < 0:
         return
-
     base_qpos = int(model.jnt_qposadr[base_joint])
     initial_qpos = data.qpos.copy()
     root_height = float(initial_qpos[base_qpos + 2])
-    for site in ground_sites:
+    for site in goal_sites:
         obstructions = set()
         yaws = [float(site["yaw"])] + [
-            2.0 * math.pi * index / GROUND_WAYPOINT_YAW_SAMPLES
-            for index in range(GROUND_WAYPOINT_YAW_SAMPLES)
+            2.0 * math.pi * index / GOAL_YAW_SAMPLES
+            for index in range(GOAL_YAW_SAMPLES)
         ]
         for yaw in yaws:
             data.qpos[:] = initial_qpos
@@ -246,19 +142,130 @@ def inspect_ground_waypoint_contacts(model, data, ground_sites, failures):
             for contact in data.contact:
                 if contact.geom1 != footprint and contact.geom2 != footprint:
                     continue
-                other = (
-                    contact.geom2 if contact.geom1 == footprint else contact.geom1)
+                other = contact.geom2 if contact.geom1 == footprint else contact.geom1
                 name = mujoco.mj_id2name(
                     model, mujoco.mjtObj.mjOBJ_GEOM, other)
                 obstructions.add(name or f"geom {other}")
         if obstructions:
             failures.append(
-                f"{site['name']} obstructs the compiled Husky turning footprint with "
+                f"{site['name']} obstructs the Husky turning footprint with "
                 + ", ".join(sorted(obstructions))
             )
-
     data.qpos[:] = initial_qpos
     mujoco.mj_forward(model, data)
+
+
+def validate_sites_and_config(manifest, assets_dir, failures):
+    sites = manifest.get("sites", [])
+    for site in sites:
+        numbers = [*site.get("position", []), site.get("yaw")]
+        if not all(
+            isinstance(value, (int, float)) and math.isfinite(value)
+            for value in numbers
+        ):
+            failures.append(f"invalid site transform: {site.get('name')}")
+    spawn_sites = [site for site in sites if site.get("role") == "husky_spawn"]
+    dock_sites = [site for site in sites if site.get("role") == "dock"]
+    goal_sites = [
+        site for site in sites
+        if site.get("role", "").startswith("navigation_goal_")
+    ]
+    if len(spawn_sites) != 1:
+        failures.append("world needs exactly one husky_spawn site")
+    if len(dock_sites) != 1:
+        failures.append("world needs exactly one dock site")
+    if len(goal_sites) < 3:
+        failures.append("world needs at least three navigation goals")
+    if len(spawn_sites) + len(dock_sites) + len(goal_sites) != len(sites):
+        failures.append("world contains unsupported semantic sites")
+
+    orders = [site.get("order") for site in goal_sites]
+    if (
+        any(not isinstance(order, int) or isinstance(order, bool) for order in orders)
+        or len(set(orders)) != len(orders)
+    ):
+        failures.append("navigation goals need unique integer orders")
+    goal_sites.sort(key=lambda site: site.get("order", -1))
+
+    config = manifest.get("navigation_config")
+    config_path = REPO / config if isinstance(config, str) else None
+    if config_path is None or not config_path.is_file():
+        failures.append("navigation config is missing")
+        return sites, spawn_sites, goal_sites
+    try:
+        document = yaml.safe_load(config_path.read_text())
+        datum = document["navsat_datum"]
+        dock = document["dock_pose"]
+        configured_goals = document["navigation_goals"]
+        expected_datum = manifest_datum(manifest)
+        if (
+            not numeric_lists_close(datum[:2], expected_datum[:2])
+            or type(datum[2]) is not float
+            or not math.isclose(datum[2], 0.0, abs_tol=1e-9)
+        ):
+            failures.append("navigation datum differs from the world")
+        if (
+            not isinstance(dock, list)
+            or len(dock) != 3
+            or not all(
+                type(value) is float and math.isfinite(value)
+                for value in dock
+            )
+        ):
+            failures.append(
+                "navigation config dock_pose must contain three finite floats"
+            )
+        elif dock_sites:
+            expected_dock = [
+                dock_sites[0]["position"][0],
+                dock_sites[0]["position"][1],
+                math.atan2(
+                    math.sin(dock_sites[0]["yaw"]),
+                    math.cos(dock_sites[0]["yaw"]),
+                ),
+            ]
+            if not numeric_lists_close(dock, expected_dock):
+                failures.append(
+                    "navigation config dock pose differs from authored site")
+        if len(configured_goals) != len(goal_sites):
+            failures.append("navigation config goal count differs from authored sites")
+        for configured, site in zip(configured_goals, goal_sites):
+            expected = [
+                site["position"][0],
+                site["position"][1],
+                math.atan2(math.sin(site["yaw"]), math.cos(site["yaw"])),
+            ]
+            actual = [configured.get(key) for key in ("x", "y", "yaw")]
+            if configured.get("name") != site["name"].lower():
+                failures.append("navigation config goal name differs from authored site")
+            if not numeric_lists_close(actual, expected):
+                failures.append("navigation config goal pose differs from authored site")
+    except (KeyError, TypeError, yaml.YAMLError) as exc:
+        failures.append(f"invalid navigation config: {exc}")
+
+    contract = manifest.get("navigation_goals") or {}
+    if contract.get("frame") != "map_world_enu":
+        failures.append("navigation goals are not in the world-aligned map frame")
+    if len(contract.get("goals", [])) != len(goal_sites):
+        failures.append("navigation goal manifest differs from authored sites")
+    if contract.get("goal_footprints_clear") is not True:
+        failures.append("navigation goal footprint clearance was not recorded")
+    observation = contract.get("first_observation") or {}
+    if (
+        observation.get("order") != 0
+        or not isinstance(observation.get("range_m"), (int, float))
+        or observation.get("range_m", math.inf)
+        > contract.get("detector_range_limit_m", -math.inf)
+        or observation.get("route_travel_m", math.inf)
+        > contract.get("observation_travel_limit_m", -math.inf)
+        or observation.get("heading_error_rad", math.inf)
+        > contract.get("heading_tolerance_rad", -math.inf)
+    ):
+        failures.append(
+            "first navigation goal does not guarantee early red-target perception")
+    if contract.get("line_of_sight_checked_in_blender") is not True:
+        failures.append("red-target line-of-sight check was not recorded")
+    return sites, spawn_sites, goal_sites
 
 
 def main():
@@ -287,416 +294,88 @@ def main():
         failures.append("manifest world does not match the MJCF filename")
     if not valid_georeference(manifest.get("georeference")):
         failures.append("manifest has no valid world georeference")
-    generation_recipe = manifest.get("generation")
-    generation_hash = manifest.get("generation_sha256")
-    if generation_recipe is not None or generation_hash is not None:
-        if not isinstance(generation_recipe, dict):
-            failures.append("embedded generation recipe is invalid")
-        else:
-            if generation_recipe.get("world") != world_path.stem:
-                failures.append("generation recipe world does not match export")
-            if generation_recipe.get("georeference") != manifest.get("georeference"):
-                failures.append("generation and export georeferences differ")
-            encoded_recipe = (
-                json.dumps(generation_recipe, indent=2) + "\n"
-            ).encode()
-            if hashlib.sha256(encoded_recipe).hexdigest() != generation_hash:
-                failures.append("generation recipe hash does not match export")
     dimensions = manifest.get("site_dimensions_m", [])
-    if (
-        len(dimensions) != 2
-        or not all(isinstance(value, (int, float)) for value in dimensions)
-        or not all(math.isfinite(value) for value in dimensions)
-        or any(
-            not math.isclose(value, SITE_SIZE_M, abs_tol=SITE_SIZE_TOLERANCE_M)
-            for value in dimensions
-        )
-    ):
-        failures.append("generated world dimensions must be 40 by 40 m")
+    if not numeric_lists_close(dimensions, [SITE_SIZE_M, SITE_SIZE_M], SITE_SIZE_TOLERANCE_M):
+        failures.append("world footprint is not exactly 40 by 40 metres")
 
-    referenced_assets = set(manifest.get("visual_meshes", []))
-    referenced_assets.update(manifest.get("collision_meshes", []))
-    referenced_assets.update(manifest.get("visual_textures", []))
-    if manifest.get("ground_texture"):
-        referenced_assets.add(manifest["ground_texture"])
-    for filename in manifest.get("visual_meshes", []):
-        if not (assets_dir / filename).is_file():
-            failures.append(f"missing visual mesh: {filename}")
-    for filename in manifest.get("visual_textures", []):
-        if not (assets_dir / filename).is_file():
-            failures.append(f"missing visual texture: {filename}")
-    ground_texture = manifest.get("ground_texture")
-    if ground_texture and not (assets_dir / ground_texture).is_file():
-        failures.append(f"missing ground texture: {ground_texture}")
-    actual_assets = {
-        path.name for path in assets_dir.iterdir()
-        if path.is_file() and path.name != manifest_path.name
-    }
-    unexpected_assets = actual_assets - referenced_assets
-    if unexpected_assets:
-        failures.append(
-            "unreferenced generated assets: "
-            + ", ".join(sorted(unexpected_assets)))
     colliders = manifest.get("colliders", [])
-    if not colliders:
-        failures.append("export contains no automatic colliders")
-    if len(manifest.get("collision_meshes", [])) != len(colliders):
-        failures.append("collider count does not match collision mesh assets")
     for collider in colliders:
-        if collider.get("mesh") not in manifest.get("collision_meshes", []):
-            failures.append(
-                f"collider has no referenced mesh: {collider.get('name')}")
         numbers = [*collider.get("position", []), *collider.get("size", [])]
         if not numbers or not all(math.isfinite(value) for value in numbers):
             failures.append(f"invalid collider transform: {collider.get('name')}")
-        if any(value <= 0 for value in collider.get("size", [])):
-            failures.append(f"non-positive collider size: {collider.get('name')}")
-        if not collider.get("name") or not collider.get("source_type"):
-            failures.append(f"collider has no semantic source: {collider.get('name')}")
-    for omission in manifest.get("collision_omissions", []):
-        if not omission.get("source_root") or not omission.get("reason"):
-            failures.append(f"invalid collision omission: {omission}")
-    for opt_out in manifest.get("collision_opt_outs", []):
-        if (
-            not opt_out.get("name")
-            or not opt_out.get("source_root")
-            or opt_out.get("reason") != "spar_no_collision"
-        ):
-            failures.append(f"invalid collision opt-out: {opt_out}")
-    sites = manifest.get("sites", [])
-    for site in sites:
-        numbers = [*site.get("position", []), site.get("yaw")]
-        if not all(isinstance(value, (int, float)) and math.isfinite(value)
-                   for value in numbers):
-            failures.append(f"invalid site transform: {site.get('name')}")
-    roles = {site.get("role") for site in sites}
-    required_roles = {"husky_spawn", "x2_spawn", "dock"}
-    sites_by_role = {site.get("role"): site for site in sites}
-    for role in required_roles:
-        if sum(site.get("role") == role for site in sites) != 1:
-            failures.append(f"world needs exactly one {role} site")
-    if required_roles.issubset(sites_by_role) and len(dimensions) == 2:
-        husky = sites_by_role["husky_spawn"]
-        x2 = sites_by_role["x2_spawn"]
-        dock = sites_by_role["dock"]
-        for site in (husky, x2, dock):
-            x, y, _ = site["position"]
-            if (
-                abs(x) > dimensions[0] / 2.0 - AIR_SPAWN_CLEARANCE_M
-                or abs(y) > dimensions[1] / 2.0 - AIR_SPAWN_CLEARANCE_M
-            ):
-                failures.append(f"{site['role']} is outside the safe boundary")
-        separation = math.hypot(
-            husky["position"][0] - x2["position"][0],
-            husky["position"][1] - x2["position"][1],
-        )
-        if separation < ROBOT_SPAWN_SEPARATION_M:
-            failures.append("Husky and X2 spawn sites are too close")
-        for site, clearance in (
-            (husky, GROUND_SPAWN_CLEARANCE_M),
-            (dock, GROUND_SPAWN_CLEARANCE_M),
-            (x2, AIR_SPAWN_CLEARANCE_M),
-        ):
-            x, y, _ = site["position"]
-            if any(
-                abs(collider["position"][0] - x)
-                < collider["size"][0] + clearance
-                and abs(collider["position"][1] - y)
-                < collider["size"][1] + clearance
-                for collider in colliders
-            ):
-                failures.append(f"{site['role']} clearance is obstructed")
-    if manifest.get("waypoint_mode") == "world":
-        ground_sites = [site for site in sites
-                        if site.get("role", "").startswith("patrol_")]
-        if len(ground_sites) < 3:
-            failures.append("world waypoint mode needs at least three patrol sites")
-        orders = [site.get("patrol_order") for site in ground_sites]
-        if None in orders or len(set(orders)) != len(orders):
-            failures.append("world patrol sites need unique spar_patrol_order values")
-        ground_config = manifest.get("ground_waypoint_config")
-        ground_path = REPO / ground_config if ground_config else None
-        if ground_path is None or not ground_path.is_file():
-            failures.append("ground waypoint file is missing")
-        else:
-            try:
-                document = yaml.safe_load(ground_path.read_text())
-                waypoints = document["/**/bt_executive"]["ros__parameters"][
-                    "patrol_waypoints"]
-                if len(waypoints) != len(ground_sites) * 3:
-                    failures.append(
-                        "ground waypoint count does not match patrol sites")
-                if not all(type(value) is float for value in waypoints):
-                    failures.append("ground waypoints must all be ROS doubles")
-                elif not all(math.isfinite(value) for value in waypoints):
-                    failures.append("ground waypoints must all be finite")
-                expected_waypoints = []
-                for site in sorted(
-                    ground_sites, key=lambda item: item["patrol_order"]
-                ):
-                    expected_waypoints.extend((
-                        site["position"][0], site["position"][1],
-                        math.atan2(math.sin(site["yaw"]), math.cos(site["yaw"])),
-                    ))
-                if not numeric_lists_close(waypoints, expected_waypoints):
-                    failures.append(
-                        "ground waypoint config does not match authored sites")
-                dock = sites_by_role.get("dock", {})
-                bt_parameters = document["/**/bt_executive"]["ros__parameters"]
-                battery_parameters = document["/**/battery_sim"]["ros__parameters"]
-                navsat_parameters = document["/**/navsat_transform"][
-                    "ros__parameters"]
-                expected_dock = [*dock.get("position", [])[:2], dock.get("yaw")]
-                actual_dock = [
-                    bt_parameters.get("dock_x"), bt_parameters.get("dock_y"),
-                    bt_parameters.get("dock_yaw"),
-                ]
-                if not numeric_lists_close(actual_dock, expected_dock):
-                    failures.append("ground dock config does not match SITE_Dock")
-                battery_dock = [
-                    battery_parameters.get("dock_x"),
-                    battery_parameters.get("dock_y"),
-                ]
-                if not numeric_lists_close(battery_dock, expected_dock[:2]):
-                    failures.append("battery dock config does not match SITE_Dock")
-                navsat_datum = configured_navsat_datum(navsat_parameters)
-                if (
-                    navsat_datum is None
-                    or not numeric_lists_close(
-                        navsat_datum[:2], manifest_datum(manifest)[:2])
-                    or not math.isclose(navsat_datum[2], 0.0, abs_tol=1e-9)
-                ):
-                    failures.append("ground localization datum differs from world")
-                if any(
-                    key.startswith("map_origin_") for key in navsat_parameters
-                ):
-                    failures.append("ground config still contains a spawn map origin")
-            except (KeyError, TypeError, yaml.YAMLError) as exc:
-                failures.append(f"invalid ground waypoint file: {exc}")
+    target_roots = {
+        collider.get("source_root") for collider in colliders
+        if collider.get("source_role") == "anomaly"
+        or collider.get("source_type") == "inspection_target"
+    }
+    if len(target_roots) != 1:
+        failures.append("world needs exactly one red inspection target root")
+    sites, spawn_sites, goal_sites = validate_sites_and_config(
+        manifest, assets_dir, failures)
 
-        ground_route = manifest.get("ground_route") or {}
-        if ground_route.get("frame") != "map_world_enu":
-            failures.append("ground route is not in the world-aligned map frame")
-        ground_manifest_waypoints = ground_route.get("waypoints", [])
-        if len(ground_manifest_waypoints) != len(ground_sites):
-            failures.append("ground route manifest does not match patrol sites")
-        observation = ground_route.get("first_observation") or {}
-        observation_range = observation.get("range_m")
-        heading_error = observation.get("heading_error_rad")
-        observation_travel = observation.get("route_travel_m")
-        if not isinstance(observation_range, (int, float)) or observation_range > 8.0:
-            failures.append("ground route has no observation within 8 m")
-        if (
-            not isinstance(heading_error, (int, float))
-            or heading_error > math.radians(25.0)
-        ):
-            failures.append("ground route does not face the inspection target")
-        if not isinstance(observation_travel, (int, float)) or observation_travel > 20.0:
-            failures.append("ground route reaches the inspection view too late")
-        if ground_route.get("line_of_sight_checked_in_blender") is not True:
-            failures.append("ground inspection line of sight was not checked")
-        if ground_route.get("waypoint_footprints_clear") is not True:
-            failures.append("ground waypoint footprints were not checked")
-
-        air_sites = [site for site in sites
-                     if site.get("role", "").startswith("air_patrol_")]
-        if len(air_sites) < 3:
-            failures.append("world waypoint mode needs at least three air patrol sites")
-        air_orders = [site.get("patrol_order") for site in air_sites]
-        if None in air_orders or len(set(air_orders)) != len(air_orders):
-            failures.append("air patrol sites need unique spar_patrol_order values")
-        air_config = manifest.get("air_waypoint_config")
-        air_path = REPO / air_config if air_config else None
-        if air_path is None or not air_path.is_file():
-            failures.append("air waypoint file is missing")
-        else:
-            try:
-                document = yaml.safe_load(air_path.read_text())
-                parameters = document["/**/bt_executive"]["ros__parameters"]
-                air_waypoints = parameters["patrol_waypoints"]
-                if len(air_waypoints) != len(air_sites) * 4:
-                    failures.append(
-                        "air waypoint count does not match air patrol sites")
-                if not all(type(value) is float for value in air_waypoints):
-                    failures.append("air waypoints must all be ROS doubles")
-                elif not all(math.isfinite(value) for value in air_waypoints):
-                    failures.append("air waypoints must all be finite")
-                expected_waypoints = []
-                for site in sorted(
-                    air_sites, key=lambda item: item["patrol_order"]
-                ):
-                    expected_waypoints.extend((
-                        *site["position"],
-                        math.atan2(math.sin(site["yaw"]), math.cos(site["yaw"])),
-                    ))
-                if not numeric_lists_close(air_waypoints, expected_waypoints):
-                    failures.append(
-                        "air waypoint config does not match authored sites")
-                for key in ("cruise_alt_m", "orbit_alt_m"):
-                    value = parameters.get(key)
-                    if type(value) is not float or not math.isfinite(value):
-                        failures.append(f"air {key} must be a ROS double")
-                spawn = sites_by_role.get("x2_spawn", {})
-                position = spawn.get("position", [])
-                expected_home = position
-                actual_home = [parameters.get(f"home_{axis}") for axis in "xyz"]
-                tf_parameters = document["/**/tf_from_px4"]["ros__parameters"]
-                expected_datum = manifest_datum(manifest)
-                if not numeric_lists_close(
-                    configured_datum(parameters), expected_datum
-                ) or not numeric_lists_close(
-                    configured_datum(tf_parameters), expected_datum
-                ):
-                    failures.append("air autonomy datum differs from world")
-                if any(
-                    key.startswith("map_origin_")
-                    for block in (parameters, tf_parameters)
-                    for key in block
-                ):
-                    failures.append("air config still contains a spawn map origin")
-                if not numeric_lists_close(actual_home, expected_home):
-                    failures.append("air home config does not match the X2 spawn site")
-            except (KeyError, TypeError, yaml.YAMLError) as exc:
-                failures.append(f"invalid air waypoint file: {exc}")
-
-        air_route = manifest.get("air_route") or {}
-        if air_route.get("frame") != "map_world_enu":
-            failures.append("air route is not in the world-aligned map frame")
-        manifest_waypoints = air_route.get("waypoints", [])
-        if len(manifest_waypoints) != len(air_sites):
-            failures.append("air route manifest does not match air patrol sites")
-        flight_floor = air_route.get("collision_clear_flight_floor_m")
-        if not isinstance(flight_floor, (int, float)) or not math.isfinite(flight_floor):
-            failures.append("air route has no finite collision-clear flight floor")
-        elif any(waypoint.get("z", -math.inf) < flight_floor
-                 for waypoint in manifest_waypoints):
-            failures.append("an air waypoint is below the collision-clear flight floor")
-        anomaly_range = air_route.get("closest_anomaly_range_m")
-        if (
-            not isinstance(anomaly_range, (int, float))
-            or not math.isfinite(anomaly_range)
-            or anomaly_range > 12.0
-        ):
-            failures.append("air route does not bring the anomaly within 12 m")
-        if air_route.get("takeoff_corridor_clear") is not True:
-            failures.append("air takeoff and landing corridor is not clear")
-    missing_roles = required_roles - roles
-    if missing_roles:
-        failures.append(f"missing semantic sites: {', '.join(sorted(missing_roles))}")
-
-    obj_counts = inspect_obj_assets(
-        assets_dir, manifest.get("visual_meshes", []), failures)
-    collision_obj_counts = inspect_collision_obj_assets(
-        assets_dir, manifest.get("collision_meshes", []), failures)
+    visual_counts = inspect_obj_assets(
+        assets_dir, manifest.get("visual_meshes", []), "mesh_", failures)
+    inspect_obj_assets(
+        assets_dir, manifest.get("collision_meshes", []), "colmesh_", failures)
+    if visual_counts["faces"] != manifest.get("visual_triangles"):
+        failures.append("visual OBJ triangle count differs from manifest")
     inspect_mjcf_structure(world_path, manifest, failures)
-
-    if failures:
-        for failure in failures:
-            print(f"[world-export] FAIL: {failure}")
-        return 1
 
     try:
         model = mujoco.MjModel.from_xml_path(str(world_path))
     except Exception as exc:
-        print(f"[world-export] FAIL: MuJoCo could not compile the world: {exc}")
-        return 1
+        failures.append(f"MuJoCo could not compile the world: {exc}")
+        model = None
+    if model is not None:
+        data = mujoco.MjData(model)
+        mujoco.mj_forward(model, data)
+        numeric_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_NUMERIC, "spar.world_georeference")
+        if numeric_id < 0:
+            failures.append("compiled world has no geographic reference")
+        else:
+            address = int(model.numeric_adr[numeric_id])
+            size = int(model.numeric_size[numeric_id])
+            actual = model.numeric_data[address:address + size].tolist()
+            if not numeric_lists_close(actual, manifest_datum(manifest)):
+                failures.append("compiled geographic reference differs from manifest")
 
-    data = mujoco.MjData(model)
-    mujoco.mj_forward(model, data)
-    numeric_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_NUMERIC, "spar.world_georeference")
-    if numeric_id < 0:
-        failures.append("compiled world has no geographic reference numeric")
-    else:
-        address = int(model.numeric_adr[numeric_id])
-        size = int(model.numeric_size[numeric_id])
-        actual_datum = model.numeric_data[address:address + size].tolist()
-        if not numeric_lists_close(actual_datum, manifest_datum(manifest)):
-            failures.append("MJCF geographic reference differs from manifest")
-    for role, body_name, root_height in (
-        ("husky_spawn", "base_link", HUSKY_INITIAL_ROOT_HEIGHT_M),
-        ("x2_spawn", "x2", X2_INITIAL_ROOT_HEIGHT_M),
-    ):
-        site = sites_by_role.get(role)
-        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
-        if site is None or body_id < 0:
-            failures.append(f"compiled world cannot verify {role}")
-            continue
-        expected_position = np.array(site["position"], dtype=float)
-        expected_position[2] += root_height
-        if not np.allclose(data.xpos[body_id], expected_position, atol=1e-6):
-            failures.append(f"compiled {body_name} pose does not match {role}")
-        yaw = math.atan2(data.xmat[body_id][3], data.xmat[body_id][0])
-        yaw_error = math.atan2(
-            math.sin(yaw - site["yaw"]), math.cos(yaw - site["yaw"])
-        )
-        if abs(yaw_error) > 1e-6:
-            failures.append(f"compiled {body_name} yaw does not match {role}")
-    base_joint = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_JOINT, "base_free")
-    if base_joint < 0:
-        failures.append("compiled world has no kinematic Husky base joint")
-    footprint = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_GEOM, "husky_kinematic_footprint")
-    if footprint < 0:
-        failures.append("compiled world has no kinematic Husky collision probe")
-    elif (
-        model.geom_contype[footprint] != 1
-        or model.geom_conaffinity[footprint] != 1
-    ):
-        failures.append("Husky collision probe is absent from collision queries")
-    for wheel in HUSKY_WHEELS:
-        joint = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_JOINT, f"{wheel}_wheel_joint")
-        visual = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_GEOM, f"{wheel}_wheel_visual")
-        actuator = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR,
-            f"{wheel}_wheel_actuator")
-        collision = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_GEOM,
-            f"{wheel}_wheel_collision")
-        if joint < 0 or visual < 0:
-            failures.append(f"compiled world is missing visual/encoder {wheel}")
-        elif model.geom_contype[visual] or model.geom_conaffinity[visual]:
-            failures.append(f"kinematic {wheel} visual unexpectedly has contacts")
-        if actuator >= 0 or collision >= 0:
-            failures.append(f"compiled world retains physical drive for {wheel}")
+        body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
+        if body < 0 or not spawn_sites:
+            failures.append("compiled world cannot verify the Husky spawn")
+        else:
+            expected = np.array(spawn_sites[0]["position"], dtype=float)
+            expected[2] += HUSKY_INITIAL_ROOT_HEIGHT_M
+            if not np.allclose(data.xpos[body], expected, atol=1e-6):
+                failures.append("compiled Husky position differs from its spawn")
+        for wheel in HUSKY_WHEELS:
+            joint = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_JOINT, f"{wheel}_wheel_joint")
+            actuator = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_ACTUATOR, f"{wheel}_wheel_actuator")
+            if joint < 0 or actuator >= 0:
+                failures.append(f"invalid kinematic wheel contract: {wheel}")
+        inspect_goal_contacts(model, data, goal_sites, failures)
 
-    if manifest.get("waypoint_mode") == "world":
-        inspect_ground_waypoint_contacts(model, data, ground_sites, failures)
-
-    passive = mujoco.MjData(model)
-    for _ in range(round(5.0 / model.opt.timestep)):
-        mujoco.mj_step(model, passive)
-    if not np.isfinite(passive.qpos).all() or not np.isfinite(passive.qvel).all():
-        failures.append("five-second passive rollout produced non-finite state")
-    if any(warning_counts(passive)):
-        failures.append("five-second passive rollout produced MuJoCo warnings")
+        passive = mujoco.MjData(model)
+        for _ in range(round(5.0 / model.opt.timestep)):
+            mujoco.mj_step(model, passive)
+        if not np.isfinite(passive.qpos).all() or not np.isfinite(passive.qvel).all():
+            failures.append("five-second passive rollout produced non-finite state")
+        if any(int(warning.number) for warning in passive.warning):
+            failures.append("five-second passive rollout produced MuJoCo warnings")
 
     if failures:
         for failure in failures:
             print(f"[world-export] FAIL: {failure}")
         return 1
-
-    print(f"[world-export] OK: {world_path}")
     print(
-        f"[world-export] {model.ngeom} geoms, {model.nmesh} meshes, "
-        f"{model.ntex} textures, {model.nbody} bodies")
-    print(
-        f"[world-export] {manifest.get('visual_triangles', 0)} visual triangles, "
-        f"{len(colliders)} scene colliders")
-    print(
-        f"[world-export] indexed OBJ: {obj_counts['vertices']} vertices, "
-        f"{obj_counts['normals']} normals, {obj_counts['faces']} faces")
-    if collision_obj_counts["faces"]:
-        print(
-            f"[world-export] per-element collision OBJ: "
-            f"{collision_obj_counts['vertices']} vertices, "
-            f"{collision_obj_counts['faces']} faces")
-    print("[world-export] passive rollout and kinematic Husky contract passed")
+        f"[world-export] OK: {world_path.name}; "
+        f"{len(manifest.get('visual_meshes', []))} visual meshes, "
+        f"{len(colliders)} colliders, {len(goal_sites)} navigation goals"
+    )
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

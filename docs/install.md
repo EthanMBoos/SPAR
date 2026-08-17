@@ -42,7 +42,7 @@ uv run python -c 'import mujoco, yaml; print(mujoco.__version__)'
 
 `uv` creates the project `.venv` from `uv.lock`; do not activate or edit it.
 This installs the host MuJoCo library and macOS `mjpython` viewer launcher.
-ROS 2, Nav2, PX4, and the simulator run in Docker.
+ROS 2, Nav2, and the simulator run in Docker.
 
 ### Install BlenderMCP
 

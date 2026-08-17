@@ -2,8 +2,8 @@
 
     docker exec spar-sim bash -lc 'cd /ws/sim && MUJOCO_GL=egl python3 -m spar_sim.check'
 
-Imports every sim module, loads the world, resolves every named id both
-the sim and the PX4 link need, and renders one frame per camera.
+Imports every sim module, loads the world, resolves every Husky id, and
+renders one frame per world camera.
 Touches no port and no ROS graph, so it is safe while a sim is running.
 """
 
@@ -12,7 +12,7 @@ import sys
 
 import mujoco
 
-from spar_sim import px4_link, sensors, sim
+from spar_sim import sim
 
 
 def main():
@@ -22,10 +22,7 @@ def main():
     mujoco.mj_forward(model, data)
 
     sim.resolve_ids(model)
-    px4_link.resolve_ids(model)
-
-    renderer = mujoco.Renderer(model, height=sensors.Camera.HEIGHT,
-                               width=sensors.Camera.WIDTH)
+    renderer = mujoco.Renderer(model, height=240, width=320)
     for cam in range(model.ncam):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_CAMERA, cam)
         renderer.update_scene(data, camera=name)

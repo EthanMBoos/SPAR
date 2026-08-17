@@ -75,6 +75,16 @@ class HuskyModelTest(unittest.TestCase):
         self.assertEqual(model.geom_contype[footprint], 1)
         self.assertEqual(model.geom_conaffinity[footprint], 1)
 
+    def test_ground_rgbd_camera_contract(self) -> None:
+        model = mujoco.MjModel.from_xml_path("sim/worlds/blank.xml")
+        camera = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_CAMERA, "camera_0")
+        camera_link = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_SITE, "camera_0_link")
+        self.assertGreaterEqual(camera, 0)
+        self.assertGreaterEqual(camera_link, 0)
+        self.assertAlmostEqual(model.cam_fovy[camera], 58.0)
+
     def test_exact_straight_and_turn_motion(self) -> None:
         model = self.model
         data = mujoco.MjData(model)

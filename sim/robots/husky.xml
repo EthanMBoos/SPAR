@@ -12,6 +12,7 @@
 
      Robot-owned contracts consumed by spar_sim:
        - a custom text entry names the navigation lidar site;
+       - the named RGB-D camera and camera link feed ground perception;
        - four named wheel joints expose synthetic encoder measurements;
        - one disabled footprint geom is enabled only for collision queries.
 -->

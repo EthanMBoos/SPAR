@@ -5,7 +5,7 @@ running sim over its qpos stream. Runs from the repo venv:
 
 Loads the same MJCF the sim loaded and copies time + qpos from the stream
 into a passive viewer. View only, strictly one way: commands, teleop, and
-perturbation stay out (the mission layer is scripts/mission.sh, and a
+perturbation stay out (navigation commands go through Nav2, and a
 viewer that can push on the world quietly breaks eval honesty). Kill it
 and reattach mid-run; the sim never notices.
 

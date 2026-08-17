@@ -59,7 +59,7 @@ def cast_world_collision_rays(
     MuJoCo's ray functions ignore geoms whose alpha is exactly zero. SPAR's
     collision meshes use alpha zero because a separate, detailed mesh owns
     appearance. Temporarily giving collision geoms nonzero alpha makes them
-    available to the ray query; restoring it immediately keeps cameras and
+    available to the ray query; restoring it immediately keeps renderers and
     viewers unchanged.
     """
     collision_geoms = model.geom_group == WORLD_COLLISION_GROUP

@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# Tell the behavior layer to start or stop the mission. This *is* the mission
-# layer, for now: one command from above, and the tree does the rest. Run it
-# inside the container:
-#
-#   docker exec -it spar /ws/scripts/mission.sh start
-#   docker exec -it spar /ws/scripts/mission.sh stop
-#
-# Stopping mid-run is a clean preemption: the tree halts whatever is active
-# and cancels its Nav2 goal.
+# Tell the behavior layer to start or stop the mission. Stopping mid-run is a
+# clean preemption: the tree halts the active leaf and cancels its Nav2 goal.
 set -eo pipefail
 
 source /ws/scripts/env.sh
@@ -18,5 +11,6 @@ if [[ "$CMD" != "start" && "$CMD" != "stop" ]]; then
   exit 1
 fi
 
-ros2 topic pub --once "$NS/mission/command" std_msgs/msg/String "{data: $CMD}" >/dev/null
+ros2 topic pub --once \
+  "$NS/mission/command" std_msgs/msg/String "{data: $CMD}" >/dev/null
 echo "mission: $CMD"

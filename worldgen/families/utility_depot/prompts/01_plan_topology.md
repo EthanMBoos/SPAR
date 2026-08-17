@@ -17,16 +17,16 @@ In the single call:
    `PLAN_Aisle_Main`, and `PLAN_Aisle_Cross`. Use `spar.add_plan_guide`, with
    `spar_plan_kind` values `zone` or `aisle`. Keep both aisles at least 3 m
    wide and connected to the open south gate and central staging area.
-5. Use `spar.add_site` to create `SITE_Dock` with site value `dock`,
-   `SITE_HuskySpawn` with site value `husky_spawn`, and `SITE_X2Spawn` with
-   site value `x2_spawn`. Use the exact repo-sampled positions and yaws in the
+5. Use `spar.add_site` to create `SITE_Dock` with site value `dock` and
+   `SITE_HuskySpawn` with site value `husky_spawn`. Use the exact repo-sampled
+   positions and yaws in the
    run context unless the instance brief explicitly requests a supported
    placement override. A textual override may be approximate (for example,
    "near the southwest gate") or exact (for example, "spawn the Husky at
    `(3, -6)` facing north"). Keep every pose within the boundary, on clear
-   ground, out of aisles and future geometry, with enough separation and
-   vertical clearance for both robots. The dock is the Husky's return/charging
-   home and may coincide with its initial pose.
+   ground, out of aisles and future geometry, with full Husky footprint
+   clearance. The dock is the Husky's return/charging pose and may coincide
+   with its initial pose.
 6. Create `CAM_Overview` with `spar.ensure_camera` so the full site is useful
    in a 16:9 viewport.
 

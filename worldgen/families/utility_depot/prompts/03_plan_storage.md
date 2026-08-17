@@ -28,7 +28,7 @@ Compose these as a few purposeful groups rather than independent scatter:
 
 Use `spar.add_plan_anchor_row` or `spar.add_plan_anchor_grid` for repeated
 groups. Every anchor is still a separate physical assembly. Keep every full
-footprint inside its zone and keep aisles, the dock, and both spawn sites
+footprint inside its zone and keep aisles, the dock, and the Husky spawn
 clear. Nothing except the inspection target is designated red. Use the
 recorded stage seed for discretionary group arrangement the brief leaves open.
 Every anchor in this stage must use the shared base-origin convention and

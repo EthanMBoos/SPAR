@@ -1,0 +1,9 @@
+navsat_datum: [33.7756, -84.3963, 0.0]
+dock_pose: [-4.0, -14.0, 0.0]
+navigation_goals:
+  - {name: site_navigationgoal_01, x: -1.75, y: 1.15, yaw: -3.1415925}
+  - {name: site_navigationgoal_02, x: -10.0, y: 8.0, yaw: 2.4486454}
+  - {name: site_navigationgoal_03, x: 0.0, y: 8.0, yaw: 0.0}
+  - {name: site_navigationgoal_04, x: 10.0, y: 8.0, yaw: 0.0}
+  - {name: site_navigationgoal_05, x: 0.0, y: 0.0, yaw: -2.4668517}
+  - {name: site_navigationgoal_06, x: 0.0, y: -10.0, yaw: -1.5707964}

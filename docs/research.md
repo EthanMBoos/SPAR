@@ -23,7 +23,7 @@ environment family + seed + brief
                 |
        deterministic export
                 |
- MuJoCo world, assets, and routes
+ MuJoCo world, assets, and Nav2 goals
                 |
              validation
 ```
@@ -81,7 +81,7 @@ variation, and one review-and-repair pass.
 
 The comparison will measure visual preference and critic scores alongside
 generation time, model calls, asset size, MuJoCo performance, deterministic
-validation, and ground and air task completion. Repeated fresh worlds will then
+validation, and Nav2 goal completion. Repeated fresh worlds will then
 measure unattended success and variation across seeds and briefs. Applying the
 same helpers, export path, and review process to a second environment family
 will test whether the method generalizes beyond the depot.

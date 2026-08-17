@@ -33,14 +33,9 @@ from worldgen.georeference import (  # noqa: E402 - Blender script path setup
 )
 
 WORLD_DIR = REPO / "sim" / "worlds"
-GROUND_WORLD_CONFIG_DIR = REPO / "ground" / "src" / "spar_ground" / "config" / "worlds"
-AIR_WORLD_CONFIG_DIR = REPO / "air" / "src" / "spar_air" / "config" / "worlds"
+WORLD_CONFIG_DIR = REPO / "ros" / "src" / "spar" / "config" / "worlds"
 SITES_COLLECTION = "SPAR_SITES"
 CONVERTIBLE_TYPES = {"MESH", "CURVE", "SURFACE", "FONT", "META"}
-AIR_HORIZONTAL_CLEARANCE_M = 0.6
-AIR_VERTICAL_CLEARANCE_M = 0.5
-AIR_MAX_ALTITUDE_M = 10.0
-AIR_DETECTOR_RANGE_M = 12.0
 GROUND_DETECTOR_RANGE_M = 8.0
 GROUND_HEADING_TOLERANCE_RAD = math.radians(25.0)
 GROUND_OBSERVATION_TRAVEL_M = 20.0
@@ -54,7 +49,6 @@ GROUND_FOOTPRINT_TURN_RADIUS_M = math.hypot(
     GROUND_FOOTPRINT_HALF_LENGTH_M, GROUND_FOOTPRINT_HALF_WIDTH_M)
 GROUND_FOOTPRINT_LOW_M = 0.13228
 GROUND_FOOTPRINT_HIGH_M = 0.33228
-ROBOT_SPAWN_SEPARATION_M = 1.5
 SITE_SIZE_M = 40.0
 SITE_SIZE_TOLERANCE_M = 0.01
 
@@ -64,8 +58,8 @@ def arguments():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--world", default="utility_depot_40_v2")
     parser.add_argument(
-        "--world-waypoints", action="store_true",
-        help="export Blender-authored ground and air patrol waypoint files",
+        "--navigation-goals", action="store_true",
+        help="export Blender-authored Nav2 demonstration goals",
     )
     return parser.parse_args(command)
 
@@ -527,25 +521,24 @@ def add_sites(worldbody):
             "role": role,
             "position": list(location),
             "yaw": yaw,
-            "patrol_order": obj.get("spar_patrol_order"),
+            "order": obj.get("spar_order"),
         })
     return exported
 
 
-def ordered_patrol_sites(sites, prefix, label):
-    patrol = [site for site in sites if site["role"].startswith(prefix)]
-    if len(patrol) < 3:
-        raise RuntimeError(
-            f"--world-waypoints needs at least three {prefix}* sites")
-    orders = [site["patrol_order"] for site in patrol]
+def ordered_navigation_sites(sites):
+    goals = [site for site in sites
+             if site["role"].startswith("navigation_goal_")]
+    if len(goals) < 3:
+        raise RuntimeError("--navigation-goals needs at least three goal sites")
+    orders = [site["order"] for site in goals]
     if any(not isinstance(order, int) or isinstance(order, bool) for order in orders):
-        raise RuntimeError(
-            f"every {label} patrol site needs an integer spar_patrol_order")
-    patrol.sort(key=lambda site: site["patrol_order"])
-    orders = [site["patrol_order"] for site in patrol]
+        raise RuntimeError("every navigation goal needs an integer spar_order")
+    goals.sort(key=lambda site: site["order"])
+    orders = [site["order"] for site in goals]
     if len(set(orders)) != len(orders):
-        raise RuntimeError(f"{label} spar_patrol_order values must be unique")
-    return patrol
+        raise RuntimeError("navigation goal spar_order values must be unique")
+    return goals
 
 
 def ros_float(value):
@@ -562,25 +555,30 @@ def one_site(sites, role):
     return matches[0]
 
 
-def ground_route_in_world_frame(sites):
+def navigation_goals_in_world_frame(sites):
     spawn = one_site(sites, "husky_spawn")
-    patrol = ordered_patrol_sites(sites, "patrol_", "ground")
-    route = []
-    for site in patrol:
-        route.append({
-            "name": site["name"],
-            "order": int(site["patrol_order"]),
+    goals = []
+    for site in ordered_navigation_sites(sites):
+        goals.append({
+            "name": safe_name(site["name"]),
+            "order": int(site["order"]),
             "world_position": site["position"],
-            "world_yaw": site["yaw"],
             "x": site["position"][0],
             "y": site["position"][1],
             "yaw": normalize_angle(site["yaw"]),
         })
-    return spawn, route
+    return spawn, goals
 
 
-def validate_ground_route(spawn, route, colliders):
-    for waypoint in route:
+def validate_navigation_goals(spawn, goals, colliders, site_dimensions):
+    half_x = site_dimensions[0] / 2.0
+    half_y = site_dimensions[1] / 2.0
+    for goal in goals:
+        if (
+            abs(goal["x"]) > half_x - GROUND_SPAWN_CLEARANCE_M
+            or abs(goal["y"]) > half_y - GROUND_SPAWN_CLEARANCE_M
+        ):
+            raise RuntimeError(f"{goal['name']} is outside the safe site boundary")
         obstructions = []
         for collider in colliders:
             if (
@@ -591,12 +589,12 @@ def validate_ground_route(spawn, route, colliders):
             ):
                 continue
             dx = max(
-                abs(collider["position"][0] - waypoint["x"])
+                abs(collider["position"][0] - goal["x"])
                 - collider["size"][0],
                 0.0,
             )
             dy = max(
-                abs(collider["position"][1] - waypoint["y"])
+                abs(collider["position"][1] - goal["y"])
                 - collider["size"][1],
                 0.0,
             )
@@ -604,28 +602,28 @@ def validate_ground_route(spawn, route, colliders):
                 obstructions.append(collider["name"])
         if obstructions:
             raise RuntimeError(
-                f"{waypoint['name']} obstructs the Husky turning footprint with "
+                f"{goal['name']} obstructs the Husky turning footprint with "
                 + ", ".join(obstructions)
             )
-
-    anomaly_colliders = [
+    target_colliders = [
         collider for collider in colliders
         if collider.get("source_role") == "anomaly"
         or collider.get("source_type") == "inspection_target"
     ]
-    anomaly_roots = {
-        collider["source_root"] for collider in anomaly_colliders
+    target_roots = {
+        collider["source_root"] for collider in target_colliders
     }
-    if len(anomaly_roots) != 1:
-        raise RuntimeError("the ground route needs exactly one inspection target root")
+    if len(target_roots) != 1:
+        raise RuntimeError(
+            "the navigation goals need exactly one inspection target root")
     low = [
         min(collider["position"][axis] - collider["size"][axis]
-            for collider in anomaly_colliders)
+            for collider in target_colliders)
         for axis in range(3)
     ]
     high = [
         max(collider["position"][axis] + collider["size"][axis]
-            for collider in anomaly_colliders)
+            for collider in target_colliders)
         for axis in range(3)
     ]
     target = [(low[axis] + high[axis]) / 2.0 for axis in range(3)]
@@ -633,98 +631,78 @@ def validate_ground_route(spawn, route, colliders):
     previous = spawn["position"]
     travel = 0.0
     observations = []
-    for waypoint in route:
-        point = waypoint["world_position"]
+    for goal in goals:
+        point = goal["world_position"]
         travel += math.hypot(point[0] - previous[0], point[1] - previous[1])
         previous = point
-        detector_range = math.hypot(target[0] - point[0], target[1] - point[1])
+        detector_range = math.hypot(
+            target[0] - point[0], target[1] - point[1])
         target_yaw = math.atan2(target[1] - point[1], target[0] - point[0])
-        heading_error = abs(normalize_angle(waypoint["world_yaw"] - target_yaw))
+        heading_error = abs(normalize_angle(goal["yaw"] - target_yaw))
         if (
             detector_range <= GROUND_DETECTOR_RANGE_M
             and heading_error <= GROUND_HEADING_TOLERANCE_RAD
         ):
             observations.append({
-                "waypoint": waypoint["name"],
-                "order": waypoint["order"],
+                "goal": goal["name"],
+                "order": goal["order"],
                 "range_m": detector_range,
                 "heading_error_rad": heading_error,
                 "route_travel_m": travel,
             })
     if not observations:
         raise RuntimeError(
-            "the ground route has no waypoint within detector range and camera heading"
-        )
+            "the navigation goals never put the red target in detector range "
+            "and camera heading")
     first = min(observations, key=lambda item: item["route_travel_m"])
     if first["route_travel_m"] > GROUND_OBSERVATION_TRAVEL_M:
         raise RuntimeError(
-            f"the first observable ground anomaly needs {first['route_travel_m']:.3g} m "
-            f"of route travel; limit is {GROUND_OBSERVATION_TRAVEL_M:g} m"
+            "the first observable red target needs "
+            f"{first['route_travel_m']:.3g} m of route travel; limit is "
+            f"{GROUND_OBSERVATION_TRAVEL_M:g} m"
         )
     return {
         "frame": "map_world_enu",
-        "waypoints": route,
+        "goals": goals,
         "first_observation": first,
         "detector_range_limit_m": GROUND_DETECTOR_RANGE_M,
         "heading_tolerance_rad": GROUND_HEADING_TOLERANCE_RAD,
         "observation_travel_limit_m": GROUND_OBSERVATION_TRAVEL_M,
         "line_of_sight_checked_in_blender": True,
-        "waypoint_footprints_clear": True,
+        "goal_footprints_clear": True,
     }
 
 
-def datum_parameters(georeference):
-    return (
-        f"    datum_latitude_deg: {ros_float(georeference['latitude_deg'])}\n"
-        f"    datum_longitude_deg: {ros_float(georeference['longitude_deg'])}\n"
-        f"    datum_altitude_m: {ros_float(georeference['altitude_m'])}\n"
-    )
-
-
-def navsat_datum_parameter(georeference):
-    """robot_localization datum: latitude, longitude, ENU heading."""
-    return (
-        "    datum: ["
-        f"{ros_float(georeference['latitude_deg'])}, "
-        f"{ros_float(georeference['longitude_deg'])}, 0.0]\n"
-    )
-
-
-def write_ground_waypoint_config(
-        world, sites, colliders, georeference, enabled):
-    path = GROUND_WORLD_CONFIG_DIR / f"{world}.yaml"
+def write_navigation_config(
+        world, sites, colliders, site_dimensions, georeference, enabled):
+    path = WORLD_CONFIG_DIR / f"{world}.yaml"
     if not enabled:
         if path.exists():
             path.unlink()
         return None, None
 
-    spawn, route = ground_route_in_world_frame(sites)
+    spawn, goals = navigation_goals_in_world_frame(sites)
     dock = one_site(sites, "dock")
-    metadata = validate_ground_route(spawn, route, colliders)
-
-    values = []
-    for waypoint in route:
-        values.extend((waypoint["x"], waypoint["y"], waypoint["yaw"]))
-
-    # ROS parameter arrays must be homogeneous.  Explicit decimal points keep
-    # whole-number coordinates from being parsed as integers beside yaw floats.
-    formatted = ", ".join(ros_float(value) for value in values)
-    GROUND_WORLD_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        "/**/bt_executive:\n"
-        "  ros__parameters:\n"
-        f"    dock_x: {ros_float(dock['position'][0])}\n"
-        f"    dock_y: {ros_float(dock['position'][1])}\n"
-        f"    dock_yaw: {ros_float(dock['yaw'])}\n"
-        f"    patrol_waypoints: [{formatted}]\n"
-        "/**/battery_sim:\n"
-        "  ros__parameters:\n"
-        f"    dock_x: {ros_float(dock['position'][0])}\n"
-        f"    dock_y: {ros_float(dock['position'][1])}\n"
-        "/**/navsat_transform:\n"
-        "  ros__parameters:\n"
-        f"{navsat_datum_parameter(georeference)}"
-    )
+    metadata = validate_navigation_goals(
+        spawn, goals, colliders, site_dimensions)
+    lines = [
+        "navsat_datum: ["
+        f"{ros_float(georeference['latitude_deg'])}, "
+        f"{ros_float(georeference['longitude_deg'])}, 0.0]",
+        "dock_pose: ["
+        f"{ros_float(dock['position'][0])}, "
+        f"{ros_float(dock['position'][1])}, "
+        f"{ros_float(dock['yaw'])}]",
+        "navigation_goals:",
+    ]
+    for goal in goals:
+        lines.append(
+            "  - {name: " + goal["name"]
+            + f", x: {ros_float(goal['x'])}, y: {ros_float(goal['y'])}, "
+            + f"yaw: {ros_float(goal['yaw'])}}}"
+        )
+    WORLD_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n")
     return str(path.relative_to(REPO)), metadata
 
 
@@ -732,160 +710,26 @@ def normalize_angle(angle):
     return math.atan2(math.sin(angle), math.cos(angle))
 
 
-def air_route_in_world_frame(sites):
-    spawn = one_site(sites, "x2_spawn")
-    patrol = ordered_patrol_sites(sites, "air_patrol_", "air")
-    route = []
-    for site in patrol:
-        route.append({
-            "name": site["name"],
-            "order": int(site["patrol_order"]),
-            "world_position": site["position"],
-            "x": site["position"][0],
-            "y": site["position"][1],
-            "z": site["position"][2],
-            "yaw": normalize_angle(site["yaw"]),
-        })
-    return spawn, route
-
-
-def collider_top(collider):
-    return collider["position"][2] + collider["size"][2]
-
-
-def collider_overlaps_pad(collider, pad_x, pad_y):
-    """Conservatively test a vertical pad column against a world-space AABB."""
-    return (
-        abs(collider["position"][0] - pad_x)
-        < collider["size"][0] + AIR_HORIZONTAL_CLEARANCE_M
-        and abs(collider["position"][1] - pad_y)
-        < collider["size"][1] + AIR_HORIZONTAL_CLEARANCE_M
-    )
-
-
-def validate_spawn_sites(sites, colliders, site_dimensions):
+def validate_ground_sites(sites, colliders, site_dimensions):
     husky = one_site(sites, "husky_spawn")
-    x2 = one_site(sites, "x2_spawn")
     dock = one_site(sites, "dock")
-    half_x = site_dimensions[0] / 2.0
-    half_y = site_dimensions[1] / 2.0
-    for site in (husky, x2, dock):
-        x, y, _ = site["position"]
-        if (
-            abs(x) > half_x - AIR_HORIZONTAL_CLEARANCE_M
-            or abs(y) > half_y - AIR_HORIZONTAL_CLEARANCE_M
-        ):
-            raise RuntimeError(f"{site['role']} is outside the safe site boundary")
-
-    separation = math.hypot(
-        husky["position"][0] - x2["position"][0],
-        husky["position"][1] - x2["position"][1],
-    )
-    if separation < ROBOT_SPAWN_SEPARATION_M:
-        raise RuntimeError("husky_spawn and x2_spawn are too close")
-
     for site in (husky, dock):
         x, y, _ = site["position"]
-        obstructed = any(
+        if (
+            abs(x) > site_dimensions[0] / 2.0 - GROUND_SPAWN_CLEARANCE_M
+            or abs(y) > site_dimensions[1] / 2.0 - GROUND_SPAWN_CLEARANCE_M
+        ):
+            raise RuntimeError(
+                f"{site['role']} is outside the safe site boundary")
+        if any(
             abs(collider["position"][0] - x)
             < collider["size"][0] + GROUND_SPAWN_CLEARANCE_M
             and abs(collider["position"][1] - y)
             < collider["size"][1] + GROUND_SPAWN_CLEARANCE_M
             for collider in colliders
-        )
-        if obstructed:
-            raise RuntimeError(f"{site['role']} ground clearance is obstructed")
-
-    if any(collider_overlaps_pad(
-            collider, x2["position"][0], x2["position"][1])
-           for collider in colliders):
-        raise RuntimeError(
-            "the x2_spawn vertical takeoff and landing corridor is obstructed")
-
-
-def validate_air_route(spawn, route, colliders, site_dimensions):
-    world_safe_altitude = max(
-        (collider_top(collider) for collider in colliders), default=0.0
-    ) + AIR_VERTICAL_CLEARANCE_M
-    half_x = site_dimensions[0] / 2
-    half_y = site_dimensions[1] / 2
-
-    for waypoint in route:
-        world_x, world_y, _ = waypoint["world_position"]
-        if (
-            abs(world_x) > half_x - AIR_HORIZONTAL_CLEARANCE_M
-            or abs(world_y) > half_y - AIR_HORIZONTAL_CLEARANCE_M
         ):
-            raise RuntimeError(f"{waypoint['name']} is outside the air route bounds")
-        if waypoint["z"] < world_safe_altitude:
             raise RuntimeError(
-                f"{waypoint['name']} altitude {waypoint['z']:.3g} m is below "
-                f"the {world_safe_altitude:.3g} m collision-clear flight floor")
-        if waypoint["z"] > AIR_MAX_ALTITUDE_M:
-            raise RuntimeError(
-                f"{waypoint['name']} exceeds the {AIR_MAX_ALTITUDE_M:g} m air ceiling")
-
-    anomaly_colliders = [
-        collider for collider in colliders
-        if collider.get("source_role") == "anomaly"
-        or collider.get("source_type") == "inspection_target"
-    ]
-    anomaly_roots = {
-        collider["source_root"] for collider in anomaly_colliders
-    }
-    if len(anomaly_roots) != 1:
-        raise RuntimeError("the air route needs exactly one inspection target root")
-    closest = min(
-        math.dist(waypoint["world_position"], collider["position"])
-        for waypoint in route
-        for collider in anomaly_colliders
-    )
-    if closest > AIR_DETECTOR_RANGE_M:
-        raise RuntimeError(
-            f"the closest air waypoint is {closest:.3g} m from the anomaly; "
-            f"the detector limit is {AIR_DETECTOR_RANGE_M:g} m")
-    return {
-        "collision_clear_flight_floor_m": world_safe_altitude,
-        "closest_anomaly_range_m": closest,
-        "takeoff_corridor_clear": True,
-    }
-
-
-def write_air_waypoint_config(
-        world, sites, colliders, site_dimensions, georeference, enabled):
-    path = AIR_WORLD_CONFIG_DIR / f"{world}.yaml"
-    if not enabled:
-        if path.exists():
-            path.unlink()
-        return None, None
-
-    spawn, route = air_route_in_world_frame(sites)
-    safety = validate_air_route(spawn, route, colliders, site_dimensions)
-    cruise_altitude = max(waypoint["z"] for waypoint in route)
-    values = []
-    for waypoint in route:
-        values.extend((waypoint["x"], waypoint["y"], waypoint["z"], waypoint["yaw"]))
-    formatted = ", ".join(ros_float(value) for value in values)
-    AIR_WORLD_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        "/**/bt_executive:\n"
-        "  ros__parameters:\n"
-        f"    cruise_alt_m: {ros_float(cruise_altitude)}\n"
-        f"    orbit_alt_m: {ros_float(cruise_altitude)}\n"
-        f"{datum_parameters(georeference)}"
-        f"    home_x: {ros_float(spawn['position'][0])}\n"
-        f"    home_y: {ros_float(spawn['position'][1])}\n"
-        f"    home_z: {ros_float(spawn['position'][2])}\n"
-        f"    patrol_waypoints: [{formatted}]\n"
-        "/**/tf_from_px4:\n"
-        "  ros__parameters:\n"
-        f"{datum_parameters(georeference)}"
-    )
-    return str(path.relative_to(REPO)), {
-        "frame": "map_world_enu",
-        "waypoints": route,
-        **safety,
-    }
+                f"{site['role']} ground clearance is obstructed")
 
 
 def add_overview_camera(worldbody):
@@ -899,45 +743,28 @@ def add_overview_camera(worldbody):
     )
 
 
-def add_robots(asset, worldbody, sites):
-    """Attach pose-neutral robot models at the world-authored spawn sites."""
+def add_robot(asset, worldbody, sites):
+    """Attach the pose-neutral Husky model at its world-authored spawn."""
     ET.SubElement(
         asset, "model", name="husky_model", file="../robots/husky.xml"
     )
-    ET.SubElement(
-        asset, "model", name="x2_model", file="../robots/x2.xml"
+    site = one_site(sites, "husky_spawn")
+    half_yaw = site["yaw"] / 2.0
+    frame = ET.SubElement(
+        worldbody,
+        "frame",
+        pos=" ".join(ros_float(value) for value in site["position"]),
+        quat=f"{ros_float(math.cos(half_yaw))} 0 0 "
+             f"{ros_float(math.sin(half_yaw))}",
     )
-    for role, model, body in (
-        ("husky_spawn", "husky_model", "base_link"),
-        ("x2_spawn", "x2_model", "x2"),
-    ):
-        site = one_site(sites, role)
-        half_yaw = site["yaw"] / 2.0
-        frame = ET.SubElement(
-            worldbody,
-            "frame",
-            pos=" ".join(ros_float(value) for value in site["position"]),
-            quat=f"{ros_float(math.cos(half_yaw))} 0 0 "
-                 f"{ros_float(math.sin(half_yaw))}",
-        )
-        ET.SubElement(frame, "attach", model=model, body=body, prefix="")
+    ET.SubElement(frame, "attach", model="husky_model", body="base_link", prefix="")
 
     dock = one_site(sites, "dock")
     ET.SubElement(
         worldbody, "geom", name="dock_pad", type="box", size="0.9 0.9 0.005",
         pos=(f"{ros_float(dock['position'][0])} "
-             f"{ros_float(dock['position'][1])} "
-             f"{ros_float(dock['position'][2] + 0.005)}"),
+             f"{ros_float(dock['position'][1])} 0.005"),
         contype="0", conaffinity="0", group="1", rgba="0.2 0.4 0.8 1",
-    )
-    x2_spawn = one_site(sites, "x2_spawn")
-    ET.SubElement(
-        worldbody, "geom", name="landing_pad", type="cylinder",
-        size="0.5 0.005",
-        pos=(f"{ros_float(x2_spawn['position'][0])} "
-             f"{ros_float(x2_spawn['position'][1])} "
-             f"{ros_float(x2_spawn['position'][2] + 0.005)}"),
-        contype="0", conaffinity="0", group="1", rgba="0.25 0.3 0.4 1",
     )
 
 
@@ -1013,8 +840,8 @@ def build_mjcf(world, assets_dir, world_path, georeference):
     colliders, collision_meshes, collision_omissions = add_collision_geoms(
         asset, worldbody, assets_dir)
     sites = add_sites(worldbody)
-    validate_spawn_sites(sites, colliders, site_dimensions)
-    add_robots(asset, worldbody, sites)
+    validate_ground_sites(sites, colliders, site_dimensions)
+    add_robot(asset, worldbody, sites)
     ET.indent(root, space="  ")
     ET.ElementTree(root).write(world_path, encoding="unicode", xml_declaration=False)
     return {
@@ -1103,19 +930,15 @@ def main():
     manifest = build_mjcf(args.world, assets_dir, world_path, georeference)
     manifest["source_blend"] = portable_path(source_blend)
     add_generation_provenance(manifest, source_blend, args.world)
-    manifest["waypoint_mode"] = "world" if args.world_waypoints else "none"
-    ground_waypoint_config, ground_route = write_ground_waypoint_config(
+    manifest["navigation_goal_mode"] = (
+        "world" if args.navigation_goals else "none")
+    navigation_config, navigation_goals = write_navigation_config(
         args.world, manifest["sites"], manifest["colliders"],
+        manifest["site_dimensions_m"],
         manifest["georeference"],
-        args.world_waypoints)
-    manifest["ground_waypoint_config"] = ground_waypoint_config
-    manifest["ground_route"] = ground_route
-    air_waypoint_config, air_route = write_air_waypoint_config(
-        args.world, manifest["sites"], manifest["colliders"],
-        manifest["site_dimensions_m"], manifest["georeference"],
-        args.world_waypoints)
-    manifest["air_waypoint_config"] = air_waypoint_config
-    manifest["air_route"] = air_route
+        args.navigation_goals)
+    manifest["navigation_config"] = navigation_config
+    manifest["navigation_goals"] = navigation_goals
     manifest_path = assets_dir / "export_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     remove_stale_generated_assets(assets_dir, manifest)
@@ -1129,19 +952,13 @@ def main():
         print(
             f"[blender-export] {len(manifest['collision_omissions'])} "
             "non-volumetric collision candidates omitted")
-    if manifest["ground_waypoint_config"]:
+    if manifest["navigation_config"]:
         print(
-            f"[blender-export] ground waypoints: "
-            f"{REPO / manifest['ground_waypoint_config']}")
+            f"[blender-export] navigation goals: "
+            f"{REPO / manifest['navigation_config']}")
         print(
-            f"[blender-export] air waypoints: "
-            f"{REPO / manifest['air_waypoint_config']}")
-        print(
-            f"[blender-export] launch: ros2 launch spar_ground "
-            f"autonomy.launch.py world:={args.world}")
-        print(
-            f"[blender-export] launch: ros2 launch spar_air "
-            f"air.launch.py world:={args.world}")
+            f"[blender-export] launch: ros2 launch spar "
+            f"navigation.launch.py world:={args.world}")
 
 
 if __name__ == "__main__":

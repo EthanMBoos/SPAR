@@ -711,7 +711,6 @@
     <mesh name="colmesh_upright_pp_005" file="colmesh_upright_pp_005.obj" />
     <mesh name="colmesh_workbench" file="colmesh_workbench.obj" />
     <model name="husky_model" file="../robots/husky.xml" />
-    <model name="x2_model" file="../robots/x2.xml" />
   </asset>
   <worldbody>
     <light name="sun" directional="true" pos="-4 -6 12" dir="0.25 0.35 -1" diffuse="0.9 0.88 0.82" />
@@ -1393,29 +1392,17 @@
     <geom name="col_auto_upright_pp_004" type="mesh" mesh="colmesh_upright_pp_004" class="spar_world_collision" />
     <geom name="col_auto_upright_pp_005" type="mesh" mesh="colmesh_upright_pp_005" class="spar_world_collision" />
     <geom name="col_auto_workbench" type="mesh" mesh="colmesh_workbench" class="spar_world_collision" />
-    <site name="site_airpatrol_01" pos="-3.6936102 0.49105802 4.1999998" quat="0.84893638 0 0 0.52849507" class="spar_world_site" />
-    <site name="site_airpatrol_02" pos="0 8 4.1999998" quat="0.70710683 -0 -0 -0.70710683" class="spar_world_site" />
-    <site name="site_airpatrol_03" pos="0 0 4.1999998" quat="0.098537579 0 0 0.99513334" class="spar_world_site" />
-    <site name="site_airpatrol_04" pos="-10 2 4.1999998" quat="0.95876056 0 0 0.28421509" class="spar_world_site" />
-    <site name="site_airpatrol_05" pos="10 15 4.1999998" quat="4.3711388e-08 -0 -0 -1" class="spar_world_site" />
-    <site name="site_airpatrol_06" pos="-10 15 4.1999998" quat="0.85065079 0 0 -0.52573115" class="spar_world_site" />
-    <site name="site_airpatrol_07" pos="-2 -1 4.1999998" quat="0.85065079 0 0 -0.52573115" class="spar_world_site" />
     <site name="site_dock" pos="-4 -14 0" quat="1 0 0 0" class="spar_world_site" />
     <site name="site_huskyspawn" pos="0 0 0" quat="1 0 0 0" class="spar_world_site" />
-    <site name="site_patrol_01" pos="-1.75 1.15 0.050000001" quat="4.3711388e-08 -0 -0 -1" class="spar_world_site" />
-    <site name="site_patrol_02" pos="-10 8 0.050000001" quat="0.33958313 0 0 0.94057608" class="spar_world_site" />
-    <site name="site_patrol_03" pos="0 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
-    <site name="site_patrol_04" pos="10 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
-    <site name="site_patrol_05" pos="0 0 0.050000001" quat="0.33100697 -0 -0 -0.94362831" class="spar_world_site" />
-    <site name="site_patrol_06" pos="0 -10 0.050000001" quat="0.70710683 -0 -0 -0.70710683" class="spar_world_site" />
-    <site name="site_x2spawn" pos="-2 -1 0" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_navigationgoal_01" pos="-1.75 1.15 0.050000001" quat="4.3711388e-08 -0 -0 -1" class="spar_world_site" />
+    <site name="site_navigationgoal_02" pos="-10 8 0.050000001" quat="0.33958313 0 0 0.94057608" class="spar_world_site" />
+    <site name="site_navigationgoal_03" pos="0 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_navigationgoal_04" pos="10 8 0.050000001" quat="1 0 0 0" class="spar_world_site" />
+    <site name="site_navigationgoal_05" pos="0 0 0.050000001" quat="0.33100697 -0 -0 -0.94362831" class="spar_world_site" />
+    <site name="site_navigationgoal_06" pos="0 -10 0.050000001" quat="0.70710683 -0 -0 -0.70710683" class="spar_world_site" />
     <frame pos="0.0 0.0 0.0" quat="1.0 0 0 0.0">
       <attach model="husky_model" body="base_link" prefix="" />
     </frame>
-    <frame pos="-2.0 -1.0 0.0" quat="1.0 0 0 0.0">
-      <attach model="x2_model" body="x2" prefix="" />
-    </frame>
-    <geom name="dock_pad" type="box" size="0.9 0.9 0.005" pos="-4.0 -14.0 0.005" contype="0" conaffinity="0" group="1" rgba="0.2 0.4 0.8 1" />
-    <geom name="landing_pad" type="cylinder" size="0.5 0.005" pos="-2.0 -1.0 0.005" contype="0" conaffinity="0" group="1" rgba="0.25 0.3 0.4 1" />
+    <geom name="dock_pad" type="box" size="0.9 0.9 0.005" pos="-4 -14 0.005" contype="0" conaffinity="0" group="1" rgba="0.2 0.4 0.8 1" />
   </worldbody>
 </mujoco>

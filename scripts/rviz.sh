@@ -5,7 +5,7 @@
 # this in the foreground; Ctrl-C tears everything down via the trap below.
 #
 # The -r /tf remaps follow $NS (default /husky, set in env.sh, matching
-# autonomy.launch.py); TF is published on the namespaced topic even though
+# navigation.launch.py); TF is published on the namespaced topic even though
 # frame_ids themselves aren't prefixed.
 set -e
 
@@ -39,7 +39,7 @@ if ! $xvnc_up; then
 fi
 
 source /ws/scripts/env.sh
-rviz2 -d /ws/src/spar_ground/rviz/spar.rviz \
+rviz2 -d /ws/src/spar/rviz/spar.rviz \
   --ros-args -p use_sim_time:=true \
   -r /tf:="$NS/tf" -r /tf_static:="$NS/tf_static" \
   >/ws/logs/rviz2.log 2>&1 &

@@ -82,7 +82,7 @@ def export_and_validate(world: str) -> None:
         "--",
         "--world",
         world,
-        "--world-waypoints",
+        "--navigation-goals",
     ]
     print("worldgen: exporting Blender scene to MJCF", flush=True)
     subprocess.run(export_command, cwd=REPO, check=True)

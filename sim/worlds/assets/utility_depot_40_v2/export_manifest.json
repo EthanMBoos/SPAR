@@ -3132,7 +3132,7 @@
       "name": "ASM_inspection_target_bung_a",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.525199890136719,
         1.149999976158142,
@@ -3149,7 +3149,7 @@
       "name": "ASM_inspection_target_bung_b",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.759200096130371,
         1.2279999256134033,
@@ -3166,7 +3166,7 @@
       "name": "ASM_inspection_target_rib_0",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -3183,7 +3183,7 @@
       "name": "ASM_inspection_target_rib_1",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -3200,7 +3200,7 @@
       "name": "ASM_inspection_target_rib_2",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -6668,7 +6668,7 @@
       "name": "body.018",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -10391,7 +10391,7 @@
       "name": "ring_lower.015",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -10663,7 +10663,7 @@
       "name": "ring_top.015",
       "source_root": "ASM_inspection_target",
       "source_type": "inspection_target",
-      "source_role": "anomaly",
+      "source_role": null,
       "position": [
         -8.649999618530273,
         1.149999976158142,
@@ -12455,83 +12455,6 @@
   "collision_omissions": [],
   "sites": [
     {
-      "name": "SITE_AirPatrol_01",
-      "role": "air_patrol_01",
-      "position": [
-        -3.693610191345215,
-        0.49105802178382874,
-        4.199999809265137
-      ],
-      "yaw": 1.1136537790298462,
-      "patrol_order": 0
-    },
-    {
-      "name": "SITE_AirPatrol_02",
-      "role": "air_patrol_02",
-      "position": [
-        0.0,
-        8.0,
-        4.199999809265137
-      ],
-      "yaw": -1.5707963705062866,
-      "patrol_order": 1
-    },
-    {
-      "name": "SITE_AirPatrol_03",
-      "role": "air_patrol_03",
-      "position": [
-        0.0,
-        0.0,
-        4.199999809265137
-      ],
-      "yaw": 2.944197177886963,
-      "patrol_order": 2
-    },
-    {
-      "name": "SITE_AirPatrol_04",
-      "role": "air_patrol_04",
-      "position": [
-        -10.0,
-        2.0,
-        4.199999809265137
-      ],
-      "yaw": 0.5763752460479736,
-      "patrol_order": 3
-    },
-    {
-      "name": "SITE_AirPatrol_05",
-      "role": "air_patrol_05",
-      "position": [
-        10.0,
-        15.0,
-        4.199999809265137
-      ],
-      "yaw": -3.141592502593994,
-      "patrol_order": 4
-    },
-    {
-      "name": "SITE_AirPatrol_06",
-      "role": "air_patrol_06",
-      "position": [
-        -10.0,
-        15.0,
-        4.199999809265137
-      ],
-      "yaw": -1.1071487665176392,
-      "patrol_order": 5
-    },
-    {
-      "name": "SITE_AirPatrol_07",
-      "role": "air_patrol_07",
-      "position": [
-        -2.0,
-        -1.0,
-        4.199999809265137
-      ],
-      "yaw": -1.1071487665176392,
-      "patrol_order": 6
-    },
-    {
       "name": "SITE_Dock",
       "role": "dock",
       "position": [
@@ -12540,7 +12463,7 @@
         0.0
       ],
       "yaw": 0.0,
-      "patrol_order": null
+      "order": null
     },
     {
       "name": "SITE_HuskySpawn",
@@ -12551,174 +12474,157 @@
         0.0
       ],
       "yaw": 0.0,
-      "patrol_order": null
+      "order": null
     },
     {
-      "name": "SITE_Patrol_01",
-      "role": "patrol_01",
+      "name": "SITE_NavigationGoal_01",
+      "role": "navigation_goal_01",
       "position": [
         -1.75,
         1.149999976158142,
         0.05000000074505806
       ],
       "yaw": -3.141592502593994,
-      "patrol_order": 0
+      "order": 0
     },
     {
-      "name": "SITE_Patrol_02",
-      "role": "patrol_02",
+      "name": "SITE_NavigationGoal_02",
+      "role": "navigation_goal_02",
       "position": [
         -10.0,
         8.0,
         0.05000000074505806
       ],
       "yaw": 2.4486453533172607,
-      "patrol_order": 1
+      "order": 1
     },
     {
-      "name": "SITE_Patrol_03",
-      "role": "patrol_03",
+      "name": "SITE_NavigationGoal_03",
+      "role": "navigation_goal_03",
       "position": [
         0.0,
         8.0,
         0.05000000074505806
       ],
       "yaw": 0.0,
-      "patrol_order": 2
+      "order": 2
     },
     {
-      "name": "SITE_Patrol_04",
-      "role": "patrol_04",
+      "name": "SITE_NavigationGoal_04",
+      "role": "navigation_goal_04",
       "position": [
         10.0,
         8.0,
         0.05000000074505806
       ],
       "yaw": 0.0,
-      "patrol_order": 3
+      "order": 3
     },
     {
-      "name": "SITE_Patrol_05",
-      "role": "patrol_05",
+      "name": "SITE_NavigationGoal_05",
+      "role": "navigation_goal_05",
       "position": [
         0.0,
         0.0,
         0.05000000074505806
       ],
       "yaw": -2.4668517112731934,
-      "patrol_order": 4
+      "order": 4
     },
     {
-      "name": "SITE_Patrol_06",
-      "role": "patrol_06",
+      "name": "SITE_NavigationGoal_06",
+      "role": "navigation_goal_06",
       "position": [
         0.0,
         -10.0,
         0.05000000074505806
       ],
       "yaw": -1.5707963705062866,
-      "patrol_order": 5
-    },
-    {
-      "name": "SITE_X2Spawn",
-      "role": "x2_spawn",
-      "position": [
-        -2.0,
-        -1.0,
-        0.0
-      ],
-      "yaw": 0.0,
-      "patrol_order": null
+      "order": 5
     }
   ],
   "visual_triangles": 24264,
   "source_blend": "artifacts/worldgen/utility_depot_40_v2/waypoints.blend",
-  "waypoint_mode": "world",
-  "ground_waypoint_config": "ground/src/spar_ground/config/worlds/utility_depot_40_v2.yaml",
-  "ground_route": {
+  "navigation_goal_mode": "world",
+  "navigation_config": "ros/src/spar/config/worlds/utility_depot_40_v2.yaml",
+  "navigation_goals": {
     "frame": "map_world_enu",
-    "waypoints": [
+    "goals": [
       {
-        "name": "SITE_Patrol_01",
+        "name": "site_navigationgoal_01",
         "order": 0,
         "world_position": [
           -1.75,
           1.149999976158142,
           0.05000000074505806
         ],
-        "world_yaw": -3.141592502593994,
         "x": -1.75,
         "y": 1.149999976158142,
         "yaw": -3.141592502593994
       },
       {
-        "name": "SITE_Patrol_02",
+        "name": "site_navigationgoal_02",
         "order": 1,
         "world_position": [
           -10.0,
           8.0,
           0.05000000074505806
         ],
-        "world_yaw": 2.4486453533172607,
         "x": -10.0,
         "y": 8.0,
         "yaw": 2.4486453533172607
       },
       {
-        "name": "SITE_Patrol_03",
+        "name": "site_navigationgoal_03",
         "order": 2,
         "world_position": [
           0.0,
           8.0,
           0.05000000074505806
         ],
-        "world_yaw": 0.0,
         "x": 0.0,
         "y": 8.0,
         "yaw": 0.0
       },
       {
-        "name": "SITE_Patrol_04",
+        "name": "site_navigationgoal_04",
         "order": 3,
         "world_position": [
           10.0,
           8.0,
           0.05000000074505806
         ],
-        "world_yaw": 0.0,
         "x": 10.0,
         "y": 8.0,
         "yaw": 0.0
       },
       {
-        "name": "SITE_Patrol_05",
+        "name": "site_navigationgoal_05",
         "order": 4,
         "world_position": [
           0.0,
           0.0,
           0.05000000074505806
         ],
-        "world_yaw": -2.4668517112731934,
         "x": 0.0,
         "y": 0.0,
         "yaw": -2.4668517112731934
       },
       {
-        "name": "SITE_Patrol_06",
+        "name": "site_navigationgoal_06",
         "order": 5,
         "world_position": [
           0.0,
           -10.0,
           0.05000000074505806
         ],
-        "world_yaw": -1.5707963705062866,
         "x": 0.0,
         "y": -10.0,
         "yaw": -1.5707963705062866
       }
     ],
     "first_observation": {
-      "waypoint": "SITE_Patrol_01",
+      "goal": "site_navigationgoal_01",
       "order": 0,
       "range_m": 6.899999618530273,
       "heading_error_rad": 1.5099579922030233e-07,
@@ -12728,106 +12634,6 @@
     "heading_tolerance_rad": 0.4363323129985824,
     "observation_travel_limit_m": 20.0,
     "line_of_sight_checked_in_blender": true,
-    "waypoint_footprints_clear": true
-  },
-  "air_waypoint_config": "air/src/spar_air/config/worlds/utility_depot_40_v2.yaml",
-  "air_route": {
-    "frame": "map_world_enu",
-    "waypoints": [
-      {
-        "name": "SITE_AirPatrol_01",
-        "order": 0,
-        "world_position": [
-          -3.693610191345215,
-          0.49105802178382874,
-          4.199999809265137
-        ],
-        "x": -3.693610191345215,
-        "y": 0.49105802178382874,
-        "z": 4.199999809265137,
-        "yaw": 1.1136537790298462
-      },
-      {
-        "name": "SITE_AirPatrol_02",
-        "order": 1,
-        "world_position": [
-          0.0,
-          8.0,
-          4.199999809265137
-        ],
-        "x": 0.0,
-        "y": 8.0,
-        "z": 4.199999809265137,
-        "yaw": -1.5707963705062866
-      },
-      {
-        "name": "SITE_AirPatrol_03",
-        "order": 2,
-        "world_position": [
-          0.0,
-          0.0,
-          4.199999809265137
-        ],
-        "x": 0.0,
-        "y": 0.0,
-        "z": 4.199999809265137,
-        "yaw": 2.944197177886963
-      },
-      {
-        "name": "SITE_AirPatrol_04",
-        "order": 3,
-        "world_position": [
-          -10.0,
-          2.0,
-          4.199999809265137
-        ],
-        "x": -10.0,
-        "y": 2.0,
-        "z": 4.199999809265137,
-        "yaw": 0.5763752460479736
-      },
-      {
-        "name": "SITE_AirPatrol_05",
-        "order": 4,
-        "world_position": [
-          10.0,
-          15.0,
-          4.199999809265137
-        ],
-        "x": 10.0,
-        "y": 15.0,
-        "z": 4.199999809265137,
-        "yaw": -3.141592502593994
-      },
-      {
-        "name": "SITE_AirPatrol_06",
-        "order": 5,
-        "world_position": [
-          -10.0,
-          15.0,
-          4.199999809265137
-        ],
-        "x": -10.0,
-        "y": 15.0,
-        "z": 4.199999809265137,
-        "yaw": -1.1071487665176392
-      },
-      {
-        "name": "SITE_AirPatrol_07",
-        "order": 6,
-        "world_position": [
-          -2.0,
-          -1.0,
-          4.199999809265137
-        ],
-        "x": -2.0,
-        "y": -1.0,
-        "z": 4.199999809265137,
-        "yaw": -1.1071487665176392
-      }
-    ],
-    "collision_clear_flight_floor_m": 3.5,
-    "closest_anomaly_range_m": 3.599953816494263,
-    "takeoff_corridor_clear": true
+    "goal_footprints_clear": true
   }
 }

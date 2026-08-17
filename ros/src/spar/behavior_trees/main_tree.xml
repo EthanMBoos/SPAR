@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- Reactive composites re-check mission, battery, and perception priorities
+     every tick. Tunables live in config/mission.yaml, not in this topology. -->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <ReactiveFallback name="root">
+      <ReactiveSequence name="mission_gate">
+        <MissionActive/>
+        <ReactiveFallback name="on_mission">
+          <ReactiveSequence name="battery_concern">
+            <BatteryLow/>
+            <ReactiveFallback name="get_safe">
+              <ReturnToDock/>
+              <HoldPosition/>
+            </ReactiveFallback>
+          </ReactiveSequence>
+          <ReactiveSequence name="inspect">
+            <BarrelSeen/>
+            <Inspect/>
+          </ReactiveSequence>
+          <Rounds/>
+          <HoldPosition/>
+        </ReactiveFallback>
+      </ReactiveSequence>
+      <Idle/>
+    </ReactiveFallback>
+  </BehaviorTree>
+</root>

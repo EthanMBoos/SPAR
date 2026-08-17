@@ -389,7 +389,7 @@ def add_site(
     )
     obj["spar_site"] = site
     if order is not None:
-        obj["spar_patrol_order"] = int(order)
+        obj["spar_order"] = int(order)
     return obj
 
 
