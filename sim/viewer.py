@@ -22,7 +22,7 @@ import sys
 import mujoco
 import mujoco.viewer
 
-MAGIC = b"SPAR"
+MAGIC = b"WFL1"
 
 
 def read_exact(sock, n):

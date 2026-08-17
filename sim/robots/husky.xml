@@ -1,6 +1,6 @@
 <!-- Clearpath Husky A200 visual and sensor model.
 
-     Ground motion is intentionally kinematic: spar_sim advances base_link
+     Ground motion is intentionally kinematic: worldfile_sim advances base_link
      directly from Nav2's cmd_vel and rotates all four visible wheel joints
      consistently. This model does not claim to validate motors, tire contact,
      traction, or skid-steer dynamics. The ROS sensor, localization,
@@ -10,7 +10,7 @@
      A200 description. The vendored BSD-3-Clause meshes preserve the real
      four-wheel appearance while all Husky geoms remain non-contact visuals.
 
-     Robot-owned contracts consumed by spar_sim:
+     Robot-owned contracts consumed by worldfile_sim:
        - a custom text entry names the navigation lidar site;
        - the named RGB-D camera and camera link feed ground perception;
        - four named wheel joints expose synthetic encoder measurements;
@@ -56,7 +56,7 @@
             contype="1" conaffinity="1" group="5" rgba="0 0 0 0"/>
 
       <!-- Simple bumper bars preserve the visual envelope without importing
-           an attachment configuration SPAR does not use. -->
+           an attachment configuration Worldfile does not use. -->
       <geom name="bumper_front" type="capsule" size="0.018"
             fromto="0.49 -0.31 0.10 0.49 0.31 0.10"
             material="husky_dark" contype="0" conaffinity="0" group="1"/>
@@ -64,7 +64,7 @@
             fromto="-0.49 -0.31 0.10 -0.49 0.31 0.10"
             material="husky_dark" contype="0" conaffinity="0" group="1"/>
 
-      <!-- Existing SPAR payloads retained on the faithful A200 base. -->
+      <!-- Existing Worldfile payloads retained on the faithful A200 base. -->
       <geom name="lidar_puck" type="cylinder" size="0.05 0.035"
             pos="0.30 0 0.33" mass="0.5" rgba="0.2 0.2 0.25 1"
             contype="0" conaffinity="0" group="1"/>

@@ -7,7 +7,7 @@
   <compiler angle="radian"/>
 
   <custom>
-    <numeric name="spar.world_georeference" data="33.7756 -84.3963 300"/>
+    <numeric name="worldfile.world_georeference" data="33.7756 -84.3963 300"/>
   </custom>
 
   <!-- The timestep is authoritative here (500 Hz). Training and deployment

@@ -8,7 +8,7 @@ import unittest
 import mujoco
 import numpy as np
 
-from spar_sim.husky import (
+from worldfile_sim.husky import (
     ENCODER_TICKS_PER_M,
     KinematicDrive,
     MAX_ANGULAR_RAD_S,
@@ -21,7 +21,7 @@ from spar_sim.husky import (
     wheel_speeds,
     yaw_from_quaternion,
 )
-from spar_sim.raycast import NavigationRayFan, cast_world_collision_rays
+from worldfile_sim.raycast import NavigationRayFan, cast_world_collision_rays
 
 
 class HuskyModelTest(unittest.TestCase):

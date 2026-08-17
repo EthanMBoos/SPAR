@@ -18,13 +18,13 @@ source /opt/ros/jazzy/setup.bash
 # ROS_LOG_DIR is set once per container start, in a profile.d script so it
 # reaches every later `docker exec ... bash -lc` shell (make shell, make
 # dev, the verify skill's automated bring-up). That's what lets
-# a plain `ros2 launch spar navigation.launch.py`
+# a plain `ros2 launch worldfile_demo navigation.launch.py`
 # log correctly with no wrapper script: ros2 launch already respects
 # ROS_LOG_DIR on its own (launch/logging.py), it just needs a value.
 if [ -d /ws/logs ]; then
   ROS_LOG_DIR="$(/ws/scripts/claim_run_dir.sh)"
   printf 'started=%s\n' "$(date -Is)" > "$ROS_LOG_DIR/session-info"
-  echo "export ROS_LOG_DIR=$ROS_LOG_DIR" > /etc/profile.d/spar_ros_log_dir.sh
+  echo "export ROS_LOG_DIR=$ROS_LOG_DIR" > /etc/profile.d/worldfile_ros_log_dir.sh
   echo "[entrypoint] logging to logs/$(basename "$ROS_LOG_DIR")"
 fi
 

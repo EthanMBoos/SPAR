@@ -3,5 +3,5 @@
 !docker/**
 !ros/
 !ros/src/
-!ros/src/spar/
-!ros/src/spar/package.xml
+!ros/src/worldfile_demo/
+!ros/src/worldfile_demo/package.xml

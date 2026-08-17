@@ -6,7 +6,7 @@ import unittest
 
 import mujoco
 
-from spar_sim.georeference import Georeference, from_mjcf
+from worldfile_sim.georeference import Georeference, from_mjcf
 
 
 class GeoreferenceTest(unittest.TestCase):

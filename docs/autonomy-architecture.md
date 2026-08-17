@@ -1,8 +1,8 @@
 # Ground autonomy architecture
 
-SPAR keeps the complete ground mission layer in the single `spar` package.
-The behavior tree decides what the Husky should do; every movement is still a
-standard Nav2 `NavigateToPose` action.
+The Worldfile validation demo keeps its complete ground mission layer in the
+single `worldfile_demo` package. The behavior tree decides what the Husky
+should do; every movement is still a standard Nav2 `NavigateToPose` action.
 
 ```text
 mission/command ───────────────> MissionActive
@@ -40,5 +40,5 @@ MuJoCo coordinates, generated goals, the dock, detections, and ROS `map`
 coordinates describe the same space.
 
 The mission tree, leaves, detector, battery simulator, localization, and launch
-files all live in `ros/src/spar`. There are no air/PX4 packages, separate
-perception package, or cross-robot common layer.
+files all live in `ros/src/worldfile_demo`. There are no air/PX4 packages,
+separate perception package, or cross-robot common layer.

@@ -30,11 +30,11 @@ docker version
 docker compose version
 ```
 
-### Install SPAR host tools
+### Install Worldfile host tools
 
 ```bash
-git clone https://github.com/EthanMBoos/SPAR.git
-cd SPAR
+git clone https://github.com/EthanMBoos/Worldfile.git
+cd Worldfile
 uv python install
 uv sync --managed-python
 uv run python -c 'import mujoco, yaml; print(mujoco.__version__)'
@@ -63,20 +63,20 @@ downloaded assets.
 
 ### Configure Claude Code
 
-`worldgen/mcp.json` configures BlenderMCP for Claude Code. The worldgen runner
+`worldfile/mcp.json` configures BlenderMCP for Claude Code. The Worldfile runner
 passes that file explicitly, starts Blender's listener automatically, and
 drives each authoring stage in a fresh model-pinned Claude process. Verify that
 the installed family bank is available:
 
 ```bash
-uv run python -m worldgen.stage --list
+uv run python -m worldfile.stage --list
 ```
 
 The runner explicitly selects Sonnet at medium effort, overriding a user-level
 default such as Opus or high effort. It starts one non-interactive Claude
 session per bounded prompt. The MCP config disables telemetry and uses the
 local Blender server on port 9876. Continue with the one-command flow in the
-[top-level README](../README.md), or use [worldgen/README.md](../worldgen/README.md)
+[top-level README](../README.md), or use [worldfile/README.md](../worldfile/README.md)
 for manual family qualification and debugging.
 
 ### Configure Claude Desktop
@@ -107,8 +107,8 @@ the command with the output of `which uvx`:
 }
 ```
 
-Python 3.11 is only for BlenderMCP's isolated server environment. SPAR's host
-tools use the Python 3.14 `.venv` created above.
+Python 3.11 is only for BlenderMCP's isolated server environment. Worldfile's
+host tools use the Python 3.14 `.venv` created above.
 
 Quit Claude with **Cmd-Q**, reopen it with `open -a Claude`, then click
 **Connect to MCP server** in Blender.
@@ -135,7 +135,7 @@ sudo snap install blender --classic
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Log out and back in after changing the Docker group. Then clone SPAR and run
+Log out and back in after changing the Docker group. Then clone Worldfile and run
 the same `uv python install` and `uv sync --managed-python` commands used on
 macOS. Download and install the same BlenderMCP add-on, and configure the MCP
 client with the absolute path from `which uvx`.

@@ -6,8 +6,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: spar:jazzy
-    container_name: spar-core
+    image: worldfile:jazzy
+    container_name: worldfile-core
     command: /ws/scripts/core.sh
     # No logs mount on purpose: the entrypoint only claims a logs/runNNN
     # dir when /ws/logs exists, and core has nothing worth a run dir.
@@ -27,8 +27,8 @@ services:
   # launches automatically — the sim process itself is started explicitly
   # by `make sim` (and stopped by `make stop_sim`).
   sim:
-    image: spar:jazzy
-    container_name: spar-sim
+    image: worldfile:jazzy
+    container_name: worldfile-sim
     command: sleep infinity
     network_mode: "service:core"
     depends_on: [core]
@@ -42,8 +42,8 @@ services:
     tty: true
 
   robot:
-    image: spar:jazzy
-    container_name: spar
+    image: worldfile:jazzy
+    container_name: worldfile
     # Nothing launches automatically, see docker/entrypoint.sh. The
     # container just needs a long-lived foreground process to stay up for
     # `make dev`/`make shell` to exec into; sleep infinity is that process.
@@ -58,7 +58,7 @@ services:
     # build/ + install/ are written by colcon in the container, run by hand
     # (see README); logs/ gets one runNNN per launch.
     volumes:
-      - ../ros/src/spar:/ws/src/spar
+      - ../ros/src/worldfile_demo:/ws/src/worldfile_demo
       - ../scripts:/ws/scripts
       - ../ros/build:/ws/build
       - ../ros/install:/ws/install

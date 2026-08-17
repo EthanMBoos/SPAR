@@ -27,7 +27,7 @@ ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 ENV ZENOH_ROUTER_CHECK_ATTEMPTS=10
 
 # The simulator lives in here too: the sim service (compose.yaml) runs
-# sim/spar_sim on this image, headless. MUJOCO_GL=egl renders on the CPU
+# sim/worldfile_sim on this image, headless. MUJOCO_GL=egl renders on the CPU
 # through Mesa's surfaceless EGL path (llvmpipe) -- no GPU in Docker on
 # macOS, and none needed for the Husky's 320x240 camera. The version is pinned to
 # match the host venv (the viewer loads the same MJCF; version skew is the
@@ -42,7 +42,7 @@ WORKDIR /ws
 # rosdep to install dependencies. The actual colcon build is run by hand,
 # in the container, and lands in ./build on the host (see README), so code
 # edits need an incremental rebuild, never an image rebuild.
-COPY ros/src/spar/package.xml src/spar/
+COPY ros/src/worldfile_demo/package.xml src/worldfile_demo/
 RUN . /opt/ros/jazzy/setup.sh \
  && apt-get update && rosdep update --rosdistro jazzy \
  && rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \

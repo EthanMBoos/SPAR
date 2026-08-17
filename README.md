@@ -1,28 +1,36 @@
-# SPAR
+# Worldfile
 
-SPAR generates outdoor robotics worlds in Blender, exports them to MuJoCo,
-and drives one Clearpath Husky through those worlds with ROS 2 localization,
-Nav2, and focused RGB-D perception. The repository is deliberately
-ground-only: MuJoCo supplies lidar, GPS, IMU, wheel encoders, an RGB-D camera,
-and collision behavior. A compact ground behavior tree owns the mission-level
-policy while Nav2 owns planning and motion to standard `NavigateToPose` goals.
+Worldfile compiles LLM-authored 3D environments into physics-ready MuJoCo
+worlds. An environment family, seed, and short brief drive bounded Blender
+authoring stages. Deterministic code then owns coordinates, physical metadata,
+collision geometry, semantic sites, export, and validation.
+
+The Blender scene is an authoring artifact. The result is MJCF and its
+referenced assets, ready to use without Blender. Worldfile does not introduce a
+new simulation format or simulation platform. See
+[docs/research.md](docs/research.md) for the research direction.
+
+The current utility-depot family is validated with a Clearpath Husky, ROS 2
+localization, Nav2, RGB-D perception, and a mission behavior tree. That ground
+stack tests whether a generated world supports a complete robot task; it is not
+the boundary of the world format or compiler.
 
 ## Architecture
 
 ```text
-family + seed + brief
-        |
-bounded BlenderMCP stages
-        |
-MJCF, meshes, Husky spawn, Nav2 demo goals
-        |
-MuJoCo sensors -> localization ----------------------+
-       RGB-D -> red-barrel detector -> map point     |
-       battery simulation ---------------------------+-> ground mission BT
-generated goals + dock ------------------------------+          |
-                                                               Nav2
-                                                                |
-                                                            cmd_vel
+environment family + seed + brief
+                |
+       bounded LLM authoring
+                |
+          Blender scene
+                |
+       deterministic compiler
+                |
+ MJCF + assets + robot and task sites
+                |
+             validation
+                |
+ MuJoCo + ROS mission smoke test
 ```
 
 Generated worlds share one `map` frame with MuJoCo's ENU coordinates. Each
@@ -55,7 +63,7 @@ Then launch ROS from the container shell. The simulator must be running first
 because it owns `/clock`:
 
 ```bash
-ros2 launch spar navigation.launch.py world:=utility_depot_40_v2
+ros2 launch worldfile_demo navigation.launch.py world:=utility_depot_40_v2
 ```
 
 Useful commands:
@@ -97,19 +105,19 @@ make worldgen WORLD=utility_depot_40_v3 SEED=42 \
 
 The final authoring stage creates the Husky navigation-goal sites. Export
 writes the MJCF and assets under `sim/worlds/` and the matching datum, dock,
-and goals under `ros/src/spar/config/worlds/`. See
-[worldgen/README.md](worldgen/README.md) for staged operation and validation.
+and goals under `ros/src/worldfile_demo/config/worlds/`. See
+[worldfile/README.md](worldfile/README.md) for staged operation and validation.
 
 ## Repository layout
 
 ```text
-ros/src/spar       localization, Nav2, perception, mission BT, battery, RViz
-sim/spar_sim       MuJoCo loop and Husky sensor publishers
-sim/robots         Husky MJCF
-sim/worlds         blank and generated worlds
-worldgen           Blender authoring, export, and validation
-docker             one ROS/MuJoCo development image and Compose topology
-scripts            environment, goal, smoke, and visualization helpers
+worldfile               Blender authoring, compilation, and validation
+ros/src/worldfile_demo  localization, Nav2, perception, mission BT, battery, RViz
+sim/worldfile_sim       MuJoCo loop and Husky sensor publishers
+sim/robots              Husky MJCF
+sim/worlds              blank and generated worlds
+docker                  ROS/MuJoCo development image and Compose topology
+scripts                 environment, goal, smoke, and visualization helpers
 ```
 
 The simulator uses a kinematic Husky base. It validates sensing,

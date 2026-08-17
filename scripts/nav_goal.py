@@ -17,7 +17,7 @@ import yaml
 
 class GoalClient(Node):
     def __init__(self):
-        super().__init__("spar_nav_goal", namespace="husky")
+        super().__init__("worldfile_demo_nav_goal", namespace="husky")
         self.positions = []
         self.create_subscription(
             Odometry, "platform/odom", self._on_odom, 10)
@@ -36,7 +36,7 @@ def arguments():
 
 
 def load_goal(world, index):
-    path = Path("/ws/src/spar/config/worlds") / f"{world}.yaml"
+    path = Path("/ws/src/worldfile_demo/config/worlds") / f"{world}.yaml"
     if not path.is_file():
         raise RuntimeError(f"world navigation config does not exist: {path}")
     document = yaml.safe_load(path.read_text())

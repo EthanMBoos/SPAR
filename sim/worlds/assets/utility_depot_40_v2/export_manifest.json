@@ -12040,413 +12040,413 @@
   "collision_opt_outs": [
     {
       "name": "ASM_Fence_East_mesh",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_East",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "ASM_Fence_North_mesh",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_North",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "ASM_Fence_South_After_mesh",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_South_After",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "ASM_Fence_South_Before_mesh",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_South_Before",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "ASM_Fence_West_mesh",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_West",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "ASM_Gate_South_brace",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Gate_South",
       "source_type": "gate",
       "source_role": null
     },
     {
       "name": "ASM_cone_01_band",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_cone_01",
       "source_type": "cone",
       "source_role": null
     },
     {
       "name": "ASM_cone_02_band",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_cone_02",
       "source_type": "cone",
       "source_role": null
     },
     {
       "name": "ASM_cone_03_band",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_cone_03",
       "source_type": "cone",
       "source_role": null
     },
     {
       "name": "ASM_cone_04_band",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_cone_04",
       "source_type": "cone",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_01_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_01",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_01_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_01",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_02_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_02",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_02_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_02",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_03_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_03",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_east_03_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_east_03",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_01_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_01",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_01_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_01",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_02_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_02",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_02_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_02",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_03_brace_a",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_03",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_rack_west_03_brace_b",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_rack_west_03",
       "source_type": "rack",
       "source_role": null
     },
     {
       "name": "ASM_shed_rib_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_shed",
       "source_type": "structure",
       "source_role": null
     },
     {
       "name": "ASM_shed_rib_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_shed",
       "source_type": "structure",
       "source_role": null
     },
     {
       "name": "ASM_shed_roof",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_shed",
       "source_type": "structure",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_01_handle",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_01",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_01_vent_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_01",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_01_vent_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_01",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_01_vent_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_01",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_02_handle",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_02",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_02_vent_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_02",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_02_vent_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_02",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_02_vent_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_02",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_03_handle",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_03",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_03_vent_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_03",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_03_vent_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_03",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "ASM_utility_cabinet_03_vent_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_utility_cabinet_03",
       "source_type": "utility_cabinet",
       "source_role": null
     },
     {
       "name": "DET_gravel_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_gravel_0",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_gravel_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_gravel_1",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_gravel_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_gravel_2",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_gravel_3",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_gravel_3",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_gravel_4",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_gravel_4",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_0",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_1",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_2",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_3",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_3",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_4",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_4",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_imperf_5",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_imperf_5",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_tiremark_0",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_tiremark_0",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_tiremark_1",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_tiremark_1",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_tiremark_2",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_tiremark_2",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "DET_tiremark_3",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "DET_tiremark_3",
       "source_type": "untyped_physical",
       "source_role": null
     },
     {
       "name": "leaf_left",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Gate_South",
       "source_type": "gate",
       "source_role": null
     },
     {
       "name": "leaf_right",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Gate_South",
       "source_type": "gate",
       "source_role": null
     },
     {
       "name": "panel",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_East",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "panel.001",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_North",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "panel.002",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_South_After",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "panel.003",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_South_Before",
       "source_type": "fence",
       "source_role": null
     },
     {
       "name": "panel.004",
-      "reason": "spar_no_collision",
+      "reason": "worldfile_no_collision",
       "source_root": "ASM_Fence_West",
       "source_type": "fence",
       "source_role": null
@@ -12546,7 +12546,7 @@
   "visual_triangles": 24264,
   "source_blend": "artifacts/worldgen/utility_depot_40_v2/waypoints.blend",
   "navigation_goal_mode": "world",
-  "navigation_config": "ros/src/spar/config/worlds/utility_depot_40_v2.yaml",
+  "navigation_config": "ros/src/worldfile_demo/config/worlds/utility_depot_40_v2.yaml",
   "navigation_goals": {
     "frame": "map_world_enu",
     "goals": [

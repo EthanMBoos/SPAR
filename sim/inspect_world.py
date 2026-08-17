@@ -22,7 +22,7 @@ def main():
     if not os.path.isfile(path):
         sys.exit(
             f"world '{args.world}' does not exist at {path}\n"
-            "export it first with worldgen/export.py")
+            "export it first with worldfile/export.py")
 
     # Compile on this thread so missing assets and invalid MJCF retain their
     # useful MuJoCo error instead of becoming the viewer's "unknown exception".
